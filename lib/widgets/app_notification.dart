@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_typography.dart';
 
@@ -13,7 +14,7 @@ class AppNotification {
     Duration duration = const Duration(seconds: 3),
     Color? backgroundColor,
     Color? textColor,
-    IconData? icon,
+    PhosphorIconData? icon,
   }) {
     final overlay = Overlay.of(context);
     late OverlayEntry overlayEntry;
@@ -38,7 +39,7 @@ class AppNotification {
       context,
       message: message,
       backgroundColor: Colors.black,
-      icon: Icons.check_circle_outline,
+      icon: PhosphorIcons.checkCircle(),
     );
   }
 
@@ -48,7 +49,7 @@ class AppNotification {
       context,
       message: message,
       backgroundColor: AppColors.error,
-      icon: Icons.error_outline,
+      icon: PhosphorIcons.warningCircle(),
     );
   }
 }
@@ -57,7 +58,7 @@ class _NotificationBanner extends StatefulWidget {
   final String message;
   final Color backgroundColor;
   final Color textColor;
-  final IconData? icon;
+  final PhosphorIconData? icon;
   final VoidCallback onDismiss;
   final Duration duration;
 
@@ -161,8 +162,8 @@ class _NotificationBannerState extends State<_NotificationBanner>
                 child: Row(
                   children: [
                     if (widget.icon != null) ...[
-                      Icon(
-                        widget.icon,
+                      PhosphorIcon(
+                        widget.icon!,
                         color: widget.textColor,
                         size: 24,
                       ),

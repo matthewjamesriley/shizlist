@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../models/wish_list.dart';
@@ -97,8 +98,8 @@ class _ListsScreenState extends State<ListsScreen> {
                 color: AppColors.claimedBackground,
                 borderRadius: BorderRadius.circular(60),
               ),
-              child: const Icon(
-                Icons.card_giftcard,
+              child: PhosphorIcon(
+                PhosphorIcons.gift(),
                 size: 56,
                 color: AppColors.primary,
               ),
@@ -119,7 +120,7 @@ class _ListsScreenState extends State<ListsScreen> {
             const SizedBox(height: 32),
             ElevatedButton.icon(
               onPressed: _createNewList,
-              icon: const Icon(Icons.add),
+              icon: PhosphorIcon(PhosphorIcons.plus()),
               label: const Text('Create Your First List'),
             ),
           ],
@@ -146,7 +147,7 @@ class _ListsScreenState extends State<ListsScreen> {
     AppNotification.show(
       context,
       message: 'Share link: ${list.shareUrl}',
-      icon: Icons.link,
+      icon: PhosphorIcons.link(),
     );
   }
 

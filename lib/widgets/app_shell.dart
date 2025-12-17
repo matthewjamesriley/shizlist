@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_typography.dart';
 import '../features/lists/widgets/create_list_dialog.dart';
@@ -57,7 +58,7 @@ class _AppShellState extends State<AppShell> {
       extendBody: true,
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.search),
+          icon: PhosphorIcon(PhosphorIcons.magnifyingGlass()),
           onPressed: () {
             // TODO: Open search
           },
@@ -76,7 +77,7 @@ class _AppShellState extends State<AppShell> {
         actions: [
           // Messages icon
           IconButton(
-            icon: const Icon(Icons.message_outlined),
+            icon: PhosphorIcon(PhosphorIcons.chatCircleText()),
             onPressed: () => context.go(AppRoutes.messages),
             tooltip: 'Messages',
           ),
@@ -85,11 +86,11 @@ class _AppShellState extends State<AppShell> {
             padding: const EdgeInsets.only(right: 8),
             child: GestureDetector(
               onTap: () => _scaffoldKey.currentState?.openEndDrawer(),
-              child: const CircleAvatar(
+              child: CircleAvatar(
                 radius: 18,
                 backgroundColor: AppColors.primaryLight,
-                child: Icon(
-                  Icons.person,
+                child: PhosphorIcon(
+                  PhosphorIcons.user(),
                   color: AppColors.textOnPrimary,
                   size: 20,
                 ),
@@ -109,25 +110,33 @@ class _AppShellState extends State<AppShell> {
           child: NavigationBar(
             selectedIndex: currentIndex,
             onDestinationSelected: (index) => _onTabTapped(context, index),
-            destinations: const [
+            destinations: [
               NavigationDestination(
-                icon: Icon(Icons.star_outline),
-                selectedIcon: Icon(Icons.star),
+                icon: PhosphorIcon(PhosphorIcons.star()),
+                selectedIcon: PhosphorIcon(
+                  PhosphorIcons.star(PhosphorIconsStyle.fill),
+                ),
                 label: 'My lists',
               ),
               NavigationDestination(
-                icon: Icon(Icons.person_add_outlined),
-                selectedIcon: Icon(Icons.person_add),
+                icon: PhosphorIcon(PhosphorIcons.userPlus()),
+                selectedIcon: PhosphorIcon(
+                  PhosphorIcons.userPlus(PhosphorIconsStyle.fill),
+                ),
                 label: 'Invite',
               ),
               NavigationDestination(
-                icon: Icon(Icons.contacts_outlined),
-                selectedIcon: Icon(Icons.contacts),
+                icon: PhosphorIcon(PhosphorIcons.addressBook()),
+                selectedIcon: PhosphorIcon(
+                  PhosphorIcons.addressBook(PhosphorIconsStyle.fill),
+                ),
                 label: 'Contacts',
               ),
               NavigationDestination(
-                icon: Icon(Icons.share_outlined),
-                selectedIcon: Icon(Icons.share),
+                icon: PhosphorIcon(PhosphorIcons.shareFat()),
+                selectedIcon: PhosphorIcon(
+                  PhosphorIcons.shareFat(PhosphorIconsStyle.fill),
+                ),
                 label: 'Share',
               ),
             ],
@@ -184,7 +193,7 @@ class _AppShellState extends State<AppShell> {
                     onPressed: () {
                       _showAddItemSheet(context);
                     },
-                    child: const Icon(Icons.add, size: 28),
+                    child: PhosphorIcon(PhosphorIcons.plus(), size: 28),
                   ),
                 ],
               )
@@ -474,7 +483,7 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
                         onPressed: () {
                           // TODO: Open Amazon search
                         },
-                        icon: const Icon(Icons.search),
+                        icon: PhosphorIcon(PhosphorIcons.magnifyingGlass()),
                         label: const Text('Or, Search on Amazon'),
                       ),
                     ),
