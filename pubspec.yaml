@@ -1,0 +1,53 @@
+name: shizlist
+description: "Share the stuff you want - A collaborative wish list app"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.7.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # UI & Icons
+  cupertino_icons: ^1.0.8
+  google_fonts: ^6.1.0
+  flutter_svg: ^2.0.9
+  cached_network_image: ^3.3.1
+  
+  # State Management
+  flutter_riverpod: ^2.4.9
+  riverpod_annotation: ^2.3.3
+  
+  # Navigation
+  go_router: ^13.2.0
+  
+  # Backend - Supabase
+  supabase_flutter: ^2.3.4
+  
+  # Utilities
+  uuid: ^4.3.3
+  intl: ^0.19.0
+  share_plus: ^7.2.2
+  url_launcher: ^6.2.4
+  image_picker: ^1.0.7
+  path_provider: ^2.1.2
+  flutter_image_compress: ^2.1.0
+  
+  # Local Storage
+  shared_preferences: ^2.2.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  riverpod_generator: ^2.3.9
+  build_runner: ^2.4.8
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/icons/
