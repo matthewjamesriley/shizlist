@@ -10,6 +10,17 @@ class CreateListDialog extends StatefulWidget {
 
   @override
   State<CreateListDialog> createState() => _CreateListDialogState();
+
+  /// Show the create list dialog as a bottom sheet
+  static Future<WishList?> show(BuildContext context) {
+    return showModalBottomSheet<WishList>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      showDragHandle: false,
+      builder: (context) => const CreateListDialog(),
+    );
+  }
 }
 
 class _CreateListDialogState extends State<CreateListDialog> {
@@ -28,99 +39,176 @@ class _CreateListDialogState extends State<CreateListDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(
-        'Create New List',
-        style: AppTypography.titleLarge,
+    return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.85,
       ),
-      content: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              TextFormField(
-                controller: _titleController,
-                decoration: const InputDecoration(
-                  labelText: 'List Name *',
-                  hintText: 'e.g., Birthday Wishlist',
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Header with black background
+          Container(
+            decoration: const BoxDecoration(
+              color: Colors.black,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // Title - centered
+                Text(
+                  'New list',
+                  style: AppTypography.titleLarge.copyWith(color: Colors.white),
                 ),
-                textCapitalization: TextCapitalization.words,
-                autofocus: true,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a list name';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              
-              TextFormField(
-                controller: _descriptionController,
-                decoration: const InputDecoration(
-                  labelText: 'Description',
-                  hintText: 'What is this list for?',
+
+                // Buttons row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Cancel button
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 12,
+                        ),
+                        child: Text(
+                          'Cancel',
+                          style: AppTypography.titleMedium.copyWith(
+                            color: Colors.white70,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // Create button - prominent pill style
+                    GestureDetector(
+                      onTap: _isLoading ? null : _createList,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 18,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.accent,
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        child:
+                            _isLoading
+                                ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                                : Text(
+                                  'Create',
+                                  style: AppTypography.titleMedium.copyWith(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                      ),
+                    ),
+                  ],
                 ),
-                textCapitalization: TextCapitalization.sentences,
-                maxLines: 2,
-              ),
-              const SizedBox(height: 24),
-              
-              Text(
-                'Visibility',
-                style: AppTypography.labelLarge,
-              ),
-              const SizedBox(height: 8),
-              
-              Row(
-                children: [
-                  Expanded(
-                    child: _VisibilityOption(
-                      icon: Icons.lock,
-                      title: 'Private',
-                      subtitle: 'Only shared users',
-                      isSelected: _visibility == ListVisibility.private,
-                      onTap: () {
-                        setState(() => _visibility = ListVisibility.private);
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _VisibilityOption(
-                      icon: Icons.public,
-                      title: 'Public',
-                      subtitle: 'Anyone with link',
-                      isSelected: _visibility == ListVisibility.public,
-                      onTap: () {
-                        setState(() => _visibility = ListVisibility.public);
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
+
+          // Content
+          Flexible(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(
+                24,
+                24,
+                24,
+                24 + MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    TextFormField(
+                      controller: _titleController,
+                      decoration: const InputDecoration(hintText: 'List name'),
+                      textCapitalization: TextCapitalization.words,
+                      autofocus: true,
+                      style: AppTypography.titleMedium,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter a list name';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 24),
+
+                    TextFormField(
+                      controller: _descriptionController,
+                      decoration: const InputDecoration(
+                        hintText: 'Description (optional)',
+                      ),
+                      textCapitalization: TextCapitalization.sentences,
+                      minLines: 2,
+                      maxLines: 3,
+                      style: AppTypography.titleMedium,
+                    ),
+                    const SizedBox(height: 32),
+
+                    Text('Visibility', style: AppTypography.titleMedium),
+                    const SizedBox(height: 16),
+
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _VisibilityOption(
+                            icon: Icons.lock_outline,
+                            title: 'Private',
+                            subtitle: 'Only shared users',
+                            isSelected: _visibility == ListVisibility.private,
+                            onTap: () {
+                              setState(
+                                () => _visibility = ListVisibility.private,
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _VisibilityOption(
+                            icon: Icons.public,
+                            title: 'Public',
+                            subtitle: 'Anyone with link',
+                            isSelected: _visibility == ListVisibility.public,
+                            onTap: () {
+                              setState(
+                                () => _visibility = ListVisibility.public,
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        ElevatedButton(
-          onPressed: _isLoading ? null : _createList,
-          child: _isLoading
-              ? const SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Text('Create'),
-        ),
-      ],
     );
   }
 
@@ -135,9 +223,10 @@ class _CreateListDialogState extends State<CreateListDialog> {
       uid: const Uuid().v4(),
       ownerId: 'current-user', // TODO: Get from auth
       title: _titleController.text.trim(),
-      description: _descriptionController.text.trim().isEmpty
-          ? null
-          : _descriptionController.text.trim(),
+      description:
+          _descriptionController.text.trim().isEmpty
+              ? null
+              : _descriptionController.text.trim(),
       visibility: _visibility,
       createdAt: DateTime.now(),
     );
@@ -165,36 +254,38 @@ class _VisibilityOption extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(20),
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
         decoration: BoxDecoration(
           border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.border,
+            color: isSelected ? AppColors.primary : AppColors.divider,
             width: isSelected ? 2 : 1,
           ),
-          borderRadius: BorderRadius.circular(12),
-          color: isSelected
-              ? AppColors.claimedBackground
-              : AppColors.surface,
+          borderRadius: BorderRadius.circular(20),
+          color:
+              isSelected ? AppColors.claimedBackground : Colors.grey.shade100,
         ),
         child: Column(
           children: [
             Icon(
               icon,
               color: isSelected ? AppColors.primary : AppColors.textSecondary,
-              size: 28,
+              size: 32,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             Text(
               title,
-              style: AppTypography.labelLarge.copyWith(
+              style: AppTypography.titleMedium.copyWith(
                 color: isSelected ? AppColors.primary : AppColors.textPrimary,
               ),
             ),
+            const SizedBox(height: 4),
             Text(
               subtitle,
-              style: AppTypography.bodySmall,
+              style: AppTypography.bodyMedium.copyWith(
+                color: AppColors.textPrimary,
+              ),
               textAlign: TextAlign.center,
             ),
           ],
@@ -203,5 +294,3 @@ class _VisibilityOption extends StatelessWidget {
     );
   }
 }
-
-

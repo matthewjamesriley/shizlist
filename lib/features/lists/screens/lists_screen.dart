@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../models/wish_list.dart';
+import '../../../widgets/app_notification.dart';
 import '../../../widgets/list_card.dart';
 import '../widgets/create_list_dialog.dart';
 
@@ -69,12 +70,8 @@ class _ListsScreenState extends State<ListsScreen> {
       onRefresh: _refreshLists,
       child: ListView.builder(
         padding: const EdgeInsets.symmetric(vertical: 8),
-        itemCount: _lists.length + 1, // +1 for create button
+        itemCount: _lists.length,
         itemBuilder: (context, index) {
-          if (index == _lists.length) {
-            return _buildCreateListButton();
-          }
-
           final list = _lists[index];
           return ListCard(
             list: list,
@@ -131,20 +128,6 @@ class _ListsScreenState extends State<ListsScreen> {
     );
   }
 
-  Widget _buildCreateListButton() {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: OutlinedButton.icon(
-        onPressed: _createNewList,
-        icon: const Icon(Icons.add),
-        label: const Text('Create New List'),
-        style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-        ),
-      ),
-    );
-  }
-
   Future<void> _refreshLists() async {
     setState(() => _isLoading = true);
     
@@ -160,16 +143,10 @@ class _ListsScreenState extends State<ListsScreen> {
 
   void _shareList(WishList list) {
     // TODO: Implement share functionality
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Share link: ${list.shareUrl}'),
-        action: SnackBarAction(
-          label: 'Copy',
-          onPressed: () {
-            // TODO: Copy to clipboard
-          },
-        ),
-      ),
+    AppNotification.show(
+      context,
+      message: 'Share link: ${list.shareUrl}',
+      icon: Icons.link,
     );
   }
 
@@ -185,11 +162,7 @@ class _ListsScreenState extends State<ListsScreen> {
       });
       
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Created "${result.title}"'),
-          ),
-        );
+        AppNotification.success(context, 'Created "${result.title}"');
       }
     }
   }

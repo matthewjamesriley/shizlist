@@ -42,6 +42,7 @@ class _AppDrawerState extends State<AppDrawer> {
   @override
   Widget build(BuildContext context) {
     return Drawer(
+      backgroundColor: Colors.black.withValues(alpha: 0.95),
       child: SafeArea(
         child: Column(
           children: [
@@ -125,11 +126,11 @@ class _AppDrawerState extends State<AppDrawer> {
                       _showAboutDialog(context);
                     },
                   ),
-                  const Divider(),
+                  const Divider(color: Colors.white24),
                   _DrawerItem(
                     icon: Icons.logout,
                     title: 'Log Out',
-                    textColor: AppColors.error,
+                    textColor: AppColors.errorLight,
                     onTap: () => _handleLogout(context),
                   ),
                 ],
@@ -141,7 +142,7 @@ class _AppDrawerState extends State<AppDrawer> {
               padding: const EdgeInsets.all(16),
               child: Text(
                 '${AppConstants.appName} v${AppConstants.appVersion}',
-                style: AppTypography.bodySmall,
+                style: AppTypography.bodySmall.copyWith(color: Colors.white54),
               ),
             ),
           ],
@@ -227,7 +228,7 @@ class _DrawerItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = textColor ?? AppColors.textPrimary;
+    final color = textColor ?? Colors.white;
 
     return ListTile(
       leading: Icon(icon, color: color),

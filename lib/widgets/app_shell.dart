@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_typography.dart';
+import '../features/lists/widgets/create_list_dialog.dart';
 import '../routing/app_router.dart';
 import 'app_drawer.dart';
+import 'app_notification.dart';
 import 'shizlist_logo.dart';
 
 /// Main app shell with bottom navigation and drawer
@@ -62,7 +64,10 @@ class _AppShellState extends State<AppShell> {
         ),
         title:
             currentIndex == 0
-                ? const ShizListLogo(height: 32)
+                ? Transform.translate(
+                  offset: const Offset(0, -4),
+                  child: const ShizListLogo(height: 32),
+                )
                 : Text(
                   _getTitle(currentIndex),
                   style: AppTypography.titleLarge,
@@ -108,7 +113,7 @@ class _AppShellState extends State<AppShell> {
               NavigationDestination(
                 icon: Icon(Icons.star_outline),
                 selectedIcon: Icon(Icons.star),
-                label: 'My Lists',
+                label: 'My lists',
               ),
               NavigationDestination(
                 icon: Icon(Icons.person_add_outlined),
@@ -131,12 +136,57 @@ class _AppShellState extends State<AppShell> {
       ),
       floatingActionButton:
           currentIndex == 0
-              ? FloatingActionButton.large(
-                onPressed: () {
-                  // TODO: Navigate to add item with current list
-                  _showAddItemSheet(context);
-                },
-                child: const Icon(Icons.add, size: 36),
+              ? Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Add List button (left)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 32),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(32),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 6.5, sigmaY: 6.5),
+                        child: Material(
+                          color: Colors.white.withValues(alpha: 0.92),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(32),
+                            side: BorderSide(
+                              color: Colors.black.withValues(alpha: 0.2),
+                              width: 1,
+                            ),
+                          ),
+                          child: InkWell(
+                            onTap: _showCreateListDialog,
+                            borderRadius: BorderRadius.circular(32),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 28,
+                                vertical: 16,
+                              ),
+                              child: Text(
+                                'Add list',
+                                style: AppTypography.titleMedium.copyWith(
+                                  color: Colors.black,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Add Item button (right) - Orange
+                  FloatingActionButton(
+                    heroTag: 'addItem',
+                    backgroundColor: AppColors.accent,
+                    foregroundColor: Colors.white,
+                    onPressed: () {
+                      _showAddItemSheet(context);
+                    },
+                    child: const Icon(Icons.add, size: 28),
+                  ),
+                ],
               )
               : null,
     );
@@ -145,7 +195,7 @@ class _AppShellState extends State<AppShell> {
   String _getTitle(int index) {
     switch (index) {
       case 0:
-        return 'My Lists';
+        return 'My lists';
       case 1:
         return 'Invite';
       case 2:
@@ -157,30 +207,28 @@ class _AppShellState extends State<AppShell> {
     }
   }
 
+  void _showCreateListDialog() async {
+    final result = await CreateListDialog.show(context);
+
+    if (result != null && mounted) {
+      AppNotification.success(context, 'Created "${result.title}"');
+    }
+  }
+
   void _showAddItemSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      useSafeArea: true,
-      builder:
-          (context) => DraggableScrollableSheet(
-            initialChildSize: 0.9,
-            minChildSize: 0.5,
-            maxChildSize: 0.95,
-            expand: false,
-            builder:
-                (context, scrollController) =>
-                    _QuickAddSheet(scrollController: scrollController),
-          ),
+      backgroundColor: Colors.transparent,
+      showDragHandle: false,
+      builder: (context) => const _QuickAddSheet(),
     );
   }
 }
 
 /// Quick add sheet for creating new items
 class _QuickAddSheet extends StatefulWidget {
-  final ScrollController scrollController;
-
-  const _QuickAddSheet({required this.scrollController});
+  const _QuickAddSheet();
 
   @override
   State<_QuickAddSheet> createState() => _QuickAddSheetState();
@@ -193,6 +241,7 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
   final _priceController = TextEditingController();
   final _urlController = TextEditingController();
   String _selectedCategory = 'Stuff';
+  bool _isLoading = false;
 
   final List<String> _categories = [
     'Stuff',
@@ -215,46 +264,100 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
   @override
   Widget build(BuildContext context) {
     return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.85,
+      ),
       decoration: const BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Drag handle
+          // Header with black background
           Container(
-            margin: const EdgeInsets.only(top: 12),
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: AppColors.divider,
-              borderRadius: BorderRadius.circular(2),
+            decoration: const BoxDecoration(
+              color: Colors.black,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
             ),
-          ),
-
-          // Header
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+            child: Stack(
+              alignment: Alignment.center,
               children: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel'),
+                // Title - centered
+                Text(
+                  'Add item',
+                  style: AppTypography.titleLarge.copyWith(color: Colors.white),
                 ),
-                Text('Add Item', style: AppTypography.titleLarge),
-                TextButton(onPressed: _saveItem, child: const Text('Save')),
+
+                // Buttons row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Cancel button
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 12,
+                        ),
+                        child: Text(
+                          'Cancel',
+                          style: AppTypography.titleMedium.copyWith(
+                            color: Colors.white70,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // Save button - prominent pill style
+                    GestureDetector(
+                      onTap: _isLoading ? null : _saveItem,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 18,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.accent,
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        child:
+                            _isLoading
+                                ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                                : Text(
+                                  'Add',
+                                  style: AppTypography.titleMedium.copyWith(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
 
-          const Divider(height: 1),
-
           // Form
-          Expanded(
+          Flexible(
             child: SingleChildScrollView(
-              controller: widget.scrollController,
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.fromLTRB(
+                24,
+                24,
+                24,
+                24 + MediaQuery.of(context).viewInsets.bottom,
+              ),
               child: Form(
                 key: _formKey,
                 child: Column(
@@ -263,11 +366,9 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
                     // Name field
                     TextFormField(
                       controller: _nameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Item Name *',
-                        hintText: 'What do you want?',
-                      ),
+                      decoration: const InputDecoration(hintText: 'Item name'),
                       textCapitalization: TextCapitalization.words,
+                      style: AppTypography.titleMedium,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Please enter an item name';
@@ -275,73 +376,92 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 24),
 
                     // Description field
                     TextFormField(
                       controller: _descriptionController,
                       decoration: const InputDecoration(
-                        labelText: 'Description',
-                        hintText: 'Add more details (optional)',
+                        hintText: 'Description (optional)',
                       ),
+                      minLines: 1,
                       maxLines: 3,
                       textCapitalization: TextCapitalization.sentences,
+                      style: AppTypography.titleMedium,
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 24),
 
                     // Price field
                     TextFormField(
                       controller: _priceController,
                       decoration: const InputDecoration(
-                        labelText: 'Price',
-                        hintText: '0.00',
+                        hintText: 'Price',
                         prefixText: '\$ ',
                       ),
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
+                      style: AppTypography.titleMedium,
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 24),
 
                     // URL field
                     TextFormField(
                       controller: _urlController,
                       decoration: const InputDecoration(
-                        labelText: 'Product URL',
-                        hintText: 'Paste link (optional)',
-                        prefixIcon: Icon(Icons.link),
+                        hintText: 'Product URL (optional)',
                       ),
                       keyboardType: TextInputType.url,
+                      style: AppTypography.titleMedium,
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 32),
 
                     // Category selection
-                    Text('Category', style: AppTypography.labelLarge),
-                    const SizedBox(height: 12),
+                    Text('Category', style: AppTypography.titleMedium),
+                    const SizedBox(height: 16),
                     Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
+                      spacing: 10,
+                      runSpacing: 10,
                       children:
                           _categories.map((category) {
                             final isSelected = _selectedCategory == category;
-                            return ChoiceChip(
-                              label: Text(category),
-                              selected: isSelected,
-                              onSelected: (selected) {
-                                if (selected) {
-                                  setState(() => _selectedCategory = category);
-                                }
-                              },
-                              selectedColor: AppColors.claimedBackground,
-                              labelStyle: TextStyle(
-                                color:
-                                    isSelected
-                                        ? AppColors.primary
-                                        : AppColors.textPrimary,
-                                fontWeight:
-                                    isSelected
-                                        ? FontWeight.w600
-                                        : FontWeight.normal,
+                            return GestureDetector(
+                              onTap:
+                                  () => setState(
+                                    () => _selectedCategory = category,
+                                  ),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 12,
+                                ),
+                                decoration: BoxDecoration(
+                                  color:
+                                      isSelected
+                                          ? AppColors.claimedBackground
+                                          : Colors.grey.shade100,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color:
+                                        isSelected
+                                            ? AppColors.primary
+                                            : AppColors.divider,
+                                    width: isSelected ? 2 : 1,
+                                  ),
+                                ),
+                                child: Text(
+                                  category,
+                                  style: AppTypography.bodyLarge.copyWith(
+                                    color:
+                                        isSelected
+                                            ? AppColors.primary
+                                            : AppColors.textPrimary,
+                                    fontWeight:
+                                        isSelected
+                                            ? FontWeight.w600
+                                            : FontWeight.normal,
+                                  ),
+                                ),
                               ),
                             );
                           }).toList(),
@@ -372,12 +492,7 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
     if (_formKey.currentState!.validate()) {
       // TODO: Save item via ItemService
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Item added!'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      AppNotification.success(context, 'Item added!');
     }
   }
 }

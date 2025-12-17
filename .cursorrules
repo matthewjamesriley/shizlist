@@ -82,7 +82,8 @@
 \pard\intbl\itap1\pardeftab720\partightenfactor0
 \cf2 \up0 \nosupersub \ulnone Revenue Model\cf0 \up0 \nosupersub \ulnone \cell 
 \pard\intbl\itap1\pardeftab720\partightenfactor0
-\cf2 \up0 \nosupersub \ulnone Amazon Affiliate links generated via the Product Advertising API (PA-API).\cf0 \up0 \nosupersub \ulnone \cf4 \up0 \nosupersub \ulnone \cell \lastrow\row
+\cf2 \up0 \nosupersub \ulnone Amazon Affiliate links generated via the Product Advertising API (PA-API).\cf0 \up0 \nosupersub \ulnone 
+\cf4 \up0 \nosupersub \ulnone \cell \lastrow\row
 \pard\pardeftab720\partightenfactor0
 \cf4 \
 \pard\pardeftab720\sa280\partightenfactor0
@@ -113,7 +114,7 @@
 \f0\b \cf2 C. Navigation Structure\
 \pard\tx220\tx720\pardeftab720\li720\fi-720\sa240\partightenfactor0
 \ls3\ilvl0
-\f1\b0 \cf2 \up0 \nosupersub \ulnone {\listtext	\uc0\u8226 	}\up0 \nosupersub \ulnone Top Bar: Title, Search/Filter Icon, User Profile Picture (Taps to open Drawer).\
+\f1\b0 \cf2 \up0 \nosupersub \ulnone {\listtext	\uc0\u8226 	}\up0 \nosupersub \ulnone Top Bar: Title, Search/My listIcon, User Profile Picture (Taps to open Drawer).\
 \ls3\ilvl0\up0 \nosupersub \ulnone {\listtext	\uc0\u8226 	}\up0 \nosupersub \ulnone Bottom Tab Bar (5 Tabs): My Lists, 
 \f0\b Invite
 \f1\b0 , Contacts, Messages, Share.\
@@ -216,7 +217,7 @@
 \f3\fs36 \cf2 \uc0\u55356 \u57256 
 \f0\b  ShizList Key UI Screens\
 \pard\pardeftab720\sa280\partightenfactor0
-
+My list
 \fs28 \cf2 1. Main List View (My Lists)\
 \pard\pardeftab720\sa240\partightenfactor0
 
@@ -297,7 +298,7 @@
 \f0\b \cf2 \up0 \nosupersub \ulnone Bottom Tab Bar
 \f1\b0 \cf0 \up0 \nosupersub \ulnone \cell 
 \pard\intbl\itap1\pardeftab720\partightenfactor0
-\cf2 \up0 \nosupersub \ulnone Fixed at the bottom with 5 icons: 
+\cf2 \My listsupersub \ulnone Fixed at the bottom with 5 icons: 
 \f0\b My Lists, Invite, Contacts, Messages, Share
 \f1\b0 . The active tab uses the 
 \f0\b ShizList Teal
@@ -318,7 +319,8 @@
 \f0\b ShizList Teal
 \f1\b0 , with a + icon. This is the main entry point for adding items.\cf0 \up0 \nosupersub \ulnone \cell 
 \pard\intbl\itap1\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
-\cf0 \cf4 \up0 \nosupersub \ulnone \cell \lastrow\row
+\cf0 
+\cf4 \up0 \nosupersub \ulnone \cell \lastrow\row
 \pard\pardeftab720\partightenfactor0
 \cf4 \
 \pard\pardeftab720\sa280\partightenfactor0
@@ -403,5 +405,6 @@
 \f0\b ShizList Teal
 \f1\b0 . Below the form, a secondary option: "Or, Search on Amazon."\cf0 \up0 \nosupersub \ulnone \cell 
 \pard\intbl\itap1\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
-\cf0 \cf2 \up0 \nosupersub \ulnone \cell \lastrow\row
+\cf0 
+\cf2 \up0 \nosupersub \ulnone \cell \lastrow\row
 }

@@ -66,7 +66,7 @@ class ListCard extends StatelessWidget {
                           const SizedBox(width: 4),
                           Text(
                             list.isPublic ? 'Public' : 'Private',
-                            style: AppTypography.labelSmall.copyWith(
+                            style: AppTypography.labelMedium.copyWith(
                               color: Colors.white,
                             ),
                           ),
@@ -87,16 +87,16 @@ class ListCard extends StatelessWidget {
                   // Title
                   Text(
                     list.title,
-                    style: AppTypography.titleMedium,
+                    style: AppTypography.titleLarge,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
 
                   if (list.description != null) ...[
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
                     Text(
                       list.description!,
-                      style: AppTypography.bodySmall,
+                      style: AppTypography.bodyMedium,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -168,18 +168,20 @@ class ListCard extends StatelessWidget {
       children: [
         Icon(
           icon,
-          size: 16,
+          size: 18,
           color: AppColors.textSecondary,
         ),
         const SizedBox(width: 4),
         Text(
           value,
-          style: AppTypography.labelMedium,
+          style: AppTypography.labelLarge,
         ),
-        const SizedBox(width: 2),
+        const SizedBox(width: 3),
         Text(
           label,
-          style: AppTypography.bodySmall,
+          style: AppTypography.bodyMedium.copyWith(
+            color: AppColors.textSecondary,
+          ),
         ),
       ],
     );

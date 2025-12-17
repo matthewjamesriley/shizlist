@@ -40,7 +40,8 @@ class AppRouter {
     debugLogDiagnostics: true,
     redirect: (context, state) {
       final isAuthenticated = SupabaseService.isAuthenticated;
-      final isAuthRoute = state.matchedLocation == AppRoutes.login ||
+      final isAuthRoute =
+          state.matchedLocation == AppRoutes.login ||
           state.matchedLocation == AppRoutes.signup;
 
       // Redirect to login if not authenticated and not on auth route
@@ -73,13 +74,13 @@ class AppRouter {
         navigatorKey: _shellNavigatorKey,
         builder: (context, state, child) => AppShell(child: child),
         routes: [
-          // My Lists tab
+          // My lists tab
           GoRoute(
             path: AppRoutes.lists,
             name: 'lists',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: ListsScreen(),
-            ),
+            pageBuilder:
+                (context, state) =>
+                    const NoTransitionPage(child: ListsScreen()),
             routes: [
               GoRoute(
                 path: ':uid',
@@ -96,36 +97,37 @@ class AppRouter {
           GoRoute(
             path: AppRoutes.invite,
             name: 'invite',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: ShareScreen(), // Reusing share for invite
-            ),
+            pageBuilder:
+                (context, state) => const NoTransitionPage(
+                  child: ShareScreen(), // Reusing share for invite
+                ),
           ),
 
           // Contacts tab
           GoRoute(
             path: AppRoutes.contacts,
             name: 'contacts',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: ContactsScreen(),
-            ),
+            pageBuilder:
+                (context, state) =>
+                    const NoTransitionPage(child: ContactsScreen()),
           ),
 
           // Messages tab
           GoRoute(
             path: AppRoutes.messages,
             name: 'messages',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: MessagesScreen(),
-            ),
+            pageBuilder:
+                (context, state) =>
+                    const NoTransitionPage(child: MessagesScreen()),
           ),
 
           // Share tab
           GoRoute(
             path: AppRoutes.share,
             name: 'share',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: ShareScreen(),
-            ),
+            pageBuilder:
+                (context, state) =>
+                    const NoTransitionPage(child: ShareScreen()),
           ),
         ],
       ),
@@ -143,36 +145,31 @@ class AppRouter {
         },
       ),
     ],
-    errorBuilder: (context, state) => Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.error_outline,
-              size: 64,
-              color: Colors.red,
+    errorBuilder:
+        (context, state) => Scaffold(
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                const SizedBox(height: 16),
+                Text(
+                  'Page not found',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  state.matchedLocation,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: () => context.go(AppRoutes.lists),
+                  child: const Text('Go Home'),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            Text(
-              'Page not found',
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              state.matchedLocation,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: () => context.go(AppRoutes.lists),
-              child: const Text('Go Home'),
-            ),
-          ],
+          ),
         ),
-      ),
-    ),
   );
 }
-
-

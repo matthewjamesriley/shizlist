@@ -3,63 +3,63 @@ import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 
 /// ShizList Typography System
-/// Headline/Display: Montserrat (Bold 700 / Black 900)
+/// Headline/Display: Lato (Bold 700 / Black 900)
 /// Body/UI Text: Source Sans Pro (Regular 400 / Semi-Bold 600)
 class AppTypography {
   AppTypography._();
 
-  // Montserrat - Headlines & Display
-  static TextStyle get displayLarge => GoogleFonts.montserrat(
+  // Lato - Headlines & Display
+  static TextStyle get displayLarge => GoogleFonts.lato(
         fontSize: 57,
         fontWeight: FontWeight.w900,
         color: AppColors.textPrimary,
         letterSpacing: -0.25,
       );
 
-  static TextStyle get displayMedium => GoogleFonts.montserrat(
+  static TextStyle get displayMedium => GoogleFonts.lato(
         fontSize: 45,
         fontWeight: FontWeight.w900,
         color: AppColors.textPrimary,
       );
 
-  static TextStyle get displaySmall => GoogleFonts.montserrat(
+  static TextStyle get displaySmall => GoogleFonts.lato(
         fontSize: 36,
         fontWeight: FontWeight.w700,
         color: AppColors.textPrimary,
       );
 
-  static TextStyle get headlineLarge => GoogleFonts.montserrat(
+  static TextStyle get headlineLarge => GoogleFonts.lato(
         fontSize: 32,
         fontWeight: FontWeight.w700,
         color: AppColors.textPrimary,
       );
 
-  static TextStyle get headlineMedium => GoogleFonts.montserrat(
+  static TextStyle get headlineMedium => GoogleFonts.lato(
         fontSize: 28,
         fontWeight: FontWeight.w700,
         color: AppColors.textPrimary,
       );
 
-  static TextStyle get headlineSmall => GoogleFonts.montserrat(
+  static TextStyle get headlineSmall => GoogleFonts.lato(
         fontSize: 24,
         fontWeight: FontWeight.w700,
         color: AppColors.textPrimary,
       );
 
-  static TextStyle get titleLarge => GoogleFonts.montserrat(
+  static TextStyle get titleLarge => GoogleFonts.lato(
         fontSize: 22,
         fontWeight: FontWeight.w600,
         color: AppColors.textPrimary,
       );
 
-  static TextStyle get titleMedium => GoogleFonts.montserrat(
+  static TextStyle get titleMedium => GoogleFonts.lato(
         fontSize: 16,
         fontWeight: FontWeight.w600,
         color: AppColors.textPrimary,
         letterSpacing: 0.15,
       );
 
-  static TextStyle get titleSmall => GoogleFonts.montserrat(
+  static TextStyle get titleSmall => GoogleFonts.lato(
         fontSize: 14,
         fontWeight: FontWeight.w600,
         color: AppColors.textPrimary,
@@ -116,7 +116,7 @@ class AppTypography {
         letterSpacing: 1.25,
       );
 
-  static TextStyle get priceText => GoogleFonts.montserrat(
+  static TextStyle get priceText => GoogleFonts.lato(
         fontSize: 18,
         fontWeight: FontWeight.w700,
         color: AppColors.primary,
@@ -128,7 +128,7 @@ class AppTypography {
         letterSpacing: 0.5,
       );
 
-  static TextStyle get claimedBadge => GoogleFonts.montserrat(
+  static TextStyle get claimedBadge => GoogleFonts.lato(
         fontSize: 12,
         fontWeight: FontWeight.w700,
         color: AppColors.primary,

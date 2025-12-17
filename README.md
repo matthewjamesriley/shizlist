@@ -35,7 +35,7 @@ A collaborative wish list app built with Flutter and Supabase, enabling multi-us
 
 ## 📱 Navigation
 
-- **Bottom Tab Bar:** My Lists, Invite, Contacts, Messages, Share
+- **Bottom Tab Bar:** My lists, Invite, Contacts, Messages, Share
 - **Floating Action Button:** Quick add items
 - **Side Drawer:** Profile, Settings, Logout
 

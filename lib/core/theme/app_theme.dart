@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 import 'app_typography.dart';
 
@@ -77,16 +78,13 @@ class AppTheme {
         ),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return AppTypography.labelMedium.copyWith(
+            return GoogleFonts.lato(
               color: AppColors.primary,
               fontSize: 14,
               fontWeight: FontWeight.w600,
             );
           }
-          return AppTypography.labelMedium.copyWith(
-            color: Colors.white70,
-            fontSize: 14,
-          );
+          return GoogleFonts.lato(color: Colors.white70, fontSize: 14);
         }),
       ),
 
@@ -108,36 +106,38 @@ class AppTheme {
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       ),
 
-      // Input Decoration
+      // Input Decoration - Rounded simple style
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.surfaceVariant,
+        fillColor: Colors.grey.shade100,
+        floatingLabelBehavior: FloatingLabelBehavior.never,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(32),
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(32),
           borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+          borderRadius: BorderRadius.circular(32),
+          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(32),
           borderSide: const BorderSide(color: AppColors.error, width: 1),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.error, width: 2),
+          borderRadius: BorderRadius.circular(32),
+          borderSide: const BorderSide(color: AppColors.error, width: 1.5),
         ),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 16,
         ),
-        hintStyle: AppTypography.bodyMedium.copyWith(color: AppColors.textHint),
-        labelStyle: AppTypography.bodyMedium,
+        hintStyle: AppTypography.bodyLarge.copyWith(
+          color: AppColors.textSecondary,
+        ),
       ),
 
       // Elevated Button Theme

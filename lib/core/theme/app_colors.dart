@@ -10,8 +10,13 @@ class AppColors {
   static const Color primaryLight = Color(0xFF4DB6AC);
   static const Color primaryDark = Color(0xFF00796B);
 
+  // Secondary Accent - ShizList Orange
+  static const Color accent = Color(0xFFec332f);
+  static const Color accentLight = Color.fromARGB(255, 244, 91, 89);
+  static const Color accentDark = Color.fromARGB(255, 197, 39, 36);
+
   // Background - Clean White
-  static const Color background = Color(0xFFFAFAFA);
+  static const Color background = Color(0xFFF1F1F1);
   static const Color surface = Color(0xFFFFFFFF);
   static const Color surfaceVariant = Color(0xFFF5F5F5);
 
@@ -24,7 +29,7 @@ class AppColors {
   // Error/Alert - Claim Red
   static const Color error = Color(0xFFD32F2F);
   static const Color errorLight = Color(0xFFEF5350);
-  
+
   // Success
   static const Color success = Color(0xFF4CAF50);
   static const Color successLight = Color(0xFF81C784);
@@ -36,18 +41,18 @@ class AppColors {
   // Dividers & Borders
   static const Color divider = Color(0xFFE0E0E0);
   static const Color border = Color(0xFFBDBDBD);
-  
+
   // Shadows
   static const Color shadow = Color(0x1A000000);
   static const Color shadowDark = Color(0x33000000);
 
   // Category Colors
-  static const Color categoryStuff = Color(0xFF5C6BC0);      // Indigo
-  static const Color categoryEvents = Color(0xFFEC407A);     // Pink
-  static const Color categoryTrips = Color(0xFF26A69A);      // Teal variant
-  static const Color categoryHomemade = Color(0xFFFFB74D);   // Orange
-  static const Color categoryMeals = Color(0xFF66BB6A);      // Green
-  static const Color categoryOther = Color(0xFF78909C);      // Blue Grey
+  static const Color categoryStuff = Color(0xFF5C6BC0); // Indigo
+  static const Color categoryEvents = Color(0xFFEC407A); // Pink
+  static const Color categoryTrips = Color(0xFF26A69A); // Teal variant
+  static const Color categoryHomemade = Color(0xFFFFB74D); // Orange
+  static const Color categoryMeals = Color(0xFF66BB6A); // Green
+  static const Color categoryOther = Color(0xFF78909C); // Blue Grey
 
   // Claimed Badge
   static const Color claimed = primary;
@@ -66,5 +71,3 @@ class AppColors {
     colors: [background, surface],
   );
 }
-
-
