@@ -27,6 +27,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
   List<ListItem> _items = [];
   bool _isLoading = true;
   final bool _isOwner = true; // TODO: Determine from auth
+  String _sortOption = 'newest';
 
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
@@ -108,13 +109,6 @@ class _ListDetailScreenState extends State<ListDetailScreen>
         ),
         title: Text(_list.title, style: const TextStyle(color: Colors.white)),
         actions: [
-          IconButton(
-            icon: PhosphorIcon(
-              PhosphorIcons.funnelSimple(),
-              color: Colors.white,
-            ),
-            onPressed: _showFilterSheet,
-          ),
           PopupMenuButton<String>(
             iconColor: Colors.white,
             onSelected: _handleMenuAction,
@@ -181,32 +175,81 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                 padding: const EdgeInsets.all(16),
                 color: AppColors.surfaceVariant,
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Text(_list.description!, style: AppTypography.bodyMedium),
+                    Text(
+                      _list.description!,
+                      style: AppTypography.bodyLarge.copyWith(
+                        color: AppColors.textPrimary,
+                        fontSize: 16,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
                     const SizedBox(height: 8),
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Icon(
-                          _list.isPublic ? Icons.public : Icons.lock,
-                          size: 16,
-                          color: AppColors.textSecondary,
+                        // Left side - public/private and item count
+                        Row(
+                          children: [
+                            Icon(
+                              _list.isPublic ? Icons.public : Icons.lock,
+                              size: 18,
+                              color: AppColors.textPrimary,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              _list.isPublic ? 'Public' : 'Private',
+                              style: AppTypography.bodyMedium.copyWith(
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Text(
+                              '${_list.itemCount} items',
+                              style: AppTypography.bodyMedium.copyWith(
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 4),
-                        Text(
-                          _list.isPublic ? 'Public List' : 'Private List',
-                          style: AppTypography.bodySmall,
-                        ),
-                        const SizedBox(width: 16),
-                        const Icon(
-                          Icons.list,
-                          size: 16,
-                          color: AppColors.textSecondary,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${_list.itemCount} items',
-                          style: AppTypography.bodySmall,
+                        // Right side - Sort dropdown
+                        PopupMenuButton<String>(
+                          onSelected: (value) {
+                            setState(() => _sortOption = value);
+                            // TODO: Apply sorting to _items
+                          },
+                          offset: const Offset(0, 40),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                _getSortLabel(_sortOption),
+                                style: AppTypography.bodyMedium.copyWith(
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              PhosphorIcon(
+                                PhosphorIcons.caretDown(),
+                                size: 16,
+                                color: AppColors.textPrimary,
+                              ),
+                            ],
+                          ),
+                          itemBuilder: (context) => [
+                            _buildSortMenuItem('priority_high', 'Priority: High to Low'),
+                            _buildSortMenuItem('priority_low', 'Priority: Low to High'),
+                            const PopupMenuDivider(),
+                            _buildSortMenuItem('price_high', 'Price: High to Low'),
+                            _buildSortMenuItem('price_low', 'Price: Low to High'),
+                            const PopupMenuDivider(),
+                            _buildSortMenuItem('newest', 'Newest First'),
+                            _buildSortMenuItem('oldest', 'Oldest First'),
+                          ],
                         ),
                       ],
                     ),
@@ -279,6 +322,52 @@ class _ListDetailScreenState extends State<ListDetailScreen>
     );
   }
 
+  String _getSortLabel(String option) {
+    switch (option) {
+      case 'priority_high':
+        return 'Priority High';
+      case 'priority_low':
+        return 'Priority Low';
+      case 'price_high':
+        return 'Price High';
+      case 'price_low':
+        return 'Price Low';
+      case 'newest':
+        return 'Newest';
+      case 'oldest':
+        return 'Oldest';
+      default:
+        return 'Sort';
+    }
+  }
+
+  PopupMenuItem<String> _buildSortMenuItem(String value, String label) {
+    final isSelected = _sortOption == value;
+    return PopupMenuItem<String>(
+      value: value,
+      child: Row(
+        children: [
+          if (isSelected)
+            PhosphorIcon(
+              PhosphorIcons.check(),
+              size: 18,
+              color: AppColors.primary,
+            )
+          else
+            const SizedBox(width: 18),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: AppTypography.bodyMedium.copyWith(
+              color: isSelected ? AppColors.primary : AppColors.textPrimary,
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildEmptyState() {
     return Center(
       child: Padding(
@@ -304,65 +393,6 @@ class _ListDetailScreenState extends State<ListDetailScreen>
           ],
         ),
       ),
-    );
-  }
-
-  void _showFilterSheet() {
-    showModalBottomSheet(
-      context: context,
-      builder:
-          (context) => Container(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Filter & Sort', style: AppTypography.titleLarge),
-                const SizedBox(height: 24),
-                Text('Sort by', style: AppTypography.labelLarge),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  children: [
-                    ChoiceChip(
-                      label: const Text('Date Added'),
-                      selected: true,
-                      onSelected: (_) {},
-                    ),
-                    ChoiceChip(
-                      label: const Text('Price'),
-                      selected: false,
-                      onSelected: (_) {},
-                    ),
-                    ChoiceChip(
-                      label: const Text('Priority'),
-                      selected: false,
-                      onSelected: (_) {},
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                Text('Show', style: AppTypography.labelLarge),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  children: [
-                    FilterChip(
-                      label: const Text('Available'),
-                      selected: true,
-                      onSelected: (_) {},
-                    ),
-                    FilterChip(
-                      label: const Text('Claimed'),
-                      selected: true,
-                      onSelected: (_) {},
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-              ],
-            ),
-          ),
     );
   }
 

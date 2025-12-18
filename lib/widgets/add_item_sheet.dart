@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_typography.dart';
+import '../models/list_item.dart';
 import '../models/wish_list.dart';
 import '../services/list_service.dart';
 import '../services/user_settings_service.dart';
@@ -43,7 +44,7 @@ class _AddItemSheetState extends State<AddItemSheet>
   final _quickAddController = TextEditingController();
   final _quickAddFocusNode = FocusNode();
 
-  String _selectedCategory = 'Stuff';
+  ItemCategory _selectedCategory = ItemCategory.stuff;
   bool _isLoading = false;
   bool _isLoadingLists = true;
 
@@ -54,15 +55,6 @@ class _AddItemSheetState extends State<AddItemSheet>
 
   // Quick add items
   List<String> _quickAddItems = [];
-
-  final List<String> _categories = [
-    'Stuff',
-    'Events',
-    'Trips',
-    'Homemade',
-    'Meals',
-    'Other',
-  ];
 
   @override
   void initState() {
@@ -336,7 +328,7 @@ class _AddItemSheetState extends State<AddItemSheet>
               spacing: 8,
               runSpacing: 8,
               children:
-                  _categories.map((category) {
+                  ItemCategory.values.map((category) {
                     final isSelected = _selectedCategory == category;
                     return GestureDetector(
                       onTap: () => setState(() => _selectedCategory = category),
@@ -352,19 +344,33 @@ class _AddItemSheetState extends State<AddItemSheet>
                                   : AppColors.surfaceVariant,
                           borderRadius: BorderRadius.circular(50),
                         ),
-                        child: Text(
-                          category,
-                          style: AppTypography.bodyMedium.copyWith(
-                            color:
-                                isSelected
-                                    ? Colors.white
-                                    : AppColors.textPrimary,
-                            fontWeight:
-                                isSelected
-                                    ? FontWeight.w600
-                                    : FontWeight.normal,
-                            fontSize: 14,
-                          ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              category.icon,
+                              size: 18,
+                              color:
+                                  isSelected
+                                      ? Colors.white
+                                      : category.color,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              category.displayName,
+                              style: AppTypography.bodyMedium.copyWith(
+                                color:
+                                    isSelected
+                                        ? Colors.white
+                                        : AppColors.textPrimary,
+                                fontWeight:
+                                    isSelected
+                                        ? FontWeight.w600
+                                        : FontWeight.normal,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     );
