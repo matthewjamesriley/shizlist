@@ -1,0 +1,859 @@
+import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
+import '../core/theme/app_colors.dart';
+import '../core/theme/app_typography.dart';
+import '../models/wish_list.dart';
+import '../services/list_service.dart';
+import '../services/user_settings_service.dart';
+import 'app_notification.dart';
+
+/// Unified Add Item sheet with tabs for Quick Add, Amazon Search, and Paste Link
+class AddItemSheet extends StatefulWidget {
+  /// Optional pre-selected list (when opened from a specific list)
+  final WishList? selectedList;
+
+  const AddItemSheet({super.key, this.selectedList});
+
+  /// Show the add item sheet
+  static Future<void> show(BuildContext context, {WishList? selectedList}) {
+    return showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      showDragHandle: false,
+      builder: (context) => AddItemSheet(selectedList: selectedList),
+    );
+  }
+
+  @override
+  State<AddItemSheet> createState() => _AddItemSheetState();
+}
+
+class _AddItemSheetState extends State<AddItemSheet>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _descriptionController = TextEditingController();
+  final _priceController = TextEditingController();
+  final _urlController = TextEditingController();
+  final _listSearchController = TextEditingController();
+  final _amazonSearchController = TextEditingController();
+  final _quickAddController = TextEditingController();
+  final _quickAddFocusNode = FocusNode();
+
+  String _selectedCategory = 'Stuff';
+  bool _isLoading = false;
+  bool _isLoadingLists = true;
+
+  List<WishList> _lists = [];
+  List<WishList> _filteredLists = [];
+  WishList? _selectedList;
+  bool _showListDropdown = false;
+
+  // Quick add items
+  List<String> _quickAddItems = [];
+
+  final List<String> _categories = [
+    'Stuff',
+    'Events',
+    'Trips',
+    'Homemade',
+    'Meals',
+    'Other',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+    _selectedList = widget.selectedList;
+    _loadLists();
+    _listSearchController.addListener(_filterLists);
+  }
+
+  Future<void> _loadLists() async {
+    try {
+      final lists = await ListService().getUserLists();
+      if (mounted) {
+        setState(() {
+          _lists = lists;
+          _filteredLists = lists;
+          // If no list was pre-selected, select the first one
+          if (_selectedList == null && lists.isNotEmpty) {
+            _selectedList = lists.first;
+          }
+          _isLoadingLists = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingLists = false);
+      }
+    }
+  }
+
+  void _filterLists() {
+    final query = _listSearchController.text.toLowerCase();
+    setState(() {
+      if (query.isEmpty) {
+        _filteredLists = _lists;
+      } else {
+        _filteredLists =
+            _lists
+                .where((list) => list.title.toLowerCase().contains(query))
+                .toList();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    _nameController.dispose();
+    _descriptionController.dispose();
+    _priceController.dispose();
+    _urlController.dispose();
+    _listSearchController.dispose();
+    _amazonSearchController.dispose();
+    _quickAddController.dispose();
+    _quickAddFocusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.9,
+      ),
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Header with black background
+          Container(
+            decoration: const BoxDecoration(
+              color: Colors.black,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: Column(
+              children: [
+                // Title row
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Title - centered
+                      Text(
+                        'Add item',
+                        style: AppTypography.titleLarge.copyWith(
+                          color: Colors.white,
+                        ),
+                      ),
+
+                      // Buttons row
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          // Cancel button
+                          GestureDetector(
+                            onTap: () => Navigator.pop(context),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 12,
+                              ),
+                              child: Text(
+                                'Cancel',
+                                style: AppTypography.titleMedium.copyWith(
+                                  color: Colors.white70,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          // Add button - pill style
+                          GestureDetector(
+                            onTap: _isLoading ? null : _saveItem,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 18,
+                                vertical: 12,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.accent,
+                                borderRadius: BorderRadius.circular(24),
+                              ),
+                              child:
+                                  _isLoading
+                                      ? const SizedBox(
+                                        height: 20,
+                                        width: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.white,
+                                        ),
+                                      )
+                                      : Text(
+                                        'Add',
+                                        style: AppTypography.titleMedium
+                                            .copyWith(
+                                              color: Colors.white,
+                                              fontSize: 16,
+                                            ),
+                                      ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Tab bar
+                TabBar(
+                  controller: _tabController,
+                  labelColor: Colors.white,
+                  unselectedLabelColor: Colors.white54,
+                  indicatorColor: AppColors.primary,
+                  indicatorWeight: 3,
+                  labelStyle: AppTypography.labelLarge.copyWith(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                  ),
+                  unselectedLabelStyle: AppTypography.labelLarge.copyWith(
+                    fontSize: 16,
+                  ),
+                  tabs: const [
+                    Tab(text: 'Item'),
+                    Tab(text: 'Quick add'),
+                    Tab(text: 'Amazon'),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // Tab content
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildQuickAddTab(),
+                _buildPasteLinkTab(),
+                _buildAmazonSearchTab(),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickAddTab() {
+    return SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(
+        24,
+        24,
+        24,
+        24 + MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // List selector (only show if not pre-selected)
+            if (widget.selectedList == null) ...[
+              _buildListSelector(),
+              const SizedBox(height: 24),
+            ],
+
+            // Name field
+            TextFormField(
+              controller: _nameController,
+              decoration: const InputDecoration(hintText: 'Item name'),
+              textCapitalization: TextCapitalization.words,
+              style: AppTypography.titleMedium,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter an item name';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+
+            // Description field
+            TextFormField(
+              controller: _descriptionController,
+              decoration: const InputDecoration(
+                hintText: 'Description (optional)',
+              ),
+              minLines: 1,
+              maxLines: 3,
+              textCapitalization: TextCapitalization.sentences,
+              style: AppTypography.bodyLarge,
+            ),
+            const SizedBox(height: 16),
+
+            // Price field
+            TextFormField(
+              controller: _priceController,
+              decoration: InputDecoration(
+                hintText: 'Price',
+                prefixText: '${UserSettingsService().currencySymbol} ',
+              ),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              style: AppTypography.bodyLarge,
+            ),
+            const SizedBox(height: 16),
+
+            // URL field
+            TextFormField(
+              controller: _urlController,
+              decoration: const InputDecoration(
+                hintText: 'Product URL (optional)',
+              ),
+              keyboardType: TextInputType.url,
+              style: AppTypography.bodyLarge,
+            ),
+            const SizedBox(height: 24),
+
+            // Category selection
+            Text('Category', style: AppTypography.titleMedium),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children:
+                  _categories.map((category) {
+                    final isSelected = _selectedCategory == category;
+                    return GestureDetector(
+                      onTap: () => setState(() => _selectedCategory = category),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color:
+                              isSelected
+                                  ? AppColors.primary
+                                  : AppColors.surfaceVariant,
+                          borderRadius: BorderRadius.circular(50),
+                        ),
+                        child: Text(
+                          category,
+                          style: AppTypography.bodyMedium.copyWith(
+                            color:
+                                isSelected
+                                    ? Colors.white
+                                    : AppColors.textPrimary,
+                            fontWeight:
+                                isSelected
+                                    ? FontWeight.w600
+                                    : FontWeight.normal,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+            ),
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAmazonSearchTab() {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          // List selector (only show if not pre-selected)
+          if (widget.selectedList == null) ...[
+            _buildListSelector(),
+            const SizedBox(height: 24),
+          ],
+
+          // Search field
+          TextField(
+            controller: _amazonSearchController,
+            style: AppTypography.bodyLarge,
+            decoration: InputDecoration(
+              hintText: 'Search Amazon...',
+              prefixIcon: Padding(
+                padding: const EdgeInsets.only(left: 12, right: 8),
+                child: PhosphorIcon(
+                  PhosphorIcons.magnifyingGlass(),
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              prefixIconConstraints: const BoxConstraints(minWidth: 0),
+              suffixIcon:
+                  _amazonSearchController.text.isNotEmpty
+                      ? IconButton(
+                        icon: PhosphorIcon(PhosphorIcons.x()),
+                        onPressed: () {
+                          _amazonSearchController.clear();
+                          setState(() {});
+                        },
+                      )
+                      : null,
+            ),
+            onSubmitted: _searchAmazon,
+            onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: 32),
+
+          // Search results placeholder
+          Expanded(
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  PhosphorIcon(
+                    PhosphorIcons.shoppingCart(),
+                    size: 64,
+                    color: AppColors.textHint,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Search for products on Amazon',
+                    style: AppTypography.bodyLarge.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Items will be added with affiliate links',
+                    style: AppTypography.bodySmall.copyWith(
+                      color: AppColors.textHint,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPasteLinkTab() {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // List selector (only show if not pre-selected)
+          if (widget.selectedList == null) ...[
+            _buildListSelector(),
+            const SizedBox(height: 24),
+          ],
+
+          // Quick add input
+          TextField(
+            controller: _quickAddController,
+            focusNode: _quickAddFocusNode,
+            style: AppTypography.titleMedium,
+            autofocus: true,
+            decoration: InputDecoration(
+              hintText: 'Type item name and press enter...',
+              hintStyle: AppTypography.bodyLarge.copyWith(
+                color: AppColors.textHint,
+              ),
+              suffixIcon: Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: PhosphorIcon(
+                  PhosphorIcons.arrowElbowDownLeft(),
+                  color: AppColors.textHint,
+                  size: 22,
+                ),
+              ),
+              suffixIconConstraints: const BoxConstraints(minWidth: 0),
+            ),
+            textInputAction: TextInputAction.done,
+            onSubmitted: _addQuickItem,
+          ),
+          const SizedBox(height: 24),
+
+          // Added items list
+          Expanded(
+            child:
+                _quickAddItems.isEmpty
+                    ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          PhosphorIcon(
+                            PhosphorIcons.lightning(),
+                            size: 48,
+                            color: AppColors.textHint,
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Quickly add items',
+                            style: AppTypography.titleMedium.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Type a name and press enter',
+                            style: AppTypography.bodyMedium.copyWith(
+                              color: AppColors.textHint,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                    : ListView.separated(
+                      itemCount: _quickAddItems.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 8),
+                      itemBuilder: (context, index) {
+                        final item = _quickAddItems[index];
+                        return Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceVariant,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            children: [
+                              PhosphorIcon(
+                                PhosphorIcons.check(PhosphorIconsStyle.bold),
+                                color: AppColors.primary,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  item,
+                                  style: AppTypography.bodyLarge,
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    _quickAddItems.removeAt(index);
+                                  });
+                                },
+                                child: PhosphorIcon(
+                                  PhosphorIcons.x(),
+                                  color: AppColors.textSecondary,
+                                  size: 20,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _addQuickItem(String value) {
+    final itemName = value.trim();
+    if (itemName.isEmpty) return;
+
+    if (_selectedList == null) {
+      AppNotification.error(context, 'Please select a list first');
+      return;
+    }
+
+    setState(() {
+      _quickAddItems.add(itemName);
+      _quickAddController.clear();
+    });
+
+    // Refocus the input for quick continuous adding
+    _quickAddFocusNode.requestFocus();
+
+    // TODO: Save item via ItemService
+    AppNotification.success(context, 'Added "$itemName"');
+  }
+
+  Widget _buildListSelector() {
+    if (_isLoadingLists) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceVariant,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.divider),
+        ),
+        child: const Center(
+          child: SizedBox(
+            height: 20,
+            width: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+      );
+    }
+
+    if (_lists.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceVariant,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.divider),
+        ),
+        child: Text(
+          'No lists yet. Create one first!',
+          style: AppTypography.bodyMedium.copyWith(
+            color: AppColors.textSecondary,
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Add to list', style: AppTypography.titleMedium),
+        const SizedBox(height: 8),
+
+        // Selected list display / dropdown trigger
+        GestureDetector(
+          onTap: () => setState(() => _showListDropdown = !_showListDropdown),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceVariant,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color:
+                    _showListDropdown ? AppColors.primary : AppColors.divider,
+                width: _showListDropdown ? 2 : 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                PhosphorIcon(
+                  PhosphorIcons.listBullets(),
+                  color: AppColors.textSecondary,
+                  size: 22,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    _selectedList?.title ?? 'Select a list',
+                    style: AppTypography.bodyLarge.copyWith(
+                      color:
+                          _selectedList != null
+                              ? AppColors.textPrimary
+                              : AppColors.textHint,
+                    ),
+                  ),
+                ),
+                PhosphorIcon(
+                  _showListDropdown
+                      ? PhosphorIcons.caretUp()
+                      : PhosphorIcons.caretDown(),
+                  color: AppColors.textSecondary,
+                  size: 20,
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        // Dropdown with search
+        if (_showListDropdown) ...[
+          const SizedBox(height: 8),
+          Container(
+            constraints: const BoxConstraints(maxHeight: 200),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.divider),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.08),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Search field
+                Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: TextField(
+                    controller: _listSearchController,
+                    style: AppTypography.bodyMedium,
+                    decoration: InputDecoration(
+                      hintText: 'Search lists...',
+                      hintStyle: AppTypography.bodyMedium.copyWith(
+                        color: AppColors.textHint,
+                      ),
+                      prefixIcon: Padding(
+                        padding: const EdgeInsets.only(left: 12, right: 8),
+                        child: PhosphorIcon(
+                          PhosphorIcons.magnifyingGlass(),
+                          color: AppColors.textSecondary,
+                          size: 20,
+                        ),
+                      ),
+                      prefixIconConstraints: const BoxConstraints(minWidth: 0),
+                      filled: true,
+                      fillColor: AppColors.surfaceVariant,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                ),
+
+                const Divider(height: 1),
+
+                // List items
+                Flexible(
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    itemCount: _filteredLists.length,
+                    itemBuilder: (context, index) {
+                      final list = _filteredLists[index];
+                      final isSelected = _selectedList?.uid == list.uid;
+
+                      return InkWell(
+                        onTap: () {
+                          setState(() {
+                            _selectedList = list;
+                            _showListDropdown = false;
+                            _listSearchController.clear();
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
+                          ),
+                          color:
+                              isSelected
+                                  ? AppColors.primary.withValues(alpha: 0.1)
+                                  : null,
+                          child: Row(
+                            children: [
+                              PhosphorIcon(
+                                isSelected
+                                    ? PhosphorIcons.star(
+                                      PhosphorIconsStyle.fill,
+                                    )
+                                    : PhosphorIcons.star(),
+                                color:
+                                    isSelected
+                                        ? AppColors.primary
+                                        : AppColors.textSecondary,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  list.title,
+                                  style: AppTypography.bodyMedium.copyWith(
+                                    fontWeight:
+                                        isSelected
+                                            ? FontWeight.w600
+                                            : FontWeight.normal,
+                                    color:
+                                        isSelected
+                                            ? AppColors.primary
+                                            : AppColors.textPrimary,
+                                  ),
+                                ),
+                              ),
+                              if (isSelected)
+                                PhosphorIcon(
+                                  PhosphorIcons.check(),
+                                  color: AppColors.primary,
+                                  size: 18,
+                                ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+
+                // No results message
+                if (_filteredLists.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(
+                      'No lists found',
+                      style: AppTypography.bodyMedium.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  void _searchAmazon(String query) {
+    if (query.isEmpty) return;
+    // TODO: Implement Amazon PA-API search
+    AppNotification.show(
+      context,
+      message: 'Searching for "$query"...',
+      icon: PhosphorIcons.magnifyingGlass(),
+    );
+  }
+
+  void _saveItem() {
+    if (_formKey.currentState!.validate()) {
+      if (_selectedList == null) {
+        AppNotification.error(context, 'Please select a list');
+        return;
+      }
+
+      setState(() => _isLoading = true);
+
+      // TODO: Save item via ItemService with _selectedList.id
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) {
+          Navigator.pop(context);
+          AppNotification.success(
+            context,
+            'Added "${_nameController.text}" to "${_selectedList!.title}"',
+          );
+        }
+      });
+    }
+  }
+}

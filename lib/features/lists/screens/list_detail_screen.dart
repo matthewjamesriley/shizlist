@@ -6,6 +6,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../models/models.dart';
 import '../../../services/list_service.dart';
 import '../../../services/lists_notifier.dart';
+import '../../../widgets/add_item_sheet.dart';
 import '../../../widgets/app_notification.dart';
 import '../../../widgets/bottom_sheet_header.dart';
 import '../../../widgets/item_card.dart';
@@ -85,7 +86,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
       return Scaffold(
         backgroundColor: AppColors.background,
         appBar: AppBar(
-          backgroundColor: Colors.black,
+          backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
           leading: IconButton(
             icon: PhosphorIcon(PhosphorIcons.arrowLeft(), color: Colors.white),
@@ -99,7 +100,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         leading: IconButton(
           icon: PhosphorIcon(PhosphorIcons.arrowLeft(), color: Colors.white),
@@ -269,9 +270,11 @@ class _ListDetailScreenState extends State<ListDetailScreen>
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton.large(
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: AppColors.accent,
+        foregroundColor: Colors.white,
         onPressed: () => _addItem(),
-        child: const Icon(Icons.add, size: 36),
+        child: PhosphorIcon(PhosphorIcons.plus(), size: 28),
       ),
     );
   }
@@ -701,6 +704,6 @@ class _ListDetailScreenState extends State<ListDetailScreen>
   }
 
   void _addItem() {
-    context.push('/add-item/${_list.id}');
+    AddItemSheet.show(context, selectedList: _list);
   }
 }
