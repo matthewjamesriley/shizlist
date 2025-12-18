@@ -15,6 +15,8 @@ class WishList {
   final ListVisibility visibility;
   final DateTime createdAt;
   final DateTime? updatedAt;
+  final bool isDeleted;
+  final DateTime? deletedAt;
   final int itemCount;
   final int claimedCount;
 
@@ -28,6 +30,8 @@ class WishList {
     required this.visibility,
     required this.createdAt,
     this.updatedAt,
+    this.isDeleted = false,
+    this.deletedAt,
     this.itemCount = 0,
     this.claimedCount = 0,
   });
@@ -46,6 +50,10 @@ class WishList {
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: json['updated_at'] != null
           ? DateTime.parse(json['updated_at'] as String)
+          : null,
+      isDeleted: json['is_deleted'] as bool? ?? false,
+      deletedAt: json['deleted_at'] != null
+          ? DateTime.parse(json['deleted_at'] as String)
           : null,
       itemCount: json['item_count'] as int? ?? 0,
       claimedCount: json['claimed_count'] as int? ?? 0,
@@ -88,6 +96,8 @@ class WishList {
     ListVisibility? visibility,
     DateTime? createdAt,
     DateTime? updatedAt,
+    bool? isDeleted,
+    DateTime? deletedAt,
     int? itemCount,
     int? claimedCount,
   }) {
@@ -101,6 +111,8 @@ class WishList {
       visibility: visibility ?? this.visibility,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      isDeleted: isDeleted ?? this.isDeleted,
+      deletedAt: deletedAt ?? this.deletedAt,
       itemCount: itemCount ?? this.itemCount,
       claimedCount: claimedCount ?? this.claimedCount,
     );

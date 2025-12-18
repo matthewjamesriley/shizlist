@@ -3,15 +3,13 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../models/list_item.dart';
+import '../../../services/user_settings_service.dart';
 
 /// Full screen for adding items (alternative to modal)
 class AddItemScreen extends StatefulWidget {
   final int listId;
 
-  const AddItemScreen({
-    super.key,
-    required this.listId,
-  });
+  const AddItemScreen({super.key, required this.listId});
 
   @override
   State<AddItemScreen> createState() => _AddItemScreenState();
@@ -20,14 +18,14 @@ class AddItemScreen extends StatefulWidget {
 class _AddItemScreenState extends State<AddItemScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  
+
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _priceController = TextEditingController();
   final _urlController = TextEditingController();
   final _amazonSearchController = TextEditingController();
-  
+
   ItemCategory _selectedCategory = ItemCategory.stuff;
   ItemPriority _selectedPriority = ItemPriority.medium;
   bool _isLoading = false;
@@ -121,12 +119,14 @@ class _AddItemScreenState extends State<AddItemScreen>
                 Expanded(
                   child: TextFormField(
                     controller: _priceController,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Price',
                       hintText: '0.00',
-                      prefixText: '\$ ',
+                      prefixText: '${UserSettingsService().currencySymbol} ',
                     ),
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -147,60 +147,57 @@ class _AddItemScreenState extends State<AddItemScreen>
             const SizedBox(height: 24),
 
             // Category selection
-            Text(
-              'Category',
-              style: AppTypography.labelLarge,
-            ),
+            Text('Category', style: AppTypography.labelLarge),
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: ItemCategory.values.map((category) {
-                final isSelected = _selectedCategory == category;
-                return ChoiceChip(
-                  label: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        category.icon,
-                        size: 16,
-                        color: isSelected ? AppColors.primary : category.color,
+              children:
+                  ItemCategory.values.map((category) {
+                    final isSelected = _selectedCategory == category;
+                    return ChoiceChip(
+                      label: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            category.icon,
+                            size: 16,
+                            color:
+                                isSelected ? AppColors.primary : category.color,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(category.displayName),
+                        ],
                       ),
-                      const SizedBox(width: 6),
-                      Text(category.displayName),
-                    ],
-                  ),
-                  selected: isSelected,
-                  onSelected: (selected) {
-                    if (selected) {
-                      setState(() => _selectedCategory = category);
-                    }
-                  },
-                );
-              }).toList(),
+                      selected: isSelected,
+                      onSelected: (selected) {
+                        if (selected) {
+                          setState(() => _selectedCategory = category);
+                        }
+                      },
+                    );
+                  }).toList(),
             ),
             const SizedBox(height: 24),
 
             // Priority selection
-            Text(
-              'Priority',
-              style: AppTypography.labelLarge,
-            ),
+            Text('Priority', style: AppTypography.labelLarge),
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,
-              children: ItemPriority.values.map((priority) {
-                final isSelected = _selectedPriority == priority;
-                return ChoiceChip(
-                  label: Text(priority.displayName),
-                  selected: isSelected,
-                  onSelected: (selected) {
-                    if (selected) {
-                      setState(() => _selectedPriority = priority);
-                    }
-                  },
-                );
-              }).toList(),
+              children:
+                  ItemPriority.values.map((priority) {
+                    final isSelected = _selectedPriority == priority;
+                    return ChoiceChip(
+                      label: Text(priority.displayName),
+                      selected: isSelected,
+                      onSelected: (selected) {
+                        if (selected) {
+                          setState(() => _selectedPriority = priority);
+                        }
+                      },
+                    );
+                  }).toList(),
             ),
             const SizedBox(height: 32),
 
@@ -209,13 +206,14 @@ class _AddItemScreenState extends State<AddItemScreen>
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: _isLoading ? null : _saveItem,
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Save Item'),
+                child:
+                    _isLoading
+                        ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                        : const Text('Save Item'),
               ),
             ),
           ],
@@ -311,11 +309,7 @@ class _AddItemScreenState extends State<AddItemScreen>
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
-                      Icons.preview,
-                      size: 48,
-                      color: AppColors.textHint,
-                    ),
+                    Icon(Icons.preview, size: 48, color: AppColors.textHint),
                     const SizedBox(height: 12),
                     Text(
                       'Product preview will appear here',
@@ -336,9 +330,9 @@ class _AddItemScreenState extends State<AddItemScreen>
   void _searchAmazon(String query) {
     if (query.isEmpty) return;
     // TODO: Implement Amazon PA-API search
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Searching for "$query"...')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Searching for "$query"...')));
   }
 
   void _saveItem() {
@@ -357,5 +351,3 @@ class _AddItemScreenState extends State<AddItemScreen>
     });
   }
 }
-
-

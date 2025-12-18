@@ -38,7 +38,8 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 
   Future<void> _handleSendOtp() async {
-    if (_formKey.currentState == null || !_formKey.currentState!.validate()) return;
+    if (_formKey.currentState == null || !_formKey.currentState!.validate())
+      return;
 
     setState(() {
       _isLoading = true;
@@ -61,9 +62,10 @@ class _SignupScreenState extends State<SignupScreen> {
     } catch (e) {
       debugPrint('OTP Error: $e');
       setState(() {
-        _errorMessage = e.toString().contains('rate')
-            ? 'Too many attempts. Please wait a moment and try again.'
-            : 'Failed to send verification email: ${e.toString()}';
+        _errorMessage =
+            e.toString().contains('rate')
+                ? 'Too many attempts. Please wait a moment and try again.'
+                : 'Failed to send verification email: ${e.toString()}';
         _isLoading = false;
       });
     }
@@ -87,7 +89,8 @@ class _SignupScreenState extends State<SignupScreen> {
       );
 
       if (mounted) {
-        context.go(AppRoutes.lists);
+        // Go to country selection as part of onboarding
+        context.go(AppRoutes.selectCountry);
       }
     } catch (e) {
       setState(() {
@@ -266,7 +269,6 @@ class _SignupScreenState extends State<SignupScreen> {
                   ),
                 ),
               ]
-
               // Main signup buttons
               else if (!_showEmailSignup) ...[
                 // Sign up with email
@@ -342,7 +344,6 @@ class _SignupScreenState extends State<SignupScreen> {
                   onPressed: () => context.go(AppRoutes.login),
                 ),
               ]
-
               // Email signup form (simplified - just name and email)
               else ...[
                 Form(
@@ -471,24 +472,24 @@ class _SignupScreenState extends State<SignupScreen> {
         filled: true,
         fillColor: AppColors.surfaceVariant,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(32),
-          borderSide: BorderSide.none,
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: AppColors.divider, width: 1),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(32),
-          borderSide: BorderSide.none,
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: AppColors.divider, width: 1),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(32),
+          borderRadius: BorderRadius.circular(16),
           borderSide: const BorderSide(color: AppColors.primary, width: 2),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(32),
+          borderRadius: BorderRadius.circular(16),
           borderSide: const BorderSide(color: AppColors.error, width: 1),
         ),
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: 20,
-          vertical: 18,
+          horizontal: 16,
+          vertical: 14,
         ),
       ),
       validator: validator,
@@ -526,9 +527,10 @@ class _SocialButton extends StatelessWidget {
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(26),
-            side: borderColor != null
-                ? BorderSide(color: borderColor!, width: 1.5)
-                : BorderSide.none,
+            side:
+                borderColor != null
+                    ? BorderSide(color: borderColor!, width: 1.5)
+                    : BorderSide.none,
           ),
         ),
         child: Row(

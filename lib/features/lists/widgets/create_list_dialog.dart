@@ -3,6 +3,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../models/wish_list.dart';
 import '../../../services/list_service.dart';
+import '../../../widgets/bottom_sheet_header.dart';
 
 /// Dialog for creating a new wish list
 class CreateListDialog extends StatefulWidget {
@@ -50,79 +51,13 @@ class _CreateListDialogState extends State<CreateListDialog> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Header with black background
-          Container(
-            decoration: const BoxDecoration(
-              color: Colors.black,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-            ),
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                // Title - centered
-                Text(
-                  'New list',
-                  style: AppTypography.titleLarge.copyWith(color: Colors.white),
-                ),
-
-                // Buttons row
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Cancel button
-                    GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 12,
-                        ),
-                        child: Text(
-                          'Cancel',
-                          style: AppTypography.titleMedium.copyWith(
-                            color: Colors.white70,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    // Create button - prominent pill style
-                    GestureDetector(
-                      onTap: _isLoading ? null : _createList,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 18,
-                          vertical: 12,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.accent,
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                        child:
-                            _isLoading
-                                ? const SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                                : Text(
-                                  'Create',
-                                  style: AppTypography.titleMedium.copyWith(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+          // Shared header component
+          BottomSheetHeader(
+            title: 'New list',
+            confirmText: 'Create',
+            onCancel: () => Navigator.pop(context),
+            onConfirm: _createList,
+            isLoading: _isLoading,
           ),
 
           // Content

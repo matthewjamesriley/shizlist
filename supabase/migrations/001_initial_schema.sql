@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS public.users (
     email TEXT UNIQUE NOT NULL,
     display_name TEXT,
     avatar_url TEXT,
+    currency_code TEXT NOT NULL DEFAULT 'GBP',
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ,
     
@@ -57,6 +58,8 @@ CREATE TABLE IF NOT EXISTS public.lists (
     description TEXT,
     cover_image_url TEXT,
     visibility TEXT NOT NULL DEFAULT 'private' CHECK (visibility IN ('private', 'public')),
+    is_deleted BOOLEAN NOT NULL DEFAULT false,
+    deleted_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ
 );

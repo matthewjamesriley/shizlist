@@ -20,14 +20,16 @@ class AppNotification {
     late OverlayEntry overlayEntry;
 
     overlayEntry = OverlayEntry(
-      builder: (context) => _NotificationBanner(
-        message: message,
-        backgroundColor: backgroundColor ?? Colors.black.withValues(alpha: 0.9),
-        textColor: textColor ?? Colors.white,
-        icon: icon,
-        onDismiss: () => overlayEntry.remove(),
-        duration: duration,
-      ),
+      builder:
+          (context) => _NotificationBanner(
+            message: message,
+            backgroundColor:
+                backgroundColor ?? Colors.black.withValues(alpha: 0.9),
+            textColor: textColor ?? Colors.white,
+            icon: icon,
+            onDismiss: () => overlayEntry.remove(),
+            duration: duration,
+          ),
     );
 
     overlay.insert(overlayEntry);
@@ -92,18 +94,12 @@ class _NotificationBannerState extends State<_NotificationBanner>
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0, -1),
       end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOutCubic,
-    ));
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
 
     _fadeAnimation = Tween<double>(
       begin: 0,
       end: 1,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOut,
-    ));
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
 
     _controller.forward();
 
@@ -138,47 +134,56 @@ class _NotificationBannerState extends State<_NotificationBanner>
           opacity: _fadeAnimation,
           child: SafeArea(
             bottom: false,
-            child: GestureDetector(
-              onTap: _dismiss,
-              onVerticalDragEnd: (details) {
-                if (details.primaryVelocity != null && details.primaryVelocity! < 0) {
-                  _dismiss();
-                }
-              },
-              child: Container(
-                margin: const EdgeInsets.fromLTRB(8, 8, 8, 0),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                decoration: BoxDecoration(
-                  color: widget.backgroundColor,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.2),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    if (widget.icon != null) ...[
-                      PhosphorIcon(
-                        widget.icon!,
-                        color: widget.textColor,
-                        size: 24,
+            child: Material(
+              type: MaterialType.transparency,
+              child: GestureDetector(
+                onTap: _dismiss,
+                onVerticalDragEnd: (details) {
+                  if (details.primaryVelocity != null &&
+                      details.primaryVelocity! < 0) {
+                    _dismiss();
+                  }
+                },
+                child: Container(
+                  margin: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 16,
+                  ),
+                  decoration: BoxDecoration(
+                    color: widget.backgroundColor,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.grey.shade700, width: 1),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.2),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
                       ),
-                      const SizedBox(width: 12),
                     ],
-                    Expanded(
-                      child: Text(
-                        widget.message,
-                        style: AppTypography.titleMedium.copyWith(
+                  ),
+                  child: Row(
+                    children: [
+                      if (widget.icon != null) ...[
+                        PhosphorIcon(
+                          widget.icon!,
                           color: widget.textColor,
-                          fontSize: 16,
+                          size: 26,
+                        ),
+                        const SizedBox(width: 12),
+                      ],
+                      Expanded(
+                        child: Text(
+                          widget.message,
+                          style: AppTypography.titleMedium.copyWith(
+                            color: widget.textColor,
+                            fontSize: 18,
+                            decoration: TextDecoration.none,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -188,4 +193,3 @@ class _NotificationBannerState extends State<_NotificationBanner>
     );
   }
 }
-

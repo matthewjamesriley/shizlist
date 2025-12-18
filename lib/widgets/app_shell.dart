@@ -5,8 +5,11 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_typography.dart';
 import '../features/lists/widgets/create_list_dialog.dart';
+import '../models/wish_list.dart';
 import '../routing/app_router.dart';
+import '../services/list_service.dart';
 import '../services/lists_notifier.dart';
+import '../services/user_settings_service.dart';
 import 'app_drawer.dart';
 import 'app_notification.dart';
 import 'shizlist_logo.dart';
@@ -251,8 +254,15 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
   final _descriptionController = TextEditingController();
   final _priceController = TextEditingController();
   final _urlController = TextEditingController();
+  final _listSearchController = TextEditingController();
   String _selectedCategory = 'Stuff';
   bool _isLoading = false;
+  bool _isLoadingLists = true;
+
+  List<WishList> _lists = [];
+  List<WishList> _filteredLists = [];
+  WishList? _selectedList;
+  bool _showListDropdown = false;
 
   final List<String> _categories = [
     'Stuff',
@@ -264,11 +274,53 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _loadLists();
+    _listSearchController.addListener(_filterLists);
+  }
+
+  Future<void> _loadLists() async {
+    try {
+      final lists = await ListService().getUserLists();
+      if (mounted) {
+        setState(() {
+          _lists = lists;
+          _filteredLists = lists;
+          if (lists.isNotEmpty) {
+            _selectedList = lists.first;
+          }
+          _isLoadingLists = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingLists = false);
+      }
+    }
+  }
+
+  void _filterLists() {
+    final query = _listSearchController.text.toLowerCase();
+    setState(() {
+      if (query.isEmpty) {
+        _filteredLists = _lists;
+      } else {
+        _filteredLists =
+            _lists
+                .where((list) => list.title.toLowerCase().contains(query))
+                .toList();
+      }
+    });
+  }
+
+  @override
   void dispose() {
     _nameController.dispose();
     _descriptionController.dispose();
     _priceController.dispose();
     _urlController.dispose();
+    _listSearchController.dispose();
     super.dispose();
   }
 
@@ -389,6 +441,9 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
                     ),
                     const SizedBox(height: 24),
 
+                    _buildListSelector(),
+                    const SizedBox(height: 24),
+
                     // Description field
                     TextFormField(
                       controller: _descriptionController,
@@ -405,9 +460,9 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
                     // Price field
                     TextFormField(
                       controller: _priceController,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         hintText: 'Price',
-                        prefixText: '\$ ',
+                        prefixText: '${UserSettingsService().currencySymbol} ',
                       ),
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
@@ -429,10 +484,10 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
 
                     // Category selection
                     Text('Category', style: AppTypography.titleMedium),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
+                      spacing: 8,
+                      runSpacing: 8,
                       children:
                           _categories.map((category) {
                             final isSelected = _selectedCategory == category;
@@ -443,34 +498,28 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
                                   ),
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 20,
-                                  vertical: 12,
+                                  horizontal: 14,
+                                  vertical: 8,
                                 ),
                                 decoration: BoxDecoration(
                                   color:
                                       isSelected
-                                          ? AppColors.claimedBackground
-                                          : Colors.grey.shade100,
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(
-                                    color:
-                                        isSelected
-                                            ? AppColors.primary
-                                            : AppColors.divider,
-                                    width: isSelected ? 2 : 1,
-                                  ),
+                                          ? AppColors.primary
+                                          : AppColors.surfaceVariant,
+                                  borderRadius: BorderRadius.circular(50),
                                 ),
                                 child: Text(
                                   category,
-                                  style: AppTypography.bodyLarge.copyWith(
+                                  style: AppTypography.bodyMedium.copyWith(
                                     color:
                                         isSelected
-                                            ? AppColors.primary
+                                            ? Colors.white
                                             : AppColors.textPrimary,
                                     fontWeight:
                                         isSelected
                                             ? FontWeight.w600
                                             : FontWeight.normal,
+                                    fontSize: 14,
                                   ),
                                 ),
                               ),
@@ -499,11 +548,275 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
     );
   }
 
+  Widget _buildListSelector() {
+    if (_isLoadingLists) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceVariant,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: const Center(
+          child: SizedBox(
+            height: 20,
+            width: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+      );
+    }
+
+    if (_lists.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceVariant,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Text(
+          'No lists yet. Create one first!',
+          style: AppTypography.bodyMedium.copyWith(
+            color: AppColors.textSecondary,
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Selected list display / dropdown trigger
+        GestureDetector(
+          onTap: () => setState(() => _showListDropdown = !_showListDropdown),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceVariant,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color:
+                    _showListDropdown ? AppColors.primary : AppColors.divider,
+                width: _showListDropdown ? 2 : 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                PhosphorIcon(
+                  PhosphorIcons.listBullets(),
+                  color: AppColors.textSecondary,
+                  size: 22,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    _selectedList?.title ?? 'Select a list',
+                    style: AppTypography.bodyLarge.copyWith(
+                      color:
+                          _selectedList != null
+                              ? AppColors.textPrimary
+                              : AppColors.textHint,
+                    ),
+                  ),
+                ),
+                PhosphorIcon(
+                  _showListDropdown
+                      ? PhosphorIcons.caretUp()
+                      : PhosphorIcons.caretDown(),
+                  color: AppColors.textSecondary,
+                  size: 20,
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        // Dropdown with search
+        if (_showListDropdown) ...[
+          const SizedBox(height: 8),
+          Container(
+            constraints: const BoxConstraints(maxHeight: 250),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.divider),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.08),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Search field
+                Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: TextField(
+                    controller: _listSearchController,
+                    style: AppTypography.bodyMedium,
+                    decoration: InputDecoration(
+                      hintText: 'Search lists...',
+                      hintStyle: AppTypography.bodyMedium.copyWith(
+                        color: AppColors.textHint,
+                      ),
+                      prefixIcon: Padding(
+                        padding: const EdgeInsets.only(left: 12, right: 8),
+                        child: PhosphorIcon(
+                          PhosphorIcons.magnifyingGlass(),
+                          color: AppColors.textSecondary,
+                          size: 20,
+                        ),
+                      ),
+                      prefixIconConstraints: const BoxConstraints(minWidth: 0),
+                      filled: true,
+                      fillColor: AppColors.surfaceVariant,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: const BorderSide(
+                          color: AppColors.divider,
+                          width: 1,
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: const BorderSide(
+                          color: AppColors.divider,
+                          width: 1,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: const BorderSide(
+                          color: AppColors.primary,
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+                const Divider(height: 1),
+
+                // List items
+                Flexible(
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    itemCount: _filteredLists.length,
+                    itemBuilder: (context, index) {
+                      final list = _filteredLists[index];
+                      final isSelected = _selectedList?.uid == list.uid;
+
+                      return InkWell(
+                        onTap: () {
+                          setState(() {
+                            _selectedList = list;
+                            _showListDropdown = false;
+                            _listSearchController.clear();
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          color:
+                              isSelected
+                                  ? AppColors.primary.withValues(alpha: 0.1)
+                                  : null,
+                          child: Row(
+                            children: [
+                              PhosphorIcon(
+                                isSelected
+                                    ? PhosphorIcons.star(
+                                      PhosphorIconsStyle.fill,
+                                    )
+                                    : PhosphorIcons.star(),
+                                color:
+                                    isSelected
+                                        ? AppColors.primary
+                                        : AppColors.textSecondary,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      list.title,
+                                      style: AppTypography.bodyLarge.copyWith(
+                                        fontWeight:
+                                            isSelected
+                                                ? FontWeight.w600
+                                                : FontWeight.normal,
+                                        color:
+                                            isSelected
+                                                ? AppColors.primary
+                                                : AppColors.textPrimary,
+                                      ),
+                                    ),
+                                    if (list.itemCount > 0)
+                                      Text(
+                                        '${list.itemCount} items',
+                                        style: AppTypography.bodySmall.copyWith(
+                                          color: AppColors.textSecondary,
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                              if (isSelected)
+                                PhosphorIcon(
+                                  PhosphorIcons.check(),
+                                  color: AppColors.primary,
+                                  size: 20,
+                                ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+
+                // No results message
+                if (_filteredLists.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(
+                      'No lists found',
+                      style: AppTypography.bodyMedium.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
   void _saveItem() {
     if (_formKey.currentState!.validate()) {
-      // TODO: Save item via ItemService
+      if (_selectedList == null) {
+        AppNotification.error(context, 'Please select a list');
+        return;
+      }
+      // TODO: Save item via ItemService with _selectedList.id
       Navigator.pop(context);
-      AppNotification.success(context, 'Item added!');
+      AppNotification.success(
+        context,
+        'Item added to "${_selectedList!.title}"!',
+      );
     }
   }
 }

@@ -44,9 +44,7 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      await _authService.signInWithOtp(
-        email: _emailController.text.trim(),
-      );
+      await _authService.signInWithOtp(email: _emailController.text.trim());
 
       if (mounted) {
         setState(() {
@@ -260,7 +258,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
               ]
-
               // Main login buttons
               else if (!_showEmailLogin) ...[
                 // Log in with email
@@ -336,7 +333,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   onPressed: () => context.go(AppRoutes.signup),
                 ),
               ]
-
               // Email login form (just email)
               else ...[
                 Form(
@@ -448,24 +444,24 @@ class _LoginScreenState extends State<LoginScreen> {
         filled: true,
         fillColor: AppColors.surfaceVariant,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(32),
-          borderSide: BorderSide.none,
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: AppColors.divider, width: 1),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(32),
-          borderSide: BorderSide.none,
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: AppColors.divider, width: 1),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(32),
+          borderRadius: BorderRadius.circular(16),
           borderSide: const BorderSide(color: AppColors.primary, width: 2),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(32),
+          borderRadius: BorderRadius.circular(16),
           borderSide: const BorderSide(color: AppColors.error, width: 1),
         ),
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: 20,
-          vertical: 18,
+          horizontal: 16,
+          vertical: 14,
         ),
       ),
       validator: validator,
@@ -503,9 +499,10 @@ class _SocialButton extends StatelessWidget {
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(26),
-            side: borderColor != null
-                ? BorderSide(color: borderColor!, width: 1.5)
-                : BorderSide.none,
+            side:
+                borderColor != null
+                    ? BorderSide(color: borderColor!, width: 1.5)
+                    : BorderSide.none,
           ),
         ),
         child: Row(

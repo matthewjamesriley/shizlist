@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../features/auth/screens/login_screen.dart';
 import '../features/auth/screens/signup_screen.dart';
+import '../features/auth/screens/country_selection_screen.dart';
 import '../features/lists/screens/lists_screen.dart';
 import '../features/lists/screens/list_detail_screen.dart';
 import '../features/items/screens/add_item_screen.dart';
@@ -13,11 +14,13 @@ import '../features/share/screens/share_screen.dart';
 import '../widgets/app_shell.dart';
 import '../services/supabase_service.dart';
 import '../services/auth_service.dart';
+import '../services/user_settings_service.dart';
 
 /// Route paths
 class AppRoutes {
   static const String login = '/login';
   static const String signup = '/signup';
+  static const String selectCountry = '/select-country';
   static const String home = '/';
   static const String lists = '/lists';
   static const String listDetail = '/lists/:uid';
@@ -33,13 +36,20 @@ class AppRoutes {
 /// Notifier that listens to auth state changes
 class AuthNotifier extends ChangeNotifier {
   final AuthService _authService = AuthService();
+  final UserSettingsService _userSettings = UserSettingsService();
   late final StreamSubscription<AuthState> _subscription;
 
   AuthNotifier() {
     _subscription = SupabaseService.authStateStream.listen((authState) async {
       // Ensure user profile exists when auth state changes (e.g., OAuth callback)
-      if (authState.event == AuthChangeEvent.signedIn && authState.session?.user != null) {
+      if (authState.event == AuthChangeEvent.signedIn &&
+          authState.session?.user != null) {
         await _authService.onAuthStateChanged(authState.session!.user);
+        // Load user settings (including currency preference)
+        await _userSettings.loadSettings();
+      } else if (authState.event == AuthChangeEvent.signedOut) {
+        // Clear user settings on logout
+        _userSettings.clear();
       }
       notifyListeners();
     });
@@ -70,15 +80,23 @@ class AppRouter {
       final isAuthRoute =
           state.matchedLocation == AppRoutes.login ||
           state.matchedLocation == AppRoutes.signup;
+      final isOnboardingRoute =
+          state.matchedLocation == AppRoutes.selectCountry;
 
-      // Redirect to signup if not authenticated and not on auth route
-      if (!isAuthenticated && !isAuthRoute) {
+      // Redirect to signup if not authenticated and not on auth/onboarding route
+      if (!isAuthenticated && !isAuthRoute && !isOnboardingRoute) {
         return AppRoutes.signup;
       }
 
-      // Redirect to home if authenticated and on auth route
+      // If authenticated and on auth route (from social login callback etc.)
+      // Go directly to lists - explicit navigation to selectCountry happens in signup flow
       if (isAuthenticated && isAuthRoute) {
         return AppRoutes.lists;
+      }
+
+      // Block access to onboarding route if not authenticated
+      if (isOnboardingRoute && !isAuthenticated) {
+        return AppRoutes.signup;
       }
 
       return null;
@@ -95,6 +113,11 @@ class AppRouter {
         name: 'signup',
         builder: (context, state) => const SignupScreen(),
       ),
+      GoRoute(
+        path: AppRoutes.selectCountry,
+        name: 'selectCountry',
+        builder: (context, state) => const CountrySelectionScreen(),
+      ),
 
       // Main app shell with bottom navigation
       ShellRoute(
@@ -108,16 +131,6 @@ class AppRouter {
             pageBuilder:
                 (context, state) =>
                     const NoTransitionPage(child: ListsScreen()),
-            routes: [
-              GoRoute(
-                path: ':uid',
-                name: 'listDetail',
-                builder: (context, state) {
-                  final uid = state.pathParameters['uid']!;
-                  return ListDetailScreen(listUid: uid);
-                },
-              ),
-            ],
           ),
 
           // Invite tab
@@ -157,6 +170,28 @@ class AppRouter {
                     const NoTransitionPage(child: ShareScreen()),
           ),
         ],
+      ),
+
+      // List detail (outside shell - no app header/bottom nav)
+      GoRoute(
+        path: '/lists/:uid',
+        name: 'listDetail',
+        pageBuilder: (context, state) {
+          final uid = state.pathParameters['uid']!;
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: ListDetailScreen(listUid: uid),
+            transitionsBuilder: (
+              context,
+              animation,
+              secondaryAnimation,
+              child,
+            ) {
+              return FadeTransition(opacity: animation, child: child);
+            },
+            transitionDuration: const Duration(milliseconds: 200),
+          );
+        },
       ),
 
       // Add item (modal route)

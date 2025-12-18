@@ -29,23 +29,33 @@ class _ListsScreenState extends State<ListsScreen> {
   @override
   void initState() {
     super.initState();
-    _listsNotifier.addListener(_onListAdded);
+    _listsNotifier.addListener(_onListsChanged);
     _loadLists();
   }
 
   @override
   void dispose() {
-    _listsNotifier.removeListener(_onListAdded);
+    _listsNotifier.removeListener(_onListsChanged);
     super.dispose();
   }
 
-  void _onListAdded() {
+  void _onListsChanged() {
+    // Handle new list added
     final newList = _listsNotifier.lastAddedList;
     if (newList != null) {
       setState(() {
         _lists.insert(0, newList);
       });
       _listsNotifier.clearLastAdded();
+    }
+
+    // Handle list deleted
+    final deletedUid = _listsNotifier.lastDeletedListUid;
+    if (deletedUid != null) {
+      setState(() {
+        _lists.removeWhere((list) => list.uid == deletedUid);
+      });
+      _listsNotifier.clearLastDeleted();
     }
   }
 
@@ -174,6 +184,52 @@ class _ListsScreenState extends State<ListsScreen> {
       message: 'Share link: ${list.shareUrl}',
       icon: PhosphorIcons.link(),
     );
+  }
+
+  void _deleteList(WishList list) async {
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Delete list?'),
+            content: Text(
+              'Are you sure you want to delete "${list.title}"? This action can be undone.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: TextButton.styleFrom(foregroundColor: AppColors.error),
+                child: const Text('Delete'),
+              ),
+            ],
+          ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await _listService.deleteList(list.uid);
+        setState(() {
+          _lists.removeWhere((l) => l.uid == list.uid);
+        });
+        if (mounted) {
+          AppNotification.success(context, 'Deleted "${list.title}"');
+        }
+      } catch (e) {
+        if (mounted) {
+          AppNotification.show(
+            context,
+            message: 'Failed to delete list: $e',
+            icon: PhosphorIcons.warning(),
+            backgroundColor: AppColors.error,
+          );
+        }
+      }
+    }
   }
 
   void _createNewList() async {

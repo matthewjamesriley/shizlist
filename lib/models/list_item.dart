@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/theme/app_colors.dart';
+import 'currency.dart';
 
 /// Item category enum
 enum ItemCategory {
@@ -155,20 +156,25 @@ class ListItem {
       retailerUrl: json['retailer_url'] as String?,
       amazonAsin: json['amazon_asin'] as String?,
       category: ItemCategory.fromString(json['category'] as String? ?? 'other'),
-      priority: ItemPriority.fromString(json['priority'] as String? ?? 'medium'),
+      priority: ItemPriority.fromString(
+        json['priority'] as String? ?? 'medium',
+      ),
       quantity: json['quantity'] as int? ?? 1,
       isClaimed: json['is_claimed'] as bool? ?? false,
       claimedByUserId: json['claimed_by_user_id'] as String?,
-      claimedAt: json['claimed_at'] != null
-          ? DateTime.parse(json['claimed_at'] as String)
-          : null,
-      claimExpiresAt: json['claim_expires_at'] != null
-          ? DateTime.parse(json['claim_expires_at'] as String)
-          : null,
+      claimedAt:
+          json['claimed_at'] != null
+              ? DateTime.parse(json['claimed_at'] as String)
+              : null,
+      claimExpiresAt:
+          json['claim_expires_at'] != null
+              ? DateTime.parse(json['claim_expires_at'] as String)
+              : null,
       createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: json['updated_at'] != null
-          ? DateTime.parse(json['updated_at'] as String)
-          : null,
+      updatedAt:
+          json['updated_at'] != null
+              ? DateTime.parse(json['updated_at'] as String)
+              : null,
     );
   }
 
@@ -262,11 +268,11 @@ class ListItem {
     );
   }
 
-  /// Get formatted price string
+  /// Get formatted price string using the item's currency
   String get formattedPrice {
     if (price == null) return '';
-    final symbol = currency == 'USD' ? '\$' : currency ?? '';
-    return '$symbol${price!.toStringAsFixed(2)}';
+    final currencyObj = Currency.fromCode(currency ?? 'GBP');
+    return currencyObj.format(price!);
   }
 
   /// Check if item has an Amazon affiliate link
@@ -296,4 +302,3 @@ class ListItem {
   @override
   String toString() => 'ListItem(uid: $uid, name: $name)';
 }
-

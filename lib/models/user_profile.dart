@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'currency.dart';
 
 /// User profile model representing a ShizList user
 @immutable
@@ -8,6 +9,7 @@ class UserProfile {
   final String email;
   final String? displayName;
   final String? avatarUrl;
+  final String currencyCode;
   final DateTime createdAt;
   final DateTime? updatedAt;
 
@@ -17,9 +19,13 @@ class UserProfile {
     required this.email,
     this.displayName,
     this.avatarUrl,
+    this.currencyCode = 'GBP',
     required this.createdAt,
     this.updatedAt,
   });
+
+  /// Get the Currency object for this user
+  Currency get currency => Currency.fromCode(currencyCode);
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
     return UserProfile(
@@ -28,10 +34,12 @@ class UserProfile {
       email: json['email'] as String,
       displayName: json['display_name'] as String?,
       avatarUrl: json['avatar_url'] as String?,
+      currencyCode: json['currency_code'] as String? ?? 'GBP',
       createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: json['updated_at'] != null
-          ? DateTime.parse(json['updated_at'] as String)
-          : null,
+      updatedAt:
+          json['updated_at'] != null
+              ? DateTime.parse(json['updated_at'] as String)
+              : null,
     );
   }
 
@@ -42,6 +50,7 @@ class UserProfile {
       'email': email,
       'display_name': displayName,
       'avatar_url': avatarUrl,
+      'currency_code': currencyCode,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
     };
@@ -53,6 +62,7 @@ class UserProfile {
     String? email,
     String? displayName,
     String? avatarUrl,
+    String? currencyCode,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -62,6 +72,7 @@ class UserProfile {
       email: email ?? this.email,
       displayName: displayName ?? this.displayName,
       avatarUrl: avatarUrl ?? this.avatarUrl,
+      currencyCode: currencyCode ?? this.currencyCode,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -94,5 +105,3 @@ class UserProfile {
   @override
   String toString() => 'UserProfile(uid: $uid, email: $email)';
 }
-
-

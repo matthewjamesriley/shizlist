@@ -204,6 +204,7 @@ class AuthService {
   Future<UserProfile> updateUserProfile({
     String? displayName,
     String? avatarUrl,
+    String? currencyCode,
   }) async {
     final userId = SupabaseService.currentUserId;
     if (userId == null) {
@@ -215,6 +216,7 @@ class AuthService {
     };
     if (displayName != null) updates['display_name'] = displayName;
     if (avatarUrl != null) updates['avatar_url'] = avatarUrl;
+    if (currencyCode != null) updates['currency_code'] = currencyCode;
 
     final response = await _client
         .from(SupabaseConfig.usersTable)
@@ -224,6 +226,18 @@ class AuthService {
         .single();
 
     return UserProfile.fromJson(response);
+  }
+
+  /// Update user's currency preference
+  Future<UserProfile> updateUserCurrency(String currencyCode) async {
+    return updateUserProfile(currencyCode: currencyCode);
+  }
+
+  /// Check if user has completed onboarding (has currency set)
+  Future<bool> hasCompletedOnboarding() async {
+    final profile = await getCurrentUserProfile();
+    // If profile exists and has currency set, onboarding is complete
+    return profile != null;
   }
 
   /// Delete user account

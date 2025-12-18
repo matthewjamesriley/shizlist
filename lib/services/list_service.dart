@@ -9,7 +9,7 @@ class ListService {
   final SupabaseClient _client = SupabaseService.client;
   final _uuid = const Uuid();
 
-  /// Get all lists for the current user
+  /// Get all lists for the current user (excluding deleted)
   Future<List<WishList>> getUserLists() async {
     final userId = SupabaseService.currentUserId;
     if (userId == null) throw Exception('User not authenticated');
@@ -18,6 +18,7 @@ class ListService {
         .from(SupabaseConfig.listsTable)
         .select()
         .eq('owner_id', userId)
+        .eq('is_deleted', false)
         .order('created_at', ascending: false);
 
     return (response as List)
@@ -91,11 +92,33 @@ class ListService {
     return WishList.fromJson(response);
   }
 
-  /// Delete a list
+  /// Soft delete a list (marks as deleted, doesn't remove data)
   Future<void> deleteList(String uid) async {
     await _client
         .from(SupabaseConfig.listsTable)
+        .update({
+          'is_deleted': true,
+          'deleted_at': DateTime.now().toIso8601String(),
+        })
+        .eq('uid', uid);
+  }
+
+  /// Permanently delete a list (hard delete)
+  Future<void> permanentlyDeleteList(String uid) async {
+    await _client
+        .from(SupabaseConfig.listsTable)
         .delete()
+        .eq('uid', uid);
+  }
+
+  /// Restore a soft-deleted list
+  Future<void> restoreList(String uid) async {
+    await _client
+        .from(SupabaseConfig.listsTable)
+        .update({
+          'is_deleted': false,
+          'deleted_at': null,
+        })
         .eq('uid', uid);
   }
 

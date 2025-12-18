@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_typography.dart';
 import '../models/wish_list.dart';
@@ -58,8 +59,8 @@ class ListCard extends StatelessWidget {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(
-                            list.isPublic ? Icons.public : Icons.lock,
+                          PhosphorIcon(
+                            list.isPublic ? PhosphorIcons.globe() : PhosphorIcons.lock(),
                             size: 14,
                             color: Colors.white,
                           ),
@@ -109,7 +110,7 @@ class ListCard extends StatelessWidget {
                     children: [
                       // Item count
                       _buildStat(
-                        icon: Icons.list_alt,
+                        icon: PhosphorIcons.listBullets(),
                         value: '${list.itemCount}',
                         label: 'items',
                       ),
@@ -117,7 +118,7 @@ class ListCard extends StatelessWidget {
                       
                       // Claimed count
                       _buildStat(
-                        icon: Icons.card_giftcard,
+                        icon: PhosphorIcons.gift(),
                         value: '${list.claimedCount}',
                         label: 'claimed',
                       ),
@@ -127,8 +128,7 @@ class ListCard extends StatelessWidget {
                       // Share button
                       IconButton(
                         onPressed: onShareTap,
-                        icon: const Icon(Icons.share),
-                        iconSize: 20,
+                        icon: PhosphorIcon(PhosphorIcons.shareFat(), size: 20),
                         style: IconButton.styleFrom(
                           foregroundColor: AppColors.primary,
                         ),
@@ -159,14 +159,14 @@ class ListCard extends StatelessWidget {
   }
 
   Widget _buildStat({
-    required IconData icon,
+    required PhosphorIconData icon,
     required String value,
     required String label,
   }) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(
+        PhosphorIcon(
           icon,
           size: 18,
           color: AppColors.textSecondary,
