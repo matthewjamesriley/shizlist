@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:uuid/uuid.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../models/wish_list.dart';
+import '../../../services/list_service.dart';
 
 /// Dialog for creating a new wish list
 class CreateListDialog extends StatefulWidget {
@@ -212,26 +212,33 @@ class _CreateListDialogState extends State<CreateListDialog> {
     );
   }
 
-  void _createList() {
+  void _createList() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
-    // TODO: Create list via ListService
-    final list = WishList(
-      id: DateTime.now().millisecondsSinceEpoch,
-      uid: const Uuid().v4(),
-      ownerId: 'current-user', // TODO: Get from auth
-      title: _titleController.text.trim(),
-      description:
-          _descriptionController.text.trim().isEmpty
-              ? null
-              : _descriptionController.text.trim(),
-      visibility: _visibility,
-      createdAt: DateTime.now(),
-    );
+    try {
+      final listService = ListService();
+      final list = await listService.createList(
+        title: _titleController.text.trim(),
+        description:
+            _descriptionController.text.trim().isEmpty
+                ? null
+                : _descriptionController.text.trim(),
+        visibility: _visibility,
+      );
 
-    Navigator.pop(context, list);
+      if (mounted) {
+        Navigator.pop(context, list);
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error creating list: $e')));
+      }
+    }
   }
 }
 

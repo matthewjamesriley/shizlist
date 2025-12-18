@@ -15,7 +15,7 @@ class AppColors {
   static const Color accentLight = Color.fromARGB(255, 244, 91, 89);
   static const Color accentDark = Color.fromARGB(255, 197, 39, 36);
 
-  // Background - Clean White
+  // Background Silver
   static const Color background = Color(0xFFF1F1F1);
   static const Color surface = Color(0xFFFFFFFF);
   static const Color surfaceVariant = Color(0xFFF5F5F5);

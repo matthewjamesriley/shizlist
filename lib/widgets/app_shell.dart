@@ -6,6 +6,7 @@ import '../core/theme/app_colors.dart';
 import '../core/theme/app_typography.dart';
 import '../features/lists/widgets/create_list_dialog.dart';
 import '../routing/app_router.dart';
+import '../services/lists_notifier.dart';
 import 'app_drawer.dart';
 import 'app_notification.dart';
 import 'shizlist_logo.dart';
@@ -220,6 +221,7 @@ class _AppShellState extends State<AppShell> {
     final result = await CreateListDialog.show(context);
 
     if (result != null && mounted) {
+      ListsNotifier().notifyListAdded(result);
       AppNotification.success(context, 'Created "${result.title}"');
     }
   }

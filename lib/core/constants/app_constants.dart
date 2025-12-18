@@ -4,7 +4,7 @@ class AppConstants {
 
   // App Info
   static const String appName = 'ShizList';
-  static const String appTagline = 'Share the stuff you want';
+  static const String appTagline = 'Share the stuff you love';
   static const String appVersion = '1.0.0';
 
   // Image Sizes
@@ -57,5 +57,3 @@ class AppConstants {
   static const int maxDescriptionLength = 500;
   static const int maxListItems = 200;
 }
-
-

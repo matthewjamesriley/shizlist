@@ -15,7 +15,43 @@ enum SocialProvider {
 class AuthService {
   final SupabaseClient _client = SupabaseService.client;
 
-  /// Sign up with email and password
+  /// Send magic link / OTP to email (passwordless auth)
+  /// This works for both sign up and sign in
+  Future<void> signInWithOtp({
+    required String email,
+    String? displayName,
+  }) async {
+    await _client.auth.signInWithOtp(
+      email: email,
+      emailRedirectTo: kIsWeb ? null : 'com.shizlist.shizlist://login-callback',
+      data: displayName != null ? {'display_name': displayName} : null,
+    );
+  }
+
+  /// Verify OTP code (if using code-based verification instead of magic link)
+  Future<AuthResponse> verifyOtp({
+    required String email,
+    required String token,
+  }) async {
+    final response = await _client.auth.verifyOTP(
+      email: email,
+      token: token,
+      type: OtpType.email,
+    );
+
+    // Ensure user profile exists
+    if (response.user != null) {
+      await ensureUserProfileExists(
+        userId: response.user!.id,
+        email: response.user!.email ?? email,
+        displayName: response.user!.userMetadata?['display_name'] as String?,
+      );
+    }
+
+    return response;
+  }
+
+  /// Sign up with email and password (legacy - kept for compatibility)
   Future<AuthResponse> signUp({
     required String email,
     required String password,
@@ -27,19 +63,69 @@ class AuthService {
       data: displayName != null ? {'display_name': displayName} : null,
     );
 
-    // Profile is auto-created via database trigger
+    // Ensure user profile exists (in case trigger didn't fire)
+    if (response.user != null) {
+      await ensureUserProfileExists(
+        userId: response.user!.id,
+        email: email,
+        displayName: displayName,
+      );
+    }
+
     return response;
   }
 
-  /// Sign in with email and password
+  /// Sign in with email and password (legacy - kept for compatibility)
   Future<AuthResponse> signIn({
     required String email,
     required String password,
   }) async {
-    return await _client.auth.signInWithPassword(
+    final response = await _client.auth.signInWithPassword(
       email: email,
       password: password,
     );
+
+    // Ensure user profile exists
+    if (response.user != null) {
+      await ensureUserProfileExists(
+        userId: response.user!.id,
+        email: response.user!.email ?? email,
+        displayName: response.user!.userMetadata?['display_name'] as String?,
+      );
+    }
+
+    return response;
+  }
+
+  /// Ensure user profile exists in public.users table
+  /// Creates one if it doesn't exist (handles cases where trigger didn't fire)
+  Future<void> ensureUserProfileExists({
+    required String userId,
+    required String email,
+    String? displayName,
+  }) async {
+    try {
+      // Check if profile exists
+      final existing = await _client
+          .from(SupabaseConfig.usersTable)
+          .select('uid')
+          .eq('uid', userId)
+          .maybeSingle();
+
+      if (existing == null) {
+        // Create profile if it doesn't exist
+        await _client.from(SupabaseConfig.usersTable).insert({
+          'uid': userId,
+          'email': email,
+          'display_name': displayName ?? email.split('@').first,
+          'created_at': DateTime.now().toIso8601String(),
+        });
+        debugPrint('Created user profile for $userId');
+      }
+    } catch (e) {
+      // Profile might already exist due to race condition with trigger
+      debugPrint('ensureUserProfileExists: $e');
+    }
   }
 
   /// Sign in with OAuth provider (Google, Apple, Facebook)
@@ -64,7 +150,22 @@ class AuthService {
       authScreenLaunchMode: LaunchMode.platformDefault,
     );
 
+    // Note: For OAuth, the profile is ensured when auth state changes
+    // See SupabaseService.authStateStream listener
+
     return response;
+  }
+
+  /// Called when auth state changes (for OAuth flows)
+  Future<void> onAuthStateChanged(User? user) async {
+    if (user != null) {
+      await ensureUserProfileExists(
+        userId: user.id,
+        email: user.email ?? '',
+        displayName: user.userMetadata?['full_name'] as String? ??
+            user.userMetadata?['name'] as String?,
+      );
+    }
   }
 
   /// Sign out the current user

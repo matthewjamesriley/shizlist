@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_typography.dart';
 import '../../../routing/app_router.dart';
 import '../../../services/auth_service.dart';
 import '../../../widgets/shizlist_logo.dart';
-import '../widgets/social_login_button.dart';
+import '../../../widgets/app_button.dart';
 
-/// Login screen for user authentication
+/// Login screen for returning users
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -18,22 +19,23 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
+  final _otpController = TextEditingController();
   final _authService = AuthService();
-  
+
   bool _isLoading = false;
-  bool _obscurePassword = true;
   String? _errorMessage;
   bool _showEmailLogin = false;
+  bool _showOtpVerification = false;
+  String? _pendingEmail;
 
   @override
   void dispose() {
     _emailController.dispose();
-    _passwordController.dispose();
+    _otpController.dispose();
     super.dispose();
   }
 
-  Future<void> _handleLogin() async {
+  Future<void> _handleSendOtp() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
@@ -42,22 +44,50 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      await _authService.signIn(
+      await _authService.signInWithOtp(
         email: _emailController.text.trim(),
-        password: _passwordController.text,
       );
-      
+
+      if (mounted) {
+        setState(() {
+          _pendingEmail = _emailController.text.trim();
+          _showOtpVerification = true;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Failed to send verification email. Please try again.';
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _handleVerifyOtp() async {
+    if (_otpController.text.trim().isEmpty) {
+      setState(() => _errorMessage = 'Please enter the verification code');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      await _authService.verifyOtp(
+        email: _pendingEmail!,
+        token: _otpController.text.trim(),
+      );
+
       if (mounted) {
         context.go(AppRoutes.lists);
       }
     } catch (e) {
       setState(() {
-        _errorMessage = 'Invalid email or password';
+        _errorMessage = 'Invalid or expired code. Please try again.';
+        _isLoading = false;
       });
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
     }
   }
 
@@ -69,7 +99,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       await _authService.signInWithProvider(provider);
-      // OAuth redirects, so we don't need to navigate here
     } catch (e) {
       setState(() {
         _errorMessage = 'Failed to sign in. Please try again.';
@@ -81,46 +110,112 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  void _goBack() {
+    if (_showOtpVerification) {
+      setState(() {
+        _showOtpVerification = false;
+        _otpController.clear();
+      });
+    } else if (_showEmailLogin) {
+      setState(() => _showEmailLogin = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 48),
-              
-              // Logo and tagline
-              const Center(
-                child: ShizListLogo(
-                  height: 120,
-                  showTagline: true,
+              // Back button at top when showing forms
+              if (_showEmailLogin || _showOtpVerification) ...[
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: GestureDetector(
+                    onTap: _goBack,
+                    child: PhosphorIcon(
+                      PhosphorIcons.arrowLeft(),
+                      size: 28,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
                 ),
+                const SizedBox(height: 24),
+              ] else ...[
+                const SizedBox(height: 40),
+              ],
+
+              // Logo - hide when showing forms
+              if (!_showEmailLogin && !_showOtpVerification) ...[
+                const Center(child: ShizListLogo(height: 50)),
+                const SizedBox(height: 48),
+              ],
+
+              // Title
+              Text(
+                _showOtpVerification ? 'Check your email' : 'Welcome back',
+                style: GoogleFonts.lato(
+                  fontSize: 32,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
+                textAlign: TextAlign.center,
               ),
-              
-              const SizedBox(height: 48),
+
+              // Subtitle
+              if (!_showEmailLogin && !_showOtpVerification) ...[
+                const SizedBox(height: 12),
+                Text(
+                  'Log in to continue sharing the stuff you love.',
+                  style: GoogleFonts.lato(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w400,
+                    color: AppColors.textSecondary,
+                    height: 1.4,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ] else if (_showOtpVerification) ...[
+                const SizedBox(height: 12),
+                Text(
+                  'We sent a verification code to\n$_pendingEmail',
+                  style: GoogleFonts.lato(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w400,
+                    color: AppColors.textSecondary,
+                    height: 1.4,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+
+              const SizedBox(height: 40),
 
               // Error message
               if (_errorMessage != null) ...[
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: AppColors.error.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(16),
                   ),
                   child: Row(
                     children: [
-                      const Icon(
-                        Icons.error_outline,
+                      PhosphorIcon(
+                        PhosphorIcons.warningCircle(),
                         color: AppColors.error,
+                        size: 24,
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           _errorMessage!,
-                          style: AppTypography.bodyMedium.copyWith(
+                          style: GoogleFonts.lato(
+                            fontSize: 16,
                             color: AppColors.error,
                           ),
                         ),
@@ -128,85 +223,132 @@ class _LoginScreenState extends State<LoginScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 24),
               ],
 
-              // Social login buttons
-              if (!_showEmailLogin) ...[
-                SocialLoginButton(
-                  provider: SocialProvider.google,
-                  onPressed: _isLoading ? null : () => _handleSocialLogin(SocialProvider.google),
+              // OTP Verification form
+              if (_showOtpVerification) ...[
+                _buildTextField(
+                  controller: _otpController,
+                  hint: 'Enter 6-digit code',
+                  icon: PhosphorIcons.keyhole(),
+                  keyboardType: TextInputType.number,
+                  textAlign: TextAlign.center,
+                  autofocus: true,
                 ),
-                const SizedBox(height: 12),
-                SocialLoginButton(
-                  provider: SocialProvider.apple,
-                  onPressed: _isLoading ? null : () => _handleSocialLogin(SocialProvider.apple),
-                ),
-                const SizedBox(height: 12),
-                SocialLoginButton(
-                  provider: SocialProvider.facebook,
-                  onPressed: _isLoading ? null : () => _handleSocialLogin(SocialProvider.facebook),
-                ),
-                
+
                 const SizedBox(height: 24),
-                
-                // Divider
-                Row(
-                  children: [
-                    const Expanded(child: Divider()),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Text(
-                        'or',
-                        style: AppTypography.bodyMedium.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
+
+                AppButton.primary(
+                  label: 'Verify',
+                  onPressed: _isLoading ? null : _handleVerifyOtp,
+                  isLoading: _isLoading,
+                ),
+
+                const SizedBox(height: 16),
+
+                Center(
+                  child: TextButton(
+                    onPressed: _isLoading ? null : _handleSendOtp,
+                    child: Text(
+                      'Resend code',
+                      style: GoogleFonts.lato(
+                        fontSize: 16,
+                        color: AppColors.primary,
                       ),
                     ),
-                    const Expanded(child: Divider()),
-                  ],
-                ),
-                
-                const SizedBox(height: 24),
-                
-                // Email login option
-                OutlinedButton.icon(
-                  onPressed: () => setState(() => _showEmailLogin = true),
-                  icon: const Icon(Icons.email_outlined),
-                  label: const Text('Continue with Email'),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
                 ),
-              ],
+              ]
 
-              // Email login form
-              if (_showEmailLogin) ...[
-                // Back button
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton.icon(
-                    onPressed: () => setState(() => _showEmailLogin = false),
-                    icon: const Icon(Icons.arrow_back, size: 18),
-                    label: const Text('Back to social login'),
-                  ),
+              // Main login buttons
+              else if (!_showEmailLogin) ...[
+                // Log in with email
+                AppButton.primary(
+                  label: 'Log in with email',
+                  icon: PhosphorIcons.envelope(),
+                  onPressed:
+                      _isLoading
+                          ? null
+                          : () => setState(() => _showEmailLogin = true),
                 ),
+
                 const SizedBox(height: 16),
-                
+
+                // Log in with Google
+                _SocialButton(
+                  label: 'Log in with Google',
+                  icon: PhosphorIcons.googleLogo(),
+                  onPressed:
+                      _isLoading
+                          ? null
+                          : () => _handleSocialLogin(SocialProvider.google),
+                  backgroundColor: Colors.white,
+                  textColor: AppColors.textPrimary,
+                  borderColor: AppColors.border,
+                ),
+
+                const SizedBox(height: 16),
+
+                // Log in with Apple
+                _SocialButton(
+                  label: 'Log in with Apple',
+                  icon: PhosphorIcons.appleLogo(),
+                  onPressed:
+                      _isLoading
+                          ? null
+                          : () => _handleSocialLogin(SocialProvider.apple),
+                  backgroundColor: Colors.black,
+                  textColor: Colors.white,
+                ),
+
+                const SizedBox(height: 16),
+
+                // Log in with Facebook
+                _SocialButton(
+                  label: 'Log in with Facebook',
+                  icon: PhosphorIcons.facebookLogo(),
+                  onPressed:
+                      _isLoading
+                          ? null
+                          : () => _handleSocialLogin(SocialProvider.facebook),
+                  backgroundColor: const Color(0xFF1877F2),
+                  textColor: Colors.white,
+                ),
+
+                const SizedBox(height: 32),
+
+                // Don't have an account
+                Text(
+                  "Don't have an account?",
+                  style: GoogleFonts.lato(
+                    fontSize: 16,
+                    color: AppColors.textSecondary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+
+                const SizedBox(height: 16),
+
+                // Sign up button
+                AppButton.outlinePrimary(
+                  label: 'Sign up',
+                  onPressed: () => context.go(AppRoutes.signup),
+                ),
+              ]
+
+              // Email login form (just email)
+              else ...[
                 Form(
                   key: _formKey,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      TextFormField(
+                      _buildTextField(
                         controller: _emailController,
+                        hint: 'Email',
+                        icon: PhosphorIcons.envelope(),
                         keyboardType: TextInputType.emailAddress,
-                        autocorrect: false,
-                        decoration: const InputDecoration(
-                          labelText: 'Email',
-                          hintText: 'Enter your email',
-                          prefixIcon: Icon(Icons.email_outlined),
-                        ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Please enter your email';
@@ -217,82 +359,169 @@ class _LoginScreenState extends State<LoginScreen> {
                           return null;
                         },
                       ),
-                      const SizedBox(height: 16),
 
-                      TextFormField(
-                        controller: _passwordController,
-                        obscureText: _obscurePassword,
-                        decoration: InputDecoration(
-                          labelText: 'Password',
-                          hintText: 'Enter your password',
-                          prefixIcon: const Icon(Icons.lock_outlined),
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _obscurePassword
-                                  ? Icons.visibility_outlined
-                                  : Icons.visibility_off_outlined,
-                            ),
-                            onPressed: () {
-                              setState(() => _obscurePassword = !_obscurePassword);
-                            },
-                          ),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your password';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 8),
-
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          onPressed: () {
-                            // TODO: Navigate to forgot password
-                          },
-                          child: const Text('Forgot Password?'),
-                        ),
-                      ),
                       const SizedBox(height: 24),
 
-                      ElevatedButton(
-                        onPressed: _isLoading ? null : _handleLogin,
-                        child: _isLoading
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: AppColors.textOnPrimary,
-                                ),
-                              )
-                            : const Text('Log In'),
+                      Text(
+                        "We'll send you a verification code to log in.",
+                        style: GoogleFonts.lato(
+                          fontSize: 14,
+                          color: AppColors.textSecondary,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      AppButton.primary(
+                        label: 'Continue',
+                        onPressed: _isLoading ? null : _handleSendOtp,
+                        isLoading: _isLoading,
                       ),
                     ],
                   ),
                 ),
+
+                const SizedBox(height: 24),
+
+                // Signup link
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      "Don't have an account? ",
+                      style: GoogleFonts.lato(
+                        fontSize: 16,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => context.go(AppRoutes.signup),
+                      child: Text(
+                        'Sign up',
+                        style: GoogleFonts.lato(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ],
 
               const SizedBox(height: 32),
-
-              // Sign up link
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    "Don't have an account?",
-                    style: AppTypography.bodyMedium,
-                  ),
-                  TextButton(
-                    onPressed: () => context.go(AppRoutes.signup),
-                    child: const Text('Sign Up'),
-                  ),
-                ],
-              ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String hint,
+    required IconData icon,
+    TextInputType? keyboardType,
+    bool obscureText = false,
+    Widget? suffixIcon,
+    String? Function(String?)? validator,
+    TextAlign textAlign = TextAlign.start,
+    bool autofocus = false,
+  }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      obscureText: obscureText,
+      textAlign: textAlign,
+      autofocus: autofocus,
+      style: GoogleFonts.lato(fontSize: 18, color: AppColors.textPrimary),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: GoogleFonts.lato(fontSize: 18, color: AppColors.textHint),
+        prefixIcon: Padding(
+          padding: const EdgeInsets.only(left: 16, right: 12),
+          child: PhosphorIcon(icon, color: AppColors.textSecondary, size: 24),
+        ),
+        prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
+        suffixIcon: suffixIcon,
+        filled: true,
+        fillColor: AppColors.surfaceVariant,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(32),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(32),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(32),
+          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(32),
+          borderSide: const BorderSide(color: AppColors.error, width: 1),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 18,
+        ),
+      ),
+      validator: validator,
+    );
+  }
+}
+
+/// Social login button with custom colors (for Google, Apple, Facebook branding)
+class _SocialButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final VoidCallback? onPressed;
+  final Color backgroundColor;
+  final Color textColor;
+  final Color? borderColor;
+
+  const _SocialButton({
+    required this.label,
+    required this.icon,
+    this.onPressed,
+    required this.backgroundColor,
+    required this.textColor,
+    this.borderColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 52,
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: backgroundColor,
+          foregroundColor: textColor,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(26),
+            side: borderColor != null
+                ? BorderSide(color: borderColor!, width: 1.5)
+                : BorderSide.none,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            PhosphorIcon(icon, size: 22, color: textColor),
+            const SizedBox(width: 10),
+            Text(
+              label,
+              style: GoogleFonts.lato(
+                fontSize: 17,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0,
+              ),
+            ),
+          ],
         ),
       ),
     );

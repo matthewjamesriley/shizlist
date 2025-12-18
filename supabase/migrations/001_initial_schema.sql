@@ -35,8 +35,12 @@ CREATE POLICY "Users can update own profile" ON public.users
     FOR UPDATE USING (auth.uid()::text = uid::text);
 
 -- Users can insert their own profile (on signup)
+-- Allow insert when the uid matches auth.uid OR when it's a new signup (uid not yet in table)
 CREATE POLICY "Users can insert own profile" ON public.users
-    FOR INSERT WITH CHECK (auth.uid()::text = uid::text);
+    FOR INSERT WITH CHECK (
+        auth.uid() IS NOT NULL 
+        AND auth.uid()::text = uid::text
+    );
 
 -- Allow users to view other users' basic info (for sharing)
 CREATE POLICY "Users can view others basic info" ON public.users

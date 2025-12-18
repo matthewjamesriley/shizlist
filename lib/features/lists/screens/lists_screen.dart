@@ -4,6 +4,8 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../models/wish_list.dart';
+import '../../../services/list_service.dart';
+import '../../../services/lists_notifier.dart';
 import '../../../widgets/app_notification.dart';
 import '../../../widgets/list_card.dart';
 import '../widgets/create_list_dialog.dart';
@@ -17,50 +19,65 @@ class ListsScreen extends StatefulWidget {
 }
 
 class _ListsScreenState extends State<ListsScreen> {
-  // TODO: Replace with actual data from ListService
-  final List<WishList> _lists = [
-    WishList(
-      id: 1,
-      uid: 'sample-list-1',
-      ownerId: 'user-1',
-      title: 'My Birthday Wishlist',
-      description: 'Things I would love to receive for my birthday!',
-      visibility: ListVisibility.public,
-      createdAt: DateTime.now().subtract(const Duration(days: 5)),
-      itemCount: 12,
-      claimedCount: 4,
-    ),
-    WishList(
-      id: 2,
-      uid: 'sample-list-2',
-      ownerId: 'user-1',
-      title: 'Holiday Gift Ideas',
-      description: 'Gifts for the holiday season',
-      visibility: ListVisibility.private,
-      createdAt: DateTime.now().subtract(const Duration(days: 10)),
-      itemCount: 8,
-      claimedCount: 2,
-    ),
-    WishList(
-      id: 3,
-      uid: 'sample-list-3',
-      ownerId: 'user-1',
-      title: 'Home Improvement',
-      visibility: ListVisibility.private,
-      createdAt: DateTime.now().subtract(const Duration(days: 30)),
-      itemCount: 5,
-      claimedCount: 0,
-    ),
-  ];
+  final ListsNotifier _listsNotifier = ListsNotifier();
+  final ListService _listService = ListService();
 
-  bool _isLoading = false;
+  List<WishList> _lists = [];
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _listsNotifier.addListener(_onListAdded);
+    _loadLists();
+  }
+
+  @override
+  void dispose() {
+    _listsNotifier.removeListener(_onListAdded);
+    super.dispose();
+  }
+
+  void _onListAdded() {
+    final newList = _listsNotifier.lastAddedList;
+    if (newList != null) {
+      setState(() {
+        _lists.insert(0, newList);
+      });
+      _listsNotifier.clearLastAdded();
+    }
+  }
+
+  Future<void> _loadLists() async {
+    try {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+
+      final lists = await _listService.getUserLists();
+
+      setState(() {
+        _lists = lists;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_error != null) {
+      return _buildErrorState();
     }
 
     if (_lists.isEmpty) {
@@ -84,44 +101,57 @@ class _ListsScreenState extends State<ListsScreen> {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildErrorState() {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                color: AppColors.claimedBackground,
-                borderRadius: BorderRadius.circular(60),
-              ),
-              child: PhosphorIcon(
-                PhosphorIcons.gift(),
-                size: 56,
-                color: AppColors.primary,
-              ),
+            PhosphorIcon(
+              PhosphorIcons.warning(),
+              size: 56,
+              color: AppColors.error,
             ),
             const SizedBox(height: 24),
-            Text(
-              'No Lists Yet',
-              style: AppTypography.headlineSmall,
-            ),
+            Text('Something went wrong', style: AppTypography.headlineSmall),
             const SizedBox(height: 8),
             Text(
-              'Create your first wish list and start sharing the stuff you want!',
-              style: AppTypography.bodyLarge.copyWith(
+              _error ?? 'Unknown error',
+              style: AppTypography.bodyMedium.copyWith(
                 color: AppColors.textSecondary,
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 24),
             ElevatedButton.icon(
-              onPressed: _createNewList,
-              icon: PhosphorIcon(PhosphorIcons.plus()),
-              label: const Text('Create Your First List'),
+              onPressed: _loadLists,
+              icon: PhosphorIcon(PhosphorIcons.arrowClockwise()),
+              label: const Text('Try Again'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(50),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Image.asset('assets/images/No-Lists.png', width: 180, height: 180),
+            const SizedBox(height: 14),
+            Text('No lists yet', style: AppTypography.headlineSmall),
+            const SizedBox(height: 8),
+            Text(
+              'Create your first list and start sharing the stuff you love!',
+              style: AppTypography.bodyLarge.copyWith(
+                color: AppColors.textPrimary,
+              ),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
@@ -130,12 +160,7 @@ class _ListsScreenState extends State<ListsScreen> {
   }
 
   Future<void> _refreshLists() async {
-    setState(() => _isLoading = true);
-    
-    // TODO: Fetch lists from ListService
-    await Future.delayed(const Duration(seconds: 1));
-    
-    setState(() => _isLoading = false);
+    await _loadLists();
   }
 
   void _openList(WishList list) {
@@ -161,12 +186,10 @@ class _ListsScreenState extends State<ListsScreen> {
       setState(() {
         _lists.insert(0, result);
       });
-      
+
       if (mounted) {
         AppNotification.success(context, 'Created "${result.title}"');
       }
     }
   }
 }
-
-

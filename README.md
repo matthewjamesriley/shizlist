@@ -1,6 +1,6 @@
 # ShizList
 
-> **"Share the stuff you want"**
+> **"Share the stuff you love"**
 
 A collaborative wish list app built with Flutter and Supabase, enabling multi-user list creation, anonymous claiming, group messaging, and Amazon affiliate integration.
 

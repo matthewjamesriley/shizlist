@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../features/auth/screens/login_screen.dart';
 import '../features/auth/screens/signup_screen.dart';
 import '../features/lists/screens/lists_screen.dart';
@@ -10,6 +12,7 @@ import '../features/messages/screens/messages_screen.dart';
 import '../features/share/screens/share_screen.dart';
 import '../widgets/app_shell.dart';
 import '../services/supabase_service.dart';
+import '../services/auth_service.dart';
 
 /// Route paths
 class AppRoutes {
@@ -27,10 +30,33 @@ class AppRoutes {
   static const String profile = '/profile';
 }
 
+/// Notifier that listens to auth state changes
+class AuthNotifier extends ChangeNotifier {
+  final AuthService _authService = AuthService();
+  late final StreamSubscription<AuthState> _subscription;
+
+  AuthNotifier() {
+    _subscription = SupabaseService.authStateStream.listen((authState) async {
+      // Ensure user profile exists when auth state changes (e.g., OAuth callback)
+      if (authState.event == AuthChangeEvent.signedIn && authState.session?.user != null) {
+        await _authService.onAuthStateChanged(authState.session!.user);
+      }
+      notifyListeners();
+    });
+  }
+
+  @override
+  void dispose() {
+    _subscription.cancel();
+    super.dispose();
+  }
+}
+
 /// App router configuration
 class AppRouter {
   static final _rootNavigatorKey = GlobalKey<NavigatorState>();
   static final _shellNavigatorKey = GlobalKey<NavigatorState>();
+  static final _authNotifier = AuthNotifier();
 
   static GoRouter get router => _router;
 
@@ -38,15 +64,16 @@ class AppRouter {
     navigatorKey: _rootNavigatorKey,
     initialLocation: AppRoutes.lists,
     debugLogDiagnostics: true,
+    refreshListenable: _authNotifier,
     redirect: (context, state) {
       final isAuthenticated = SupabaseService.isAuthenticated;
       final isAuthRoute =
           state.matchedLocation == AppRoutes.login ||
           state.matchedLocation == AppRoutes.signup;
 
-      // Redirect to login if not authenticated and not on auth route
+      // Redirect to signup if not authenticated and not on auth route
       if (!isAuthenticated && !isAuthRoute) {
-        return AppRoutes.login;
+        return AppRoutes.signup;
       }
 
       // Redirect to home if authenticated and on auth route
