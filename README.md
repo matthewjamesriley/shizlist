@@ -7,7 +7,7 @@ A collaborative wish list app built with Flutter and Supabase, enabling multi-us
 ## 🎯 Features
 
 - **Multiple Wish Lists** - Create and manage unlimited lists with categories
-- **Item Categories** - Stuff, Events, Trips, Homemade, Meals, Other
+- **Item Categories** - Stuff, Events, Trips, Crafted, Meals, Other
 - **Anonymous Claiming** - Gifters can claim items without the list owner knowing
 - **Claim Expiration** - Optional expiry dates for claims
 - **Group Messaging** - Coordinate gift-giving with other gifters

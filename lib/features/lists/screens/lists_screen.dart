@@ -57,6 +57,26 @@ class _ListsScreenState extends State<ListsScreen> {
       });
       _listsNotifier.clearLastDeleted();
     }
+
+    // Handle item count changed (silently refresh lists)
+    if (_listsNotifier.itemCountChanged) {
+      _listsNotifier.clearItemCountChanged();
+      _silentRefreshLists();
+    }
+  }
+
+  /// Refresh lists without showing loading indicator
+  Future<void> _silentRefreshLists() async {
+    try {
+      final lists = await _listService.getUserLists();
+      if (mounted) {
+        setState(() {
+          _lists = lists;
+        });
+      }
+    } catch (e) {
+      // Silently fail - user can pull to refresh if needed
+    }
   }
 
   Future<void> _loadLists() async {
@@ -119,6 +139,8 @@ class _ListsScreenState extends State<ListsScreen> {
             list: list,
             onTap: () => _openList(list),
             onShareTap: () => _shareList(list),
+            onVisibilityChanged:
+                (isPublic) => _updateListVisibility(list, isPublic),
           );
         },
       ),
@@ -160,26 +182,36 @@ class _ListsScreenState extends State<ListsScreen> {
   }
 
   Widget _buildEmptyState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(50),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Image.asset('assets/images/No-Lists.png', width: 180, height: 180),
-            const SizedBox(height: 14),
-            Text('No lists yet', style: AppTypography.headlineSmall),
-            const SizedBox(height: 8),
-            Text(
-              'Create your first list and start sharing the stuff you love!',
-              style: AppTypography.bodyLarge.copyWith(
-                color: AppColors.textPrimary,
-              ),
-              textAlign: TextAlign.center,
+    return Stack(
+      children: [
+        Center(
+          child: Padding(
+            padding: const EdgeInsets.all(50),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset(
+                  'assets/images/No-Lists.png',
+                  width: 180,
+                  height: 180,
+                ),
+                const SizedBox(height: 14),
+                Text('No lists yet', style: AppTypography.headlineSmall),
+                const SizedBox(height: 8),
+                Text(
+                  'Create your first list and start sharing the stuff you love!',
+                  style: AppTypography.bodyLarge.copyWith(
+                    color: AppColors.textPrimary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ),
-          ],
+          ),
         ),
-      ),
+        // Arrow pointing to Add list button
+        Positioned(bottom: 110, left: 14, child: _AnimatedArrow()),
+      ],
     );
   }
 
@@ -200,6 +232,33 @@ class _ListsScreenState extends State<ListsScreen> {
       message: 'Share link: ${list.shareUrl}',
       icon: PhosphorIcons.link(),
     );
+  }
+
+  Future<void> _updateListVisibility(WishList list, bool isPublic) async {
+    try {
+      final updatedList = await _listService.updateList(
+        uid: list.uid,
+        visibility: isPublic ? ListVisibility.public : ListVisibility.private,
+      );
+
+      setState(() {
+        final index = _lists.indexWhere((l) => l.uid == list.uid);
+        if (index != -1) {
+          _lists[index] = updatedList;
+        }
+      });
+
+      if (mounted) {
+        AppNotification.success(
+          context,
+          'List is now ${isPublic ? 'public' : 'private'}',
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        AppNotification.error(context, 'Failed to update visibility: $e');
+      }
+    }
   }
 
   void _deleteList(WishList list) async {
@@ -263,5 +322,114 @@ class _ListsScreenState extends State<ListsScreen> {
         AppNotification.success(context, 'Created "${result.title}"');
       }
     }
+  }
+}
+
+/// Animated arrow widget pointing to the Add list button
+class _AnimatedArrow extends StatefulWidget {
+  @override
+  State<_AnimatedArrow> createState() => _AnimatedArrowState();
+}
+
+class _AnimatedArrowState extends State<_AnimatedArrow>
+    with TickerProviderStateMixin {
+  late AnimationController _bubbleController;
+  late AnimationController _arrowController;
+  late Animation<double> _bubbleAnimation;
+  late Animation<double> _arrowAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Bubble animation
+    _bubbleController = AnimationController(
+      duration: const Duration(milliseconds: 1000),
+      vsync: this,
+    )..repeat(reverse: true);
+
+    _bubbleAnimation = Tween<double>(begin: 0, end: 10).animate(
+      CurvedAnimation(parent: _bubbleController, curve: Curves.easeInOut),
+    );
+
+    // Arrow animation - slightly delayed for wobble effect
+    _arrowController = AnimationController(
+      duration: const Duration(milliseconds: 1000),
+      vsync: this,
+    );
+
+    // Start arrow animation with a delay
+    Future.delayed(const Duration(milliseconds: 150), () {
+      if (mounted) {
+        _arrowController.repeat(reverse: true);
+      }
+    });
+
+    _arrowAnimation = Tween<double>(begin: 0, end: 14).animate(
+      CurvedAnimation(parent: _arrowController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _bubbleController.dispose();
+    _arrowController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: Listenable.merge([_bubbleAnimation, _arrowAnimation]),
+      builder: (context, child) {
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Bubble with text
+            Transform.translate(
+              offset: Offset(0, _bubbleAnimation.value),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Text(
+                      'Get started',
+                      style: AppTypography.titleMedium.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Arrow down with separate animation
+            Transform.translate(
+              offset: Offset(0, _arrowAnimation.value + 4),
+              child: PhosphorIcon(
+                PhosphorIcons.arrowDown(PhosphorIconsStyle.bold),
+                size: 36,
+                color: Colors.black,
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 }

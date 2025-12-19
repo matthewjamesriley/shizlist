@@ -112,7 +112,7 @@ class _CategoryTile extends StatelessWidget {
         return Icons.event_outlined;
       case ItemCategory.trips:
         return Icons.flight_outlined;
-      case ItemCategory.homemade:
+      case ItemCategory.crafted:
         return Icons.handyman_outlined;
       case ItemCategory.meals:
         return Icons.restaurant_outlined;

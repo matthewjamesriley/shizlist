@@ -8,7 +8,7 @@ enum ItemCategory {
   stuff,
   events,
   trips,
-  homemade,
+  crafted,
   meals,
   other;
 
@@ -20,8 +20,8 @@ enum ItemCategory {
         return 'Events';
       case ItemCategory.trips:
         return 'Trips';
-      case ItemCategory.homemade:
-        return 'Homemade';
+      case ItemCategory.crafted:
+        return 'Crafted';
       case ItemCategory.meals:
         return 'Meals';
       case ItemCategory.other:
@@ -37,8 +37,8 @@ enum ItemCategory {
         return AppColors.categoryEvents;
       case ItemCategory.trips:
         return AppColors.categoryTrips;
-      case ItemCategory.homemade:
-        return AppColors.categoryHomemade;
+      case ItemCategory.crafted:
+        return AppColors.categoryCrafted;
       case ItemCategory.meals:
         return AppColors.categoryMeals;
       case ItemCategory.other:
@@ -54,7 +54,7 @@ enum ItemCategory {
         return Icons.event_outlined;
       case ItemCategory.trips:
         return Icons.flight_outlined;
-      case ItemCategory.homemade:
+      case ItemCategory.crafted:
         return Icons.handyman_outlined;
       case ItemCategory.meals:
         return Icons.restaurant_outlined;
@@ -64,6 +64,10 @@ enum ItemCategory {
   }
 
   static ItemCategory fromString(String value) {
+    // Handle legacy 'homemade' value -> now 'crafted'
+    if (value.toLowerCase() == 'homemade') {
+      return ItemCategory.crafted;
+    }
     return ItemCategory.values.firstWhere(
       (e) => e.name.toLowerCase() == value.toLowerCase(),
       orElse: () => ItemCategory.other,

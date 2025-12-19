@@ -5,12 +5,16 @@ import '../core/theme/app_colors.dart';
 import '../core/theme/app_typography.dart';
 import '../models/list_item.dart';
 
+/// Position of item in a grouped list
+enum ItemPosition { first, middle, last, only }
+
 /// Item card widget for displaying wish list items
 class ItemCard extends StatelessWidget {
   final ListItem item;
   final bool isOwner;
   final VoidCallback? onTap;
   final VoidCallback? onClaimTap;
+  final ItemPosition position;
 
   const ItemCard({
     super.key,
@@ -18,36 +22,58 @@ class ItemCard extends StatelessWidget {
     this.isOwner = false,
     this.onTap,
     this.onClaimTap,
+    this.position = ItemPosition.only,
   });
+
+  BorderRadius get _borderRadius {
+    const radius = Radius.circular(12);
+    switch (position) {
+      case ItemPosition.first:
+        return const BorderRadius.only(topLeft: radius, topRight: radius);
+      case ItemPosition.last:
+        return const BorderRadius.only(bottomLeft: radius, bottomRight: radius);
+      case ItemPosition.middle:
+        return BorderRadius.zero;
+      case ItemPosition.only:
+        return BorderRadius.circular(12);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: _borderRadius,
+        border: Border(
+          left: BorderSide(color: AppColors.divider, width: 1),
+          right: BorderSide(color: AppColors.divider, width: 1),
+          top: position == ItemPosition.first || position == ItemPosition.only
+              ? BorderSide(color: AppColors.divider, width: 1)
+              : BorderSide.none,
+          bottom: BorderSide(color: AppColors.divider, width: 1),
+        ),
+      ),
       clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Thumbnail image
               _buildThumbnail(),
               const SizedBox(width: 12),
 
-              // Item details
+              // Item details - left side
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Category and priority badges
-                    Row(
-                      children: [
-                        _buildCategoryBadge(),
-                        const Spacer(),
-                        _buildPriorityBadge(),
-                      ],
-                    ),
+                    _buildCategoryBadge(),
                     const SizedBox(height: 6),
 
                     // Item name
@@ -68,26 +94,29 @@ class ItemCard extends StatelessWidget {
                       ),
                     ],
 
-                    const SizedBox(height: 8),
-
-                    // Price and claim status row
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        if (item.price != null)
-                          Text(
-                            item.formattedPrice,
-                            style: AppTypography.priceText,
-                          )
-                        else
-                          const SizedBox.shrink(),
-
-                        // Show claim status only for non-owners
-                        if (!isOwner && item.isClaimed) _buildClaimedBadge(),
-                      ],
-                    ),
+                    // Claim status row (only if claimed)
+                    if (!isOwner && item.isClaimed) ...[
+                      const SizedBox(height: 8),
+                      _buildClaimedBadge(),
+                    ],
                   ],
                 ),
+              ),
+              
+              // Priority and price - right side
+              const SizedBox(width: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  _buildPriorityBadge(),
+                  if (item.price != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      item.formattedPrice,
+                      style: AppTypography.priceText,
+                    ),
+                  ],
+                ],
               ),
 
               // Claim button for gifters
@@ -99,6 +128,7 @@ class ItemCard extends StatelessWidget {
           ),
         ),
       ),
+    ),
     );
   }
 

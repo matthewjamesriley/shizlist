@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_typography.dart';
@@ -8,7 +10,9 @@ import '../models/list_item.dart';
 import '../models/wish_list.dart';
 import '../services/item_service.dart';
 import '../services/list_service.dart';
+import '../services/lists_notifier.dart';
 import '../services/user_settings_service.dart';
+import '../services/image_upload_service.dart';
 import 'app_notification.dart';
 
 /// Unified Add Item sheet with tabs for Quick Add, Amazon Search, and Paste Link
@@ -52,6 +56,15 @@ class _AddItemSheetState extends State<AddItemSheet>
   ItemPriority _selectedPriority = ItemPriority.none;
   bool _isLoading = false;
   bool _isLoadingLists = true;
+
+  // Image handling
+  File? _selectedImage;
+  bool _isUploadingImage = false;
+  double _uploadProgress = 0;
+  String _uploadStatus = '';
+  String? _uploadedThumbnailUrl;
+  String? _uploadedMainImageUrl;
+  final ImageUploadService _imageService = ImageUploadService();
 
   List<WishList> _lists = [];
   List<WishList> _filteredLists = [];
@@ -230,6 +243,7 @@ class _AddItemSheetState extends State<AddItemSheet>
                   ),
                 ),
 
+                const SizedBox(height: 5),
                 // Tab bar
                 TabBar(
                   controller: _tabController,
@@ -239,15 +253,27 @@ class _AddItemSheetState extends State<AddItemSheet>
                   indicatorWeight: 3,
                   labelStyle: AppTypography.labelLarge.copyWith(
                     fontWeight: FontWeight.w600,
-                    fontSize: 16,
+                    fontSize: 18,
                   ),
                   unselectedLabelStyle: AppTypography.labelLarge.copyWith(
-                    fontSize: 16,
+                    fontSize: 18,
                   ),
-                  tabs: const [
-                    Tab(text: 'Item'),
-                    Tab(text: 'Quick add'),
-                    Tab(text: 'Amazon'),
+                  tabs: [
+                    const Tab(text: 'Item details'),
+                    const Tab(text: 'Quick add'),
+                    Tab(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          PhosphorIcon(
+                            PhosphorIcons.magnifyingGlass(),
+                            size: 18,
+                          ),
+                          const SizedBox(width: 6),
+                          const Text('Amazon'),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -391,6 +417,10 @@ class _AddItemSheetState extends State<AddItemSheet>
                 ),
               ],
             ),
+            const SizedBox(height: 16),
+
+            // Image picker
+            _buildImagePicker(),
             const SizedBox(height: 16),
 
             // URL field
@@ -804,6 +834,231 @@ class _AddItemSheetState extends State<AddItemSheet>
     });
   }
 
+  Widget _buildImagePicker() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Image (optional)', style: AppTypography.titleMedium),
+        const SizedBox(height: 8),
+
+        if (_isUploadingImage) ...[
+          // Upload progress indicator
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceVariant,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.divider),
+            ),
+            child: Column(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: LinearProgressIndicator(
+                    value: _uploadProgress,
+                    backgroundColor: AppColors.divider,
+                    color: AppColors.primary,
+                    minHeight: 6,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  _uploadStatus,
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ] else if (_selectedImage != null || _uploadedThumbnailUrl != null) ...[
+          // Selected/uploaded image preview
+          Stack(
+            children: [
+              Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.divider),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child:
+                    _selectedImage != null
+                        ? Image.file(_selectedImage!, fit: BoxFit.cover)
+                        : Image.network(
+                          _uploadedThumbnailUrl!,
+                          fit: BoxFit.cover,
+                        ),
+              ),
+              Positioned(
+                top: 4,
+                right: 4,
+                child: GestureDetector(
+                  onTap: _removeImage,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.6),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.close,
+                      color: Colors.white,
+                      size: 16,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ] else ...[
+          // Image picker buttons
+          Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => _pickImage(ImageSource.gallery),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 14,
+                      horizontal: 16,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceVariant,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.divider),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        PhosphorIcon(
+                          PhosphorIcons.image(),
+                          color: AppColors.textSecondary,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Gallery',
+                          style: AppTypography.bodyLarge.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => _pickImage(ImageSource.camera),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 14,
+                      horizontal: 16,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceVariant,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.divider),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        PhosphorIcon(
+                          PhosphorIcons.camera(),
+                          color: AppColors.textSecondary,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Camera',
+                          style: AppTypography.bodyLarge.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    final picker = ImagePicker();
+    final XFile? picked = await picker.pickImage(
+      source: source,
+      maxWidth: 1200,
+      maxHeight: 1200,
+    );
+
+    if (picked == null) return;
+
+    final file = File(picked.path);
+    setState(() {
+      _selectedImage = file;
+      _uploadedThumbnailUrl = null;
+      _uploadedMainImageUrl = null;
+    });
+
+    // Start upload immediately
+    await _uploadImage(file);
+  }
+
+  Future<void> _uploadImage(File file) async {
+    setState(() {
+      _isUploadingImage = true;
+      _uploadProgress = 0;
+      _uploadStatus = 'Starting...';
+    });
+
+    try {
+      final result = await _imageService.processAndUpload(
+        file,
+        onProgress: (progress, status) {
+          if (mounted) {
+            setState(() {
+              _uploadProgress = progress;
+              _uploadStatus = status;
+            });
+          }
+        },
+      );
+
+      if (mounted && result != null) {
+        setState(() {
+          _isUploadingImage = false;
+          _uploadedThumbnailUrl = result.thumbnailUrl;
+          _uploadedMainImageUrl = result.mainImageUrl;
+          _selectedImage = null; // Clear local file, use uploaded URLs
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isUploadingImage = false;
+          _uploadProgress = 0;
+          _uploadStatus = '';
+        });
+        AppNotification.error(context, 'Failed to upload image');
+      }
+    }
+  }
+
+  void _removeImage() {
+    setState(() {
+      _selectedImage = null;
+      _uploadedThumbnailUrl = null;
+      _uploadedMainImageUrl = null;
+    });
+  }
+
   Widget _buildListSelector() {
     if (_isLoadingLists) {
       return Container(
@@ -843,9 +1098,6 @@ class _AddItemSheetState extends State<AddItemSheet>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Add to list', style: AppTypography.titleMedium),
-        const SizedBox(height: 8),
-
         // Selected list display / dropdown trigger
         GestureDetector(
           onTap: () => setState(() => _showListDropdown = !_showListDropdown),
@@ -1082,6 +1334,7 @@ class _AddItemSheetState extends State<AddItemSheet>
         }
 
         if (mounted) {
+          ListsNotifier().notifyItemCountChanged();
           Navigator.pop(context);
           AppNotification.success(
             context,
@@ -1127,11 +1380,14 @@ class _AddItemSheetState extends State<AddItemSheet>
               _urlController.text.trim().isEmpty
                   ? null
                   : _urlController.text.trim(),
+          thumbnailUrl: _uploadedThumbnailUrl,
+          mainImageUrl: _uploadedMainImageUrl,
           category: _selectedCategory,
           priority: _selectedPriority,
         );
 
         if (mounted) {
+          ListsNotifier().notifyItemCountChanged();
           Navigator.pop(context);
           AppNotification.success(
             context,

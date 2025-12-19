@@ -7,6 +7,8 @@ import '../../../routing/app_router.dart';
 import '../../../services/auth_service.dart';
 import '../../../widgets/shizlist_logo.dart';
 import '../../../widgets/app_button.dart';
+import '../../../widgets/app_notification.dart';
+import '../../../widgets/otp_input.dart';
 
 /// Sign up screen - the first page users see
 class SignupScreen extends StatefulWidget {
@@ -20,7 +22,7 @@ class _SignupScreenState extends State<SignupScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
-  final _otpController = TextEditingController();
+  final _otpInputKey = GlobalKey<OtpInputState>();
   final _authService = AuthService();
 
   bool _isLoading = false;
@@ -28,18 +30,19 @@ class _SignupScreenState extends State<SignupScreen> {
   bool _showEmailSignup = false;
   bool _showOtpVerification = false;
   String? _pendingEmail;
+  String _otpCode = '';
 
   @override
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
-    _otpController.dispose();
     super.dispose();
   }
 
   Future<void> _handleSendOtp() async {
-    if (_formKey.currentState == null || !_formKey.currentState!.validate())
+    if (_formKey.currentState == null || !_formKey.currentState!.validate()) {
       return;
+    }
 
     setState(() {
       _isLoading = true;
@@ -71,9 +74,37 @@ class _SignupScreenState extends State<SignupScreen> {
     }
   }
 
-  Future<void> _handleVerifyOtp() async {
-    if (_otpController.text.trim().isEmpty) {
-      setState(() => _errorMessage = 'Please enter the verification code');
+  Future<void> _handleResendOtp() async {
+    if (_pendingEmail == null) return;
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      await _authService.signInWithOtp(email: _pendingEmail!);
+
+      if (mounted) {
+        setState(() => _isLoading = false);
+        AppNotification.success(context, 'Code resent! Check your email.');
+        _otpInputKey.currentState?.clear();
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage =
+            e.toString().contains('rate')
+                ? 'Too many attempts. Please wait a moment and try again.'
+                : 'Failed to resend code. Please try again.';
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _handleVerifyOtp([String? code]) async {
+    final otpCode = code ?? _otpCode;
+    if (otpCode.length != 6) {
+      setState(() => _errorMessage = 'Please enter all 6 digits');
       return;
     }
 
@@ -83,10 +114,7 @@ class _SignupScreenState extends State<SignupScreen> {
     });
 
     try {
-      await _authService.verifyOtp(
-        email: _pendingEmail!,
-        token: _otpController.text.trim(),
-      );
+      await _authService.verifyOtp(email: _pendingEmail!, token: otpCode);
 
       if (mounted) {
         // Go to country selection as part of onboarding
@@ -97,6 +125,7 @@ class _SignupScreenState extends State<SignupScreen> {
         _errorMessage = 'Invalid or expired code. Please try again.';
         _isLoading = false;
       });
+      _otpInputKey.currentState?.clear();
     }
   }
 
@@ -123,8 +152,9 @@ class _SignupScreenState extends State<SignupScreen> {
     if (_showOtpVerification) {
       setState(() {
         _showOtpVerification = false;
-        _otpController.clear();
+        _otpCode = '';
       });
+      _otpInputKey.currentState?.clear();
     } else if (_showEmailSignup) {
       setState(() => _showEmailSignup = false);
     }
@@ -237,20 +267,21 @@ class _SignupScreenState extends State<SignupScreen> {
 
               // OTP Verification form
               if (_showOtpVerification) ...[
-                _buildTextField(
-                  controller: _otpController,
-                  hint: 'Enter 6-digit code',
-                  icon: PhosphorIcons.keyhole(),
-                  keyboardType: TextInputType.number,
-                  textAlign: TextAlign.center,
+                OtpInput(
+                  key: _otpInputKey,
                   autofocus: true,
+                  onChanged: (code) => setState(() => _otpCode = code),
+                  onCompleted: (code) {
+                    setState(() => _otpCode = code);
+                    _handleVerifyOtp(code);
+                  },
                 ),
 
                 const SizedBox(height: 24),
 
                 AppButton.primary(
                   label: 'Verify',
-                  onPressed: _isLoading ? null : _handleVerifyOtp,
+                  onPressed: _isLoading ? null : () => _handleVerifyOtp(),
                   isLoading: _isLoading,
                 ),
 
@@ -258,7 +289,7 @@ class _SignupScreenState extends State<SignupScreen> {
 
                 Center(
                   child: TextButton(
-                    onPressed: _isLoading ? null : _handleSendOtp,
+                    onPressed: _isLoading ? null : _handleResendOtp,
                     child: Text(
                       'Resend code',
                       style: GoogleFonts.lato(

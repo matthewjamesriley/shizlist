@@ -4,3 +4,4 @@ export 'auth_service.dart';
 export 'list_service.dart';
 export 'item_service.dart';
 export 'user_settings_service.dart';
+export 'image_upload_service.dart';

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../models/wish_list.dart';
@@ -55,12 +56,9 @@ class _ShareScreenState extends State<ShareScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // List selector
-          Text(
-            'Select a List to Share',
-            style: AppTypography.titleMedium,
-          ),
+          Text('Select a List to Share', style: AppTypography.titleMedium),
           const SizedBox(height: 12),
-          
+
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             decoration: BoxDecoration(
@@ -71,27 +69,30 @@ class _ShareScreenState extends State<ShareScreen> {
               child: DropdownButton<WishList>(
                 value: _selectedList,
                 isExpanded: true,
-                items: _lists.map((list) {
-                  return DropdownMenuItem(
-                    value: list,
-                    child: Row(
-                      children: [
-                        Icon(
-                          list.isPublic ? Icons.public : Icons.lock,
-                          size: 20,
-                          color: AppColors.textSecondary,
+                items:
+                    _lists.map((list) {
+                      return DropdownMenuItem(
+                        value: list,
+                        child: Row(
+                          children: [
+                            PhosphorIcon(
+                              list.isPublic
+                                  ? PhosphorIcons.usersThree()
+                                  : PhosphorIcons.lock(),
+                              size: 20,
+                              color: AppColors.textSecondary,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                list.title,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            list.title,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
+                      );
+                    }).toList(),
                 onChanged: (list) {
                   setState(() => _selectedList = list);
                 },
@@ -103,12 +104,9 @@ class _ShareScreenState extends State<ShareScreen> {
             const SizedBox(height: 32),
 
             // Share link section
-            _buildSectionHeader(
-              icon: Icons.link,
-              title: 'Share Link',
-            ),
+            _buildSectionHeader(icon: Icons.link, title: 'Share Link'),
             const SizedBox(height: 12),
-            
+
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -149,12 +147,9 @@ class _ShareScreenState extends State<ShareScreen> {
             const SizedBox(height: 24),
 
             // QR Code section
-            _buildSectionHeader(
-              icon: Icons.qr_code,
-              title: 'QR Code',
-            ),
+            _buildSectionHeader(icon: Icons.qr_code, title: 'QR Code'),
             const SizedBox(height: 12),
-            
+
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
@@ -182,10 +177,7 @@ class _ShareScreenState extends State<ShareScreen> {
                             color: AppColors.textHint,
                           ),
                           const SizedBox(height: 8),
-                          Text(
-                            'QR Code',
-                            style: AppTypography.bodySmall,
-                          ),
+                          Text('QR Code', style: AppTypography.bodySmall),
                         ],
                       ),
                     ),
@@ -210,7 +202,7 @@ class _ShareScreenState extends State<ShareScreen> {
               title: 'Invite by Email',
             ),
             const SizedBox(height: 12),
-            
+
             TextField(
               decoration: const InputDecoration(
                 hintText: 'Enter email address',
@@ -232,7 +224,7 @@ class _ShareScreenState extends State<ShareScreen> {
               title: 'List Visibility',
             ),
             const SizedBox(height: 12),
-            
+
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -241,8 +233,10 @@ class _ShareScreenState extends State<ShareScreen> {
               ),
               child: Row(
                 children: [
-                  Icon(
-                    _selectedList!.isPublic ? Icons.public : Icons.lock,
+                  PhosphorIcon(
+                    _selectedList!.isPublic
+                        ? PhosphorIcons.usersThree()
+                        : PhosphorIcons.lock(),
                     color: AppColors.primary,
                   ),
                   const SizedBox(width: 16),
@@ -286,29 +280,19 @@ class _ShareScreenState extends State<ShareScreen> {
     );
   }
 
-  Widget _buildSectionHeader({
-    required IconData icon,
-    required String title,
-  }) {
+  Widget _buildSectionHeader({required IconData icon, required String title}) {
     return Row(
       children: [
-        Icon(
-          icon,
-          size: 20,
-          color: AppColors.primary,
-        ),
+        Icon(icon, size: 20, color: AppColors.primary),
         const SizedBox(width: 8),
-        Text(
-          title,
-          style: AppTypography.titleSmall,
-        ),
+        Text(title, style: AppTypography.titleSmall),
       ],
     );
   }
 
   void _copyLink() {
     if (_selectedList == null) return;
-    
+
     Clipboard.setData(ClipboardData(text: _selectedList!.shareUrl));
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -320,12 +304,10 @@ class _ShareScreenState extends State<ShareScreen> {
 
   void _shareLink() {
     if (_selectedList == null) return;
-    
+
     // TODO: Use share_plus package
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Share: ${_selectedList!.shareUrl}'),
-      ),
+      SnackBar(content: Text('Share: ${_selectedList!.shareUrl}')),
     );
   }
 
@@ -338,5 +320,3 @@ class _ShareScreenState extends State<ShareScreen> {
     );
   }
 }
-
-

@@ -45,5 +45,9 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>ShizList needs access to your photo library to add images to your wish list items.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>ShizList needs access to your camera to take photos for your wish list items.</string>
 </dict>
 </plist>

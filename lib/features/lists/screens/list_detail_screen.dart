@@ -1,11 +1,14 @@
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../models/models.dart';
+import '../../../services/image_upload_service.dart';
 import '../../../services/item_service.dart';
 import '../../../services/list_service.dart';
 import '../../../services/lists_notifier.dart';
@@ -31,10 +34,71 @@ class _ListDetailScreenState extends State<ListDetailScreen>
   bool _isLoading = true;
   final bool _isOwner = true; // TODO: Determine from auth
   String _sortOption = 'newest';
+  ItemCategory? _selectedCategoryFilter; // null = All
 
   // Multi-select mode
   bool _isMultiSelectMode = false;
   final Set<String> _selectedItemUids = {};
+
+  // Get filtered and sorted items
+  List<ListItem> get _filteredItems {
+    List<ListItem> items;
+
+    // Filter by category
+    if (_selectedCategoryFilter == null) {
+      items = List.from(_items);
+    } else {
+      items =
+          _items
+              .where((item) => item.category == _selectedCategoryFilter)
+              .toList();
+    }
+
+    // Apply sorting
+    switch (_sortOption) {
+      case 'priority_high':
+        items.sort(
+          (a, b) =>
+              _priorityValue(b.priority).compareTo(_priorityValue(a.priority)),
+        );
+        break;
+      case 'priority_low':
+        items.sort(
+          (a, b) =>
+              _priorityValue(a.priority).compareTo(_priorityValue(b.priority)),
+        );
+        break;
+      case 'price_high':
+        items.sort((a, b) => (b.price ?? 0).compareTo(a.price ?? 0));
+        break;
+      case 'price_low':
+        items.sort((a, b) => (a.price ?? 0).compareTo(b.price ?? 0));
+        break;
+      case 'oldest':
+        items.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+        break;
+      case 'newest':
+      default:
+        items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        break;
+    }
+
+    return items;
+  }
+
+  // Convert priority enum to sortable value (higher = more important)
+  int _priorityValue(ItemPriority priority) {
+    switch (priority) {
+      case ItemPriority.high:
+        return 3;
+      case ItemPriority.medium:
+        return 2;
+      case ItemPriority.low:
+        return 1;
+      case ItemPriority.none:
+        return 0;
+    }
+  }
 
   // Controls FAB visibility (starts hidden to avoid spin animation)
   bool _showButtons = false;
@@ -131,8 +195,38 @@ class _ListDetailScreenState extends State<ListDetailScreen>
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: AppColors.primary,
+        backgroundColor:
+            _list.coverImageUrl != null
+                ? Colors.transparent
+                : AppColors.primary,
         foregroundColor: Colors.white,
+        flexibleSpace:
+            _list.coverImageUrl != null
+                ? Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    // Solid color base (shows while loading)
+                    Container(color: AppColors.primary),
+                    // Fading image on top
+                    TweenAnimationBuilder<double>(
+                      tween: Tween(begin: 0.0, end: 1.0),
+                      duration: const Duration(milliseconds: 400),
+                      curve: Curves.easeOut,
+                      builder: (context, value, child) {
+                        return Opacity(
+                          opacity: value,
+                          child: Image.network(
+                            _list.coverImageUrl!,
+                            fit: BoxFit.cover,
+                          ),
+                        );
+                      },
+                    ),
+                    // Dark overlay
+                    Container(color: Colors.black.withValues(alpha: 0.5)),
+                  ],
+                )
+                : null,
         leading: IconButton(
           icon: PhosphorIcon(PhosphorIcons.arrowLeft(), color: Colors.white),
           onPressed: () => context.pop(),
@@ -242,8 +336,10 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                             // Left side - public/private and item count
                             Row(
                               children: [
-                                Icon(
-                                  _list.isPublic ? Icons.public : Icons.lock,
+                                PhosphorIcon(
+                                  _list.isPublic
+                                      ? PhosphorIcons.usersThree()
+                                      : PhosphorIcons.lock(),
                                   size: 18,
                                   color: AppColors.textPrimary,
                                 ),
@@ -256,7 +352,9 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                                 ),
                                 const SizedBox(width: 16),
                                 Text(
-                                  '${_items.length} ${_items.length == 1 ? 'item' : 'items'}',
+                                  _selectedCategoryFilter != null
+                                      ? '${_filteredItems.length} of ${_items.length} ${_items.length == 1 ? 'item' : 'items'}'
+                                      : '${_items.length} ${_items.length == 1 ? 'item' : 'items'}',
                                   style: AppTypography.bodyMedium.copyWith(
                                     color: AppColors.textPrimary,
                                   ),
@@ -264,61 +362,66 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                               ],
                             ),
                             // Right side - Sort dropdown
-                            PopupMenuButton<String>(
-                              onSelected: (value) {
-                                setState(() => _sortOption = value);
-                                // TODO: Apply sorting to _items
-                              },
-                              offset: const Offset(0, 40),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    _getSortLabel(_sortOption),
-                                    style: AppTypography.bodyMedium.copyWith(
-                                      color: AppColors.textPrimary,
-                                    ),
+                            Row(
+                              children: [
+                                // Sort dropdown
+                                PopupMenuButton<String>(
+                                  onSelected: (value) {
+                                    setState(() => _sortOption = value);
+                                  },
+                                  offset: const Offset(0, 40),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
-                                  const SizedBox(width: 4),
-                                  PhosphorIcon(
-                                    PhosphorIcons.caretDown(),
-                                    size: 16,
-                                    color: AppColors.textPrimary,
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        _getSortLabel(_sortOption),
+                                        style: AppTypography.bodyMedium
+                                            .copyWith(
+                                              color: AppColors.textPrimary,
+                                            ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      PhosphorIcon(
+                                        PhosphorIcons.caretDown(),
+                                        size: 16,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              ),
-                              itemBuilder:
-                                  (context) => [
-                                    _buildSortMenuItem(
-                                      'priority_high',
-                                      'Priority: High to Low',
-                                    ),
-                                    _buildSortMenuItem(
-                                      'priority_low',
-                                      'Priority: Low to High',
-                                    ),
-                                    const PopupMenuDivider(),
-                                    _buildSortMenuItem(
-                                      'price_high',
-                                      'Price: High to Low',
-                                    ),
-                                    _buildSortMenuItem(
-                                      'price_low',
-                                      'Price: Low to High',
-                                    ),
-                                    const PopupMenuDivider(),
-                                    _buildSortMenuItem(
-                                      'newest',
-                                      'Newest First',
-                                    ),
-                                    _buildSortMenuItem(
-                                      'oldest',
-                                      'Oldest First',
-                                    ),
-                                  ],
+                                  itemBuilder:
+                                      (context) => [
+                                        _buildSortMenuItem(
+                                          'priority_high',
+                                          'Priority: High to Low',
+                                        ),
+                                        _buildSortMenuItem(
+                                          'priority_low',
+                                          'Priority: Low to High',
+                                        ),
+                                        const PopupMenuDivider(),
+                                        _buildSortMenuItem(
+                                          'price_high',
+                                          'Price: High to Low',
+                                        ),
+                                        _buildSortMenuItem(
+                                          'price_low',
+                                          'Price: Low to High',
+                                        ),
+                                        const PopupMenuDivider(),
+                                        _buildSortMenuItem(
+                                          'newest',
+                                          'Newest First',
+                                        ),
+                                        _buildSortMenuItem(
+                                          'oldest',
+                                          'Oldest First',
+                                        ),
+                                      ],
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -337,33 +440,51 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                     children: [
                       FilterChip(
                         label: const Text('All'),
-                        selected: true,
-                        onSelected: (_) {},
+                        selected: _selectedCategoryFilter == null,
+                        onSelected: (_) {
+                          setState(() => _selectedCategoryFilter = null);
+                        },
                         backgroundColor: Colors.white,
                         selectedColor: Colors.white,
                         showCheckmark: false,
-                        side: BorderSide(color: AppColors.primary),
+                        side: BorderSide(
+                          color:
+                              _selectedCategoryFilter == null
+                                  ? AppColors.primary
+                                  : AppColors.divider,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
                         ),
                       ),
                       const SizedBox(width: 8),
                       ...ItemCategory.values.map((category) {
+                        final isSelected = _selectedCategoryFilter == category;
                         return Padding(
                           padding: const EdgeInsets.only(right: 8),
                           child: FilterChip(
                             label: Text(category.displayName),
-                            selected: false,
-                            onSelected: (_) {},
+                            selected: isSelected,
+                            onSelected: (_) {
+                              setState(
+                                () => _selectedCategoryFilter = category,
+                              );
+                            },
                             avatar: Icon(
                               category.icon,
                               size: 16,
-                              color: category.color,
+                              color:
+                                  isSelected ? category.color : category.color,
                             ),
                             backgroundColor: Colors.white,
                             selectedColor: Colors.white,
                             showCheckmark: false,
-                            side: BorderSide(color: AppColors.divider),
+                            side: BorderSide(
+                              color:
+                                  isSelected
+                                      ? AppColors.primary
+                                      : AppColors.divider,
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(20),
                             ),
@@ -379,19 +500,38 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                   child:
                       _items.isEmpty
                           ? _buildEmptyState()
+                          : _filteredItems.isEmpty
+                          ? _buildNoFilterResultsState()
                           : RefreshIndicator(
                             onRefresh: _loadList,
                             child: ListView.builder(
-                              padding: const EdgeInsets.only(bottom: 80),
-                              itemCount: _items.length,
+                              padding: const EdgeInsets.fromLTRB(8, 0, 8, 80),
+                              itemCount: _filteredItems.length,
                               itemBuilder: (context, index) {
-                                final item = _items[index];
+                                final item = _filteredItems[index];
                                 final isSelected = _selectedItemUids.contains(
                                   item.uid,
                                 );
 
                                 if (_isMultiSelectMode) {
-                                  return _buildSelectableItem(item, isSelected);
+                                  return _buildSelectableItem(
+                                    item,
+                                    isSelected,
+                                    index,
+                                  );
+                                }
+
+                                // Calculate position for grouped card style
+                                final itemCount = _filteredItems.length;
+                                ItemPosition position;
+                                if (itemCount == 1) {
+                                  position = ItemPosition.only;
+                                } else if (index == 0) {
+                                  position = ItemPosition.first;
+                                } else if (index == itemCount - 1) {
+                                  position = ItemPosition.last;
+                                } else {
+                                  position = ItemPosition.middle;
                                 }
 
                                 return ItemCard(
@@ -399,6 +539,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                                   isOwner: _isOwner,
                                   onTap: () => _openItemDetail(item),
                                   onClaimTap: () => _claimItem(item),
+                                  position: position,
                                 );
                               },
                             ),
@@ -673,6 +814,42 @@ class _ListDetailScreenState extends State<ListDetailScreen>
     );
   }
 
+  Widget _buildNoFilterResultsState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              _selectedCategoryFilter?.icon ?? Icons.filter_list,
+              size: 64,
+              color: AppColors.textHint,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No ${_selectedCategoryFilter?.displayName ?? ''} Items',
+              style: AppTypography.titleLarge,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Try selecting a different category or tap "All" to see all items',
+              style: AppTypography.bodyMedium.copyWith(
+                color: AppColors.textSecondary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            TextButton(
+              onPressed: () => setState(() => _selectedCategoryFilter = null),
+              child: const Text('Show All Items'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _handleMenuAction(String action) {
     switch (action) {
       case 'edit':
@@ -692,6 +869,13 @@ class _ListDetailScreenState extends State<ListDetailScreen>
     var visibility = _list.visibility;
     var isLoading = false;
 
+    // Cover image state
+    File? selectedImage;
+    String? uploadedImageUrl = _list.coverImageUrl;
+    bool isUploadingImage = false;
+    double uploadProgress = 0;
+    String uploadStatus = '';
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -700,6 +884,62 @@ class _ListDetailScreenState extends State<ListDetailScreen>
       builder:
           (context) => StatefulBuilder(
             builder: (context, setSheetState) {
+              Future<void> pickImage(ImageSource source) async {
+                final picker = ImagePicker();
+                final picked = await picker.pickImage(
+                  source: source,
+                  maxWidth: 1200,
+                  maxHeight: 1200,
+                );
+
+                if (picked == null) return;
+
+                final file = File(picked.path);
+                setSheetState(() {
+                  selectedImage = file;
+                  uploadedImageUrl = null;
+                });
+
+                // Start upload
+                setSheetState(() {
+                  isUploadingImage = true;
+                  uploadProgress = 0;
+                  uploadStatus = 'Processing image...';
+                });
+
+                try {
+                  final result = await ImageUploadService().processAndUpload(
+                    file,
+                    onProgress: (progress, status) {
+                      setSheetState(() {
+                        uploadProgress = progress;
+                        uploadStatus = status;
+                      });
+                    },
+                  );
+
+                  setSheetState(() {
+                    uploadedImageUrl = result?.mainImageUrl;
+                    isUploadingImage = false;
+                  });
+                } catch (e) {
+                  setSheetState(() {
+                    isUploadingImage = false;
+                    selectedImage = null;
+                  });
+                  if (mounted) {
+                    AppNotification.error(context, 'Failed to upload image');
+                  }
+                }
+              }
+
+              void removeImage() {
+                setSheetState(() {
+                  selectedImage = null;
+                  uploadedImageUrl = null;
+                });
+              }
+
               Future<void> handleSave() async {
                 if (titleController.text.trim().isEmpty) return;
 
@@ -713,6 +953,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                         descriptionController.text.trim().isEmpty
                             ? null
                             : descriptionController.text.trim(),
+                    coverImageUrl: uploadedImageUrl,
                     visibility: visibility,
                   );
 
@@ -735,6 +976,153 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                     );
                   }
                 }
+              }
+
+              Widget buildCoverImagePicker() {
+                if (isUploadingImage) {
+                  return Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceVariant,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.divider),
+                    ),
+                    child: Column(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: LinearProgressIndicator(
+                            value: uploadProgress,
+                            backgroundColor: AppColors.divider,
+                            color: AppColors.primary,
+                            minHeight: 6,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          uploadStatus,
+                          style: AppTypography.bodyMedium.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                if (selectedImage != null || uploadedImageUrl != null) {
+                  return Stack(
+                    children: [
+                      Container(
+                        width: 100,
+                        height: 100,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.divider),
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child:
+                            selectedImage != null
+                                ? Image.file(selectedImage!, fit: BoxFit.cover)
+                                : Image.network(
+                                  uploadedImageUrl!,
+                                  fit: BoxFit.cover,
+                                ),
+                      ),
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: GestureDetector(
+                          onTap: removeImage,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.6),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.close,
+                              color: Colors.white,
+                              size: 16,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                }
+
+                return Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => pickImage(ImageSource.gallery),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 14,
+                            horizontal: 16,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceVariant,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppColors.divider),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              PhosphorIcon(
+                                PhosphorIcons.image(),
+                                color: AppColors.textSecondary,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Gallery',
+                                style: AppTypography.bodyLarge.copyWith(
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => pickImage(ImageSource.camera),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 14,
+                            horizontal: 16,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceVariant,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppColors.divider),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              PhosphorIcon(
+                                PhosphorIcons.camera(),
+                                color: AppColors.textSecondary,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Camera',
+                                style: AppTypography.bodyLarge.copyWith(
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
               }
 
               return Container(
@@ -788,6 +1176,17 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                                 hintText: 'Description (optional)',
                               ),
                             ),
+                            const SizedBox(height: 24),
+
+                            // Cover image
+                            Text(
+                              'Cover image (optional)',
+                              style: AppTypography.titleMedium.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            buildCoverImagePicker(),
                             const SizedBox(height: 24),
 
                             // Visibility
@@ -882,7 +1281,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                                 child: Row(
                                   children: [
                                     PhosphorIcon(
-                                      PhosphorIcons.globe(),
+                                      PhosphorIcons.usersThree(),
                                       size: 28,
                                       color:
                                           visibility == ListVisibility.public
@@ -1016,7 +1415,43 @@ class _ListDetailScreenState extends State<ListDetailScreen>
     _refreshItems();
   }
 
-  Widget _buildSelectableItem(ListItem item, bool isSelected) {
+  Widget _buildSelectableItem(ListItem item, bool isSelected, int index) {
+    // Calculate position for grouped card style
+    final itemCount = _filteredItems.length;
+    ItemPosition position;
+    if (itemCount == 1) {
+      position = ItemPosition.only;
+    } else if (index == 0) {
+      position = ItemPosition.first;
+    } else if (index == itemCount - 1) {
+      position = ItemPosition.last;
+    } else {
+      position = ItemPosition.middle;
+    }
+
+    BorderRadius borderRadius;
+    const radius = Radius.circular(12);
+    switch (position) {
+      case ItemPosition.first:
+        borderRadius = const BorderRadius.only(
+          topLeft: radius,
+          topRight: radius,
+        );
+        break;
+      case ItemPosition.last:
+        borderRadius = const BorderRadius.only(
+          bottomLeft: radius,
+          bottomRight: radius,
+        );
+        break;
+      case ItemPosition.middle:
+        borderRadius = BorderRadius.zero;
+        break;
+      case ItemPosition.only:
+        borderRadius = BorderRadius.circular(12);
+        break;
+    }
+
     return InkWell(
       onTap: () {
         setState(() {
@@ -1028,14 +1463,30 @@ class _ListDetailScreenState extends State<ListDetailScreen>
         });
       },
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.divider,
-            width: 1,
+          borderRadius: borderRadius,
+          border: Border(
+            left: BorderSide(
+              color: isSelected ? AppColors.primary : AppColors.divider,
+              width: 1,
+            ),
+            right: BorderSide(
+              color: isSelected ? AppColors.primary : AppColors.divider,
+              width: 1,
+            ),
+            top:
+                position == ItemPosition.first || position == ItemPosition.only
+                    ? BorderSide(
+                      color: isSelected ? AppColors.primary : AppColors.divider,
+                      width: 1,
+                    )
+                    : BorderSide.none,
+            bottom: BorderSide(
+              color: isSelected ? AppColors.primary : AppColors.divider,
+              width: 1,
+            ),
           ),
         ),
         child: Row(

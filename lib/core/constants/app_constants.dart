@@ -16,7 +16,7 @@ class AppConstants {
     'Stuff',
     'Events',
     'Trips',
-    'Homemade',
+    'Crafted',
     'Meals',
     'Other',
   ];

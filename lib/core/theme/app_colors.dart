@@ -50,7 +50,7 @@ class AppColors {
   static const Color categoryStuff = Color(0xFF5C6BC0); // Indigo
   static const Color categoryEvents = Color(0xFFEC407A); // Pink
   static const Color categoryTrips = Color(0xFF26A69A); // Teal variant
-  static const Color categoryHomemade = Color(0xFFFFB74D); // Orange
+  static const Color categoryCrafted = Color(0xFFFFB74D); // Orange
   static const Color categoryMeals = Color(0xFF66BB6A); // Green
   static const Color categoryOther = Color(0xFF78909C); // Blue Grey
 

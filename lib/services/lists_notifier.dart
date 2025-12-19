@@ -13,6 +13,9 @@ class ListsNotifier extends ChangeNotifier {
   String? _lastDeletedListUid;
   String? get lastDeletedListUid => _lastDeletedListUid;
 
+  bool _itemCountChanged = false;
+  bool get itemCountChanged => _itemCountChanged;
+
   void notifyListAdded(WishList list) {
     _lastAddedList = list;
     notifyListeners();
@@ -29,6 +32,15 @@ class ListsNotifier extends ChangeNotifier {
 
   void clearLastDeleted() {
     _lastDeletedListUid = null;
+  }
+
+  void notifyItemCountChanged() {
+    _itemCountChanged = true;
+    notifyListeners();
+  }
+
+  void clearItemCountChanged() {
+    _itemCountChanged = false;
   }
 }
 

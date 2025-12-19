@@ -12,7 +12,7 @@ class ContactsScreen extends StatefulWidget {
 
 class _ContactsScreenState extends State<ContactsScreen> {
   final _searchController = TextEditingController();
-  
+
   // Sample contacts data
   final List<_Contact> _contacts = [
     _Contact(
@@ -33,7 +33,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
     _Contact(
       name: 'David Brown',
       email: 'david.b@email.com',
-      avatarColor: AppColors.categoryHomemade,
+      avatarColor: AppColors.categoryCrafted,
     ),
   ];
 
@@ -55,14 +55,15 @@ class _ContactsScreenState extends State<ContactsScreen> {
             decoration: InputDecoration(
               hintText: 'Search contacts...',
               prefixIcon: const Icon(Icons.search),
-              suffixIcon: _searchController.text.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.clear),
-                      onPressed: () {
-                        setState(() => _searchController.clear());
-                      },
-                    )
-                  : null,
+              suffixIcon:
+                  _searchController.text.isNotEmpty
+                      ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          setState(() => _searchController.clear());
+                        },
+                      )
+                      : null,
             ),
             onChanged: (_) => setState(() {}),
           ),
@@ -70,19 +71,20 @@ class _ContactsScreenState extends State<ContactsScreen> {
 
         // Contacts list
         Expanded(
-          child: _contacts.isEmpty
-              ? _buildEmptyState()
-              : ListView.builder(
-                  itemCount: _contacts.length + 1, // +1 for add button
-                  itemBuilder: (context, index) {
-                    if (index == 0) {
-                      return _buildAddContactTile();
-                    }
-                    
-                    final contact = _contacts[index - 1];
-                    return _buildContactTile(contact);
-                  },
-                ),
+          child:
+              _contacts.isEmpty
+                  ? _buildEmptyState()
+                  : ListView.builder(
+                    itemCount: _contacts.length + 1, // +1 for add button
+                    itemBuilder: (context, index) {
+                      if (index == 0) {
+                        return _buildAddContactTile();
+                      }
+
+                      final contact = _contacts[index - 1];
+                      return _buildContactTile(contact);
+                    },
+                  ),
         ),
       ],
     );
@@ -109,10 +111,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
               ),
             ),
             const SizedBox(height: 24),
-            Text(
-              'No Contacts Yet',
-              style: AppTypography.headlineSmall,
-            ),
+            Text('No Contacts Yet', style: AppTypography.headlineSmall),
             const SizedBox(height: 8),
             Text(
               'Add friends and family to easily share your wish lists with them.',
@@ -142,10 +141,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
           color: AppColors.primaryLight.withValues(alpha: 0.2),
           borderRadius: BorderRadius.circular(24),
         ),
-        child: const Icon(
-          Icons.person_add,
-          color: AppColors.primary,
-        ),
+        child: const Icon(Icons.person_add, color: AppColors.primary),
       ),
       title: Text(
         'Add New Contact',
@@ -165,47 +161,46 @@ class _ContactsScreenState extends State<ContactsScreen> {
         backgroundColor: contact.avatarColor.withValues(alpha: 0.2),
         child: Text(
           contact.initials,
-          style: AppTypography.titleMedium.copyWith(
-            color: contact.avatarColor,
-          ),
+          style: AppTypography.titleMedium.copyWith(color: contact.avatarColor),
         ),
       ),
-      title: Text(
-        contact.name,
-        style: AppTypography.bodyLarge,
-      ),
-      subtitle: Text(
-        contact.email,
-        style: AppTypography.bodySmall,
-      ),
+      title: Text(contact.name, style: AppTypography.bodyLarge),
+      subtitle: Text(contact.email, style: AppTypography.bodySmall),
       trailing: PopupMenuButton<String>(
         onSelected: (action) => _handleContactAction(action, contact),
-        itemBuilder: (context) => [
-          const PopupMenuItem(
-            value: 'share',
-            child: ListTile(
-              leading: Icon(Icons.share),
-              title: Text('Share List'),
-              contentPadding: EdgeInsets.zero,
-            ),
-          ),
-          const PopupMenuItem(
-            value: 'message',
-            child: ListTile(
-              leading: Icon(Icons.message),
-              title: Text('Message'),
-              contentPadding: EdgeInsets.zero,
-            ),
-          ),
-          const PopupMenuItem(
-            value: 'remove',
-            child: ListTile(
-              leading: Icon(Icons.remove_circle_outline, color: AppColors.error),
-              title: Text('Remove', style: TextStyle(color: AppColors.error)),
-              contentPadding: EdgeInsets.zero,
-            ),
-          ),
-        ],
+        itemBuilder:
+            (context) => [
+              const PopupMenuItem(
+                value: 'share',
+                child: ListTile(
+                  leading: Icon(Icons.share),
+                  title: Text('Share List'),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'message',
+                child: ListTile(
+                  leading: Icon(Icons.message),
+                  title: Text('Message'),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'remove',
+                child: ListTile(
+                  leading: Icon(
+                    Icons.remove_circle_outline,
+                    color: AppColors.error,
+                  ),
+                  title: Text(
+                    'Remove',
+                    style: TextStyle(color: AppColors.error),
+                  ),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+            ],
       ),
       onTap: () => _viewContact(contact),
     );
@@ -214,44 +209,45 @@ class _ContactsScreenState extends State<ContactsScreen> {
   void _addContact() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add Contact'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const TextField(
-              decoration: InputDecoration(
-                labelText: 'Email',
-                hintText: 'Enter email address',
-              ),
-              keyboardType: TextInputType.emailAddress,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Add Contact'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const TextField(
+                  decoration: InputDecoration(
+                    labelText: 'Email',
+                    hintText: 'Enter email address',
+                  ),
+                  keyboardType: TextInputType.emailAddress,
+                ),
+                const SizedBox(height: 16),
+                const TextField(
+                  decoration: InputDecoration(
+                    labelText: 'Name (optional)',
+                    hintText: 'Enter name',
+                  ),
+                  textCapitalization: TextCapitalization.words,
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            const TextField(
-              decoration: InputDecoration(
-                labelText: 'Name (optional)',
-                hintText: 'Enter name',
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
               ),
-              textCapitalization: TextCapitalization.words,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Invitation sent!')),
+                  );
+                },
+                child: const Text('Send Invite'),
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Invitation sent!')),
-              );
-            },
-            child: const Text('Send Invite'),
-          ),
-        ],
-      ),
     );
   }
 
@@ -276,31 +272,32 @@ class _ContactsScreenState extends State<ContactsScreen> {
   void _confirmRemoveContact(_Contact contact) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Remove Contact'),
-        content: Text('Remove ${contact.name} from your contacts?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Remove Contact'),
+            content: Text('Remove ${contact.name} from your contacts?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  setState(() {
+                    _contacts.remove(contact);
+                  });
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Removed ${contact.name}')),
+                  );
+                },
+                child: const Text(
+                  'Remove',
+                  style: TextStyle(color: AppColors.error),
+                ),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              setState(() {
-                _contacts.remove(contact);
-              });
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Removed ${contact.name}')),
-              );
-            },
-            child: const Text(
-              'Remove',
-              style: TextStyle(color: AppColors.error),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -324,5 +321,3 @@ class _Contact {
     return name[0].toUpperCase();
   }
 }
-
-

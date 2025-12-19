@@ -92,7 +92,7 @@ CREATE TABLE IF NOT EXISTS public.list_items (
     main_image_url TEXT,
     retailer_url TEXT,
     amazon_asin TEXT,
-    category TEXT NOT NULL DEFAULT 'other' CHECK (category IN ('stuff', 'events', 'trips', 'homemade', 'meals', 'other')),
+    category TEXT NOT NULL DEFAULT 'other' CHECK (category IN ('stuff', 'events', 'trips', 'crafted', 'meals', 'other')),
     priority TEXT NOT NULL DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high')),
     quantity INTEGER NOT NULL DEFAULT 1,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

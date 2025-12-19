@@ -8,4 +8,5 @@ export 'app_drawer.dart';
 export 'bottom_sheet_header.dart';
 export 'item_card.dart';
 export 'list_card.dart';
+export 'otp_input.dart';
 export 'shizlist_logo.dart';

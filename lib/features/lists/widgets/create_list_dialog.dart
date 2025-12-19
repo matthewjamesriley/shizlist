@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../models/wish_list.dart';
@@ -28,7 +29,7 @@ class _CreateListDialogState extends State<CreateListDialog> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
-  ListVisibility _visibility = ListVisibility.private;
+  ListVisibility _visibility = ListVisibility.public;
   bool _isLoading = false;
 
   @override
@@ -75,9 +76,14 @@ class _CreateListDialogState extends State<CreateListDialog> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    Text('List name', style: AppTypography.titleMedium),
+                    const SizedBox(height: 8),
                     TextFormField(
                       controller: _titleController,
-                      decoration: const InputDecoration(hintText: 'List name'),
+                      decoration: const InputDecoration(
+                        hintText:
+                            'e.g. Gift ideas, Wish list, Things to do etc...',
+                      ),
                       textCapitalization: TextCapitalization.words,
                       autofocus: true,
                       style: AppTypography.titleMedium,
@@ -90,32 +96,37 @@ class _CreateListDialogState extends State<CreateListDialog> {
                     ),
                     const SizedBox(height: 24),
 
+                    Text(
+                      'Description (optional)',
+                      style: AppTypography.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
                     TextFormField(
                       controller: _descriptionController,
                       decoration: const InputDecoration(
-                        hintText: 'Description (optional)',
+                        hintText: 'e.g. These are a few of my favourite things',
                       ),
                       textCapitalization: TextCapitalization.sentences,
                       minLines: 2,
                       maxLines: 3,
                       style: AppTypography.titleMedium,
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 24),
 
                     Text('Visibility', style: AppTypography.titleMedium),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 8),
 
                     Row(
                       children: [
                         Expanded(
                           child: _VisibilityOption(
-                            icon: Icons.lock_outline,
-                            title: 'Private',
-                            subtitle: 'Only shared users',
-                            isSelected: _visibility == ListVisibility.private,
+                            icon: PhosphorIcons.usersThree(),
+                            title: 'Public',
+                            subtitle: 'Anyone with link',
+                            isSelected: _visibility == ListVisibility.public,
                             onTap: () {
                               setState(
-                                () => _visibility = ListVisibility.private,
+                                () => _visibility = ListVisibility.public,
                               );
                             },
                           ),
@@ -123,13 +134,13 @@ class _CreateListDialogState extends State<CreateListDialog> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: _VisibilityOption(
-                            icon: Icons.public,
-                            title: 'Public',
-                            subtitle: 'Anyone with link',
-                            isSelected: _visibility == ListVisibility.public,
+                            icon: PhosphorIcons.lock(),
+                            title: 'Private',
+                            subtitle: 'Only shared users',
+                            isSelected: _visibility == ListVisibility.private,
                             onTap: () {
                               setState(
-                                () => _visibility = ListVisibility.public,
+                                () => _visibility = ListVisibility.private,
                               );
                             },
                           ),
@@ -178,7 +189,7 @@ class _CreateListDialogState extends State<CreateListDialog> {
 }
 
 class _VisibilityOption extends StatelessWidget {
-  final IconData icon;
+  final PhosphorIconData icon;
   final String title;
   final String subtitle;
   final bool isSelected;
@@ -210,7 +221,7 @@ class _VisibilityOption extends StatelessWidget {
         ),
         child: Column(
           children: [
-            Icon(
+            PhosphorIcon(
               icon,
               color: isSelected ? AppColors.primary : AppColors.textSecondary,
               size: 32,
