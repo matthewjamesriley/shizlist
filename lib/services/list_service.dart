@@ -74,19 +74,30 @@ class ListService {
   }
 
   /// Update an existing list
+  /// Set [clearDescription] to true to explicitly remove the description
   Future<WishList> updateList({
     required String uid,
     String? title,
     String? description,
+    bool clearDescription = false,
     String? coverImageUrl,
+    bool clearCoverImage = false,
     ListVisibility? visibility,
   }) async {
     final updates = <String, dynamic>{
       'updated_at': DateTime.now().toIso8601String(),
     };
     if (title != null) updates['title'] = title;
-    if (description != null) updates['description'] = description;
-    if (coverImageUrl != null) updates['cover_image_url'] = coverImageUrl;
+    if (description != null) {
+      updates['description'] = description;
+    } else if (clearDescription) {
+      updates['description'] = null;
+    }
+    if (coverImageUrl != null) {
+      updates['cover_image_url'] = coverImageUrl;
+    } else if (clearCoverImage) {
+      updates['cover_image_url'] = null;
+    }
     if (visibility != null) {
       updates['visibility'] = visibility == ListVisibility.public ? 'public' : 'private';
     }

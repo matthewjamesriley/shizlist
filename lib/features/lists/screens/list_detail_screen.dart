@@ -231,7 +231,27 @@ class _ListDetailScreenState extends State<ListDetailScreen>
           icon: PhosphorIcon(PhosphorIcons.arrowLeft(), color: Colors.white),
           onPressed: () => context.pop(),
         ),
-        title: Text(_list.title, style: const TextStyle(color: Colors.white)),
+        centerTitle: true,
+        toolbarHeight: _list.description != null ? 70 : kToolbarHeight,
+        title: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(_list.title, style: const TextStyle(color: Colors.white)),
+            if (_list.description != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                _list.description!,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.9),
+                  fontSize: 15,
+                  fontWeight: FontWeight.normal,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ],
+        ),
         actions: [
           PopupMenuButton<String>(
             iconColor: Colors.white,
@@ -301,145 +321,128 @@ class _ListDetailScreenState extends State<ListDetailScreen>
             opacity: _fadeAnimation,
             child: Column(
               children: [
-                // List header with description
-                if (_list.description != null)
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.white,
-                          Colors.white,
-                          AppColors.background,
-                        ],
-                        stops: const [0.0, 0.66, 1.0],
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Text(
-                          _list.description!,
-                          style: AppTypography.bodyLarge.copyWith(
-                            color: AppColors.textPrimary,
-                            fontSize: 16,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            // Left side - public/private and item count
-                            Row(
-                              children: [
-                                PhosphorIcon(
-                                  _list.isPublic
-                                      ? PhosphorIcons.usersThree()
-                                      : PhosphorIcons.lock(),
-                                  size: 18,
-                                  color: AppColors.textPrimary,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  _list.isPublic ? 'Public' : 'Private',
-                                  style: AppTypography.bodyMedium.copyWith(
-                                    color: AppColors.textPrimary,
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Text(
-                                  _selectedCategoryFilter != null
-                                      ? '${_filteredItems.length} of ${_items.length} ${_items.length == 1 ? 'item' : 'items'}'
-                                      : '${_items.length} ${_items.length == 1 ? 'item' : 'items'}',
-                                  style: AppTypography.bodyMedium.copyWith(
-                                    color: AppColors.textPrimary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            // Right side - Sort dropdown
-                            Row(
-                              children: [
-                                // Sort dropdown
-                                PopupMenuButton<String>(
-                                  onSelected: (value) {
-                                    setState(() => _sortOption = value);
-                                  },
-                                  offset: const Offset(0, 40),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        _getSortLabel(_sortOption),
-                                        style: AppTypography.bodyMedium
-                                            .copyWith(
-                                              color: AppColors.textPrimary,
-                                            ),
-                                      ),
-                                      const SizedBox(width: 4),
-                                      PhosphorIcon(
-                                        PhosphorIcons.caretDown(),
-                                        size: 16,
-                                        color: AppColors.textPrimary,
-                                      ),
-                                    ],
-                                  ),
-                                  itemBuilder:
-                                      (context) => [
-                                        _buildSortMenuItem(
-                                          'priority_high',
-                                          'Priority: High to Low',
-                                        ),
-                                        _buildSortMenuItem(
-                                          'priority_low',
-                                          'Priority: Low to High',
-                                        ),
-                                        const PopupMenuDivider(),
-                                        _buildSortMenuItem(
-                                          'price_high',
-                                          'Price: High to Low',
-                                        ),
-                                        _buildSortMenuItem(
-                                          'price_low',
-                                          'Price: Low to High',
-                                        ),
-                                        const PopupMenuDivider(),
-                                        _buildSortMenuItem(
-                                          'newest',
-                                          'Newest First',
-                                        ),
-                                        _buildSortMenuItem(
-                                          'oldest',
-                                          'Oldest First',
-                                        ),
-                                      ],
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
+                // Info row
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.white,
+                        Colors.white,
+                        AppColors.background,
                       ],
+                      stops: const [0.0, 0.66, 1.0],
                     ),
                   ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Left side - public/private and item count
+                      Row(
+                        children: [
+                          PhosphorIcon(
+                            _list.isPublic
+                                ? PhosphorIcons.usersThree()
+                                : PhosphorIcons.lock(),
+                            size: 22,
+                            color: AppColors.textPrimary,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            _list.isPublic ? 'Public' : 'Private',
+                            style: AppTypography.titleMedium.copyWith(
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Text(
+                            _selectedCategoryFilter != null
+                                ? '${_filteredItems.length} of ${_items.length} ${_items.length == 1 ? 'item' : 'items'}'
+                                : '${_items.length} ${_items.length == 1 ? 'item' : 'items'}',
+                            style: AppTypography.titleMedium.copyWith(
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      // Right side - Sort dropdown
+                      Row(
+                        children: [
+                          // Sort dropdown
+                          PopupMenuButton<String>(
+                            onSelected: (value) {
+                              setState(() => _sortOption = value);
+                            },
+                            offset: const Offset(0, 40),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  _getSortLabel(_sortOption),
+                                  style: AppTypography.titleMedium.copyWith(
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                PhosphorIcon(
+                                  PhosphorIcons.caretDown(),
+                                  size: 20,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ],
+                            ),
+                            itemBuilder:
+                                (context) => [
+                                  _buildSortMenuItem(
+                                    'priority_high',
+                                    'Priority: High to Low',
+                                  ),
+                                  _buildSortMenuItem(
+                                    'priority_low',
+                                    'Priority: Low to High',
+                                  ),
+                                  const PopupMenuDivider(),
+                                  _buildSortMenuItem(
+                                    'price_high',
+                                    'Price: High to Low',
+                                  ),
+                                  _buildSortMenuItem(
+                                    'price_low',
+                                    'Price: Low to High',
+                                  ),
+                                  const PopupMenuDivider(),
+                                  _buildSortMenuItem('newest', 'Newest First'),
+                                  _buildSortMenuItem('oldest', 'Oldest First'),
+                                ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
 
                 // Category filter chips
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
+                    horizontal: 8,
+                    vertical: 0,
                   ),
                   child: Row(
                     children: [
                       FilterChip(
-                        label: const Text('All'),
+                        label: Text(
+                          'All',
+                          style: AppTypography.titleMedium.copyWith(
+                            fontSize: 15,
+                          ),
+                        ),
                         selected: _selectedCategoryFilter == null,
                         onSelected: (_) {
                           setState(() => _selectedCategoryFilter = null);
@@ -447,6 +450,10 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                         backgroundColor: Colors.white,
                         selectedColor: Colors.white,
                         showCheckmark: false,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 5,
+                          vertical: 1,
+                        ),
                         side: BorderSide(
                           color:
                               _selectedCategoryFilter == null
@@ -457,13 +464,18 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                           borderRadius: BorderRadius.circular(20),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 4),
                       ...ItemCategory.values.map((category) {
                         final isSelected = _selectedCategoryFilter == category;
                         return Padding(
-                          padding: const EdgeInsets.only(right: 8),
+                          padding: const EdgeInsets.only(right: 4),
                           child: FilterChip(
-                            label: Text(category.displayName),
+                            label: Text(
+                              category.displayName,
+                              style: AppTypography.titleMedium.copyWith(
+                                fontSize: 15,
+                              ),
+                            ),
                             selected: isSelected,
                             onSelected: (_) {
                               setState(
@@ -472,13 +484,20 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                             },
                             avatar: Icon(
                               category.icon,
-                              size: 16,
-                              color:
-                                  isSelected ? category.color : category.color,
+                              size: 18,
+                              color: category.color,
                             ),
                             backgroundColor: Colors.white,
                             selectedColor: Colors.white,
                             showCheckmark: false,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                              vertical: 2,
+                            ),
+                            labelPadding: const EdgeInsets.only(
+                              left: 1,
+                              right: 7,
+                            ),
                             side: BorderSide(
                               color:
                                   isSelected
@@ -946,14 +965,15 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                 setSheetState(() => isLoading = true);
 
                 try {
+                  final descText = descriptionController.text.trim();
                   final updatedList = await ListService().updateList(
                     uid: _list.uid,
                     title: titleController.text.trim(),
-                    description:
-                        descriptionController.text.trim().isEmpty
-                            ? null
-                            : descriptionController.text.trim(),
+                    description: descText.isEmpty ? null : descText,
+                    clearDescription: descText.isEmpty,
                     coverImageUrl: uploadedImageUrl,
+                    clearCoverImage:
+                        uploadedImageUrl == null && _list.coverImageUrl != null,
                     visibility: visibility,
                   );
 
@@ -1013,21 +1033,94 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                 if (selectedImage != null || uploadedImageUrl != null) {
                   return Stack(
                     children: [
-                      Container(
-                        width: 100,
-                        height: 100,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.divider),
+                      GestureDetector(
+                        onTap: () {
+                          // Show full-screen preview
+                          Navigator.of(context).push(
+                            PageRouteBuilder(
+                              opaque: false,
+                              barrierColor: Colors.black87,
+                              pageBuilder: (
+                                ctx,
+                                animation,
+                                secondaryAnimation,
+                              ) {
+                                return FadeTransition(
+                                  opacity: animation,
+                                  child: Scaffold(
+                                    backgroundColor: Colors.transparent,
+                                    body: GestureDetector(
+                                      onTap: () => Navigator.pop(ctx),
+                                      child: Stack(
+                                        fit: StackFit.expand,
+                                        children: [
+                                          Container(color: Colors.transparent),
+                                          Center(
+                                            child: InteractiveViewer(
+                                              minScale: 0.5,
+                                              maxScale: 4.0,
+                                              child:
+                                                  selectedImage != null
+                                                      ? Image.file(
+                                                        selectedImage!,
+                                                      )
+                                                      : Image.network(
+                                                        uploadedImageUrl!,
+                                                      ),
+                                            ),
+                                          ),
+                                          Positioned(
+                                            top:
+                                                MediaQuery.of(ctx).padding.top +
+                                                16,
+                                            right: 16,
+                                            child: GestureDetector(
+                                              onTap: () => Navigator.pop(ctx),
+                                              child: Container(
+                                                padding: const EdgeInsets.all(
+                                                  8,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.black
+                                                      .withValues(alpha: 0.5),
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                child: const Icon(
+                                                  Icons.close,
+                                                  color: Colors.white,
+                                                  size: 24,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          );
+                        },
+                        child: Container(
+                          width: 100,
+                          height: 100,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppColors.divider),
+                          ),
+                          clipBehavior: Clip.antiAlias,
+                          child:
+                              selectedImage != null
+                                  ? Image.file(
+                                    selectedImage!,
+                                    fit: BoxFit.cover,
+                                  )
+                                  : Image.network(
+                                    uploadedImageUrl!,
+                                    fit: BoxFit.cover,
+                                  ),
                         ),
-                        clipBehavior: Clip.antiAlias,
-                        child:
-                            selectedImage != null
-                                ? Image.file(selectedImage!, fit: BoxFit.cover)
-                                : Image.network(
-                                  uploadedImageUrl!,
-                                  fit: BoxFit.cover,
-                                ),
                       ),
                       Positioned(
                         top: 4,
@@ -1158,22 +1251,34 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             // Title field
+                            Text('List name', style: AppTypography.titleMedium),
+                            const SizedBox(height: 8),
                             TextFormField(
                               controller: titleController,
                               style: AppTypography.titleMedium,
+                              textCapitalization: TextCapitalization.words,
                               decoration: const InputDecoration(
-                                hintText: 'List name',
+                                hintText:
+                                    'e.g. Gift ideas, Wish list, Things to do etc...',
                               ),
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 24),
 
                             // Description field
+                            Text(
+                              'Description (optional)',
+                              style: AppTypography.titleMedium,
+                            ),
+                            const SizedBox(height: 8),
                             TextFormField(
                               controller: descriptionController,
                               style: AppTypography.titleMedium,
+                              textCapitalization: TextCapitalization.sentences,
+                              minLines: 2,
                               maxLines: 3,
                               decoration: const InputDecoration(
-                                hintText: 'Description (optional)',
+                                hintText:
+                                    'e.g. These are a few of my favourite things',
                               ),
                             ),
                             const SizedBox(height: 24),
@@ -1194,68 +1299,6 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                               'Visibility',
                               style: AppTypography.titleMedium.copyWith(
                                 fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-
-                            // Private option
-                            GestureDetector(
-                              onTap:
-                                  () => setSheetState(
-                                    () => visibility = ListVisibility.private,
-                                  ),
-                              child: Container(
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  border: Border.all(
-                                    color:
-                                        visibility == ListVisibility.private
-                                            ? AppColors.primary
-                                            : AppColors.divider,
-                                    width: 2,
-                                  ),
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: Row(
-                                  children: [
-                                    PhosphorIcon(
-                                      PhosphorIcons.lock(),
-                                      size: 28,
-                                      color:
-                                          visibility == ListVisibility.private
-                                              ? AppColors.primary
-                                              : AppColors.textSecondary,
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            'Private',
-                                            style: AppTypography.titleMedium,
-                                          ),
-                                          Text(
-                                            'Only people you share with can see',
-                                            style: AppTypography.bodyMedium
-                                                .copyWith(
-                                                  color:
-                                                      AppColors.textSecondary,
-                                                ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    if (visibility == ListVisibility.private)
-                                      PhosphorIcon(
-                                        PhosphorIcons.checkCircle(
-                                          PhosphorIconsStyle.fill,
-                                        ),
-                                        color: AppColors.primary,
-                                      ),
-                                  ],
-                                ),
                               ),
                             ),
                             const SizedBox(height: 12),
@@ -1310,6 +1353,68 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                                       ),
                                     ),
                                     if (visibility == ListVisibility.public)
+                                      PhosphorIcon(
+                                        PhosphorIcons.checkCircle(
+                                          PhosphorIconsStyle.fill,
+                                        ),
+                                        color: AppColors.primary,
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+
+                            // Private option
+                            GestureDetector(
+                              onTap:
+                                  () => setSheetState(
+                                    () => visibility = ListVisibility.private,
+                                  ),
+                              child: Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                    color:
+                                        visibility == ListVisibility.private
+                                            ? AppColors.primary
+                                            : AppColors.divider,
+                                    width: 2,
+                                  ),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Row(
+                                  children: [
+                                    PhosphorIcon(
+                                      PhosphorIcons.lock(),
+                                      size: 28,
+                                      color:
+                                          visibility == ListVisibility.private
+                                              ? AppColors.primary
+                                              : AppColors.textSecondary,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Private',
+                                            style: AppTypography.titleMedium,
+                                          ),
+                                          Text(
+                                            'Only people you share with can see',
+                                            style: AppTypography.bodyMedium
+                                                .copyWith(
+                                                  color:
+                                                      AppColors.textSecondary,
+                                                ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    if (visibility == ListVisibility.private)
                                       PhosphorIcon(
                                         PhosphorIcons.checkCircle(
                                           PhosphorIconsStyle.fill,
