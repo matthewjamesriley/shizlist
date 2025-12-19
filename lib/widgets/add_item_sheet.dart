@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_typography.dart';
+import '../core/utils/price_formatter.dart';
 import '../models/list_item.dart';
 import '../models/wish_list.dart';
 import '../services/item_service.dart';
@@ -44,8 +46,10 @@ class _AddItemSheetState extends State<AddItemSheet>
   final _amazonSearchController = TextEditingController();
   final _quickAddController = TextEditingController();
   final _quickAddFocusNode = FocusNode();
+  final _priceFocusNode = FocusNode();
 
   ItemCategory _selectedCategory = ItemCategory.stuff;
+  ItemPriority _selectedPriority = ItemPriority.none;
   bool _isLoading = false;
   bool _isLoadingLists = true;
 
@@ -54,8 +58,11 @@ class _AddItemSheetState extends State<AddItemSheet>
   WishList? _selectedList;
   bool _showListDropdown = false;
 
-  // Quick add items
-  List<String> _quickAddItems = [];
+  // Quick add items (name + category + priority)
+  List<({String name, ItemCategory category, ItemPriority priority})>
+  _quickAddItems = [];
+  ItemCategory _quickAddCategory = ItemCategory.stuff;
+  ItemPriority _quickAddPriority = ItemPriority.none;
 
   @override
   void initState() {
@@ -64,6 +71,17 @@ class _AddItemSheetState extends State<AddItemSheet>
     _selectedList = widget.selectedList;
     _loadLists();
     _listSearchController.addListener(_filterLists);
+    _priceFocusNode.addListener(_onPriceFocusChange);
+  }
+
+  void _onPriceFocusChange() {
+    if (!_priceFocusNode.hasFocus) {
+      // Format price on blur
+      final formatted = PriceFormatter.format(_priceController.text);
+      if (formatted != _priceController.text) {
+        _priceController.text = formatted;
+      }
+    }
   }
 
   Future<void> _loadLists() async {
@@ -112,6 +130,8 @@ class _AddItemSheetState extends State<AddItemSheet>
     _amazonSearchController.dispose();
     _quickAddController.dispose();
     _quickAddFocusNode.dispose();
+    _priceFocusNode.removeListener(_onPriceFocusChange);
+    _priceFocusNode.dispose();
     super.dispose();
   }
 
@@ -297,17 +317,79 @@ class _AddItemSheetState extends State<AddItemSheet>
             ),
             const SizedBox(height: 16),
 
-            // Price field
-            TextFormField(
-              controller: _priceController,
-              decoration: InputDecoration(
-                hintText: 'Price',
-                prefixText: '${UserSettingsService().currencySymbol} ',
-              ),
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              style: AppTypography.bodyLarge,
+            // Price and Priority row
+            Row(
+              children: [
+                // Price field
+                Expanded(
+                  child: TextFormField(
+                    controller: _priceController,
+                    focusNode: _priceFocusNode,
+                    decoration: InputDecoration(
+                      hintText: 'Price',
+                      prefixText: '${UserSettingsService().currencySymbol} ',
+                    ),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    inputFormatters: [PriceInputFormatter()],
+                    style: AppTypography.bodyLarge,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Priority dropdown
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceVariant,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.divider),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<ItemPriority>(
+                        value: _selectedPriority,
+                        isExpanded: true,
+                        icon: PhosphorIcon(
+                          PhosphorIcons.caretDown(),
+                          color: AppColors.textSecondary,
+                          size: 18,
+                        ),
+                        style: AppTypography.bodyLarge.copyWith(
+                          color: AppColors.textPrimary,
+                        ),
+                        items:
+                            ItemPriority.values.map((priority) {
+                              return DropdownMenuItem<ItemPriority>(
+                                value: priority,
+                                child: Row(
+                                  children: [
+                                    PhosphorIcon(
+                                      priority.icon,
+                                      color: priority.color,
+                                      size: 18,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Flexible(
+                                      child: Text(
+                                        priority.displayName,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            setState(() => _selectedPriority = value);
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
 
@@ -351,10 +433,7 @@ class _AddItemSheetState extends State<AddItemSheet>
                             Icon(
                               category.icon,
                               size: 18,
-                              color:
-                                  isSelected
-                                      ? Colors.white
-                                      : category.color,
+                              color: isSelected ? Colors.white : category.color,
                             ),
                             const SizedBox(width: 6),
                             Text(
@@ -471,6 +550,127 @@ class _AddItemSheetState extends State<AddItemSheet>
             const SizedBox(height: 24),
           ],
 
+          // Category selection for quick add
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children:
+                  ItemCategory.values.map((category) {
+                    final isSelected = _quickAddCategory == category;
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: GestureDetector(
+                        onTap:
+                            () => setState(() => _quickAddCategory = category),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color:
+                                isSelected ? AppColors.primary : Colors.white,
+                            borderRadius: BorderRadius.circular(50),
+                            border: Border.all(
+                              color:
+                                  isSelected
+                                      ? AppColors.primary
+                                      : AppColors.divider,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                category.icon,
+                                size: 16,
+                                color:
+                                    isSelected ? Colors.white : category.color,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                category.displayName,
+                                style: AppTypography.bodySmall.copyWith(
+                                  color:
+                                      isSelected
+                                          ? Colors.white
+                                          : AppColors.textPrimary,
+                                  fontWeight:
+                                      isSelected
+                                          ? FontWeight.w600
+                                          : FontWeight.normal,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Priority selection for quick add
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children:
+                  ItemPriority.values.map((priority) {
+                    final isSelected = _quickAddPriority == priority;
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: GestureDetector(
+                        onTap:
+                            () => setState(() => _quickAddPriority = priority),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isSelected ? priority.color : Colors.white,
+                            borderRadius: BorderRadius.circular(50),
+                            border: Border.all(
+                              color:
+                                  isSelected
+                                      ? priority.color
+                                      : AppColors.divider,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              PhosphorIcon(
+                                priority.icon,
+                                size: 16,
+                                color:
+                                    isSelected ? Colors.white : priority.color,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                priority.displayName,
+                                style: AppTypography.bodySmall.copyWith(
+                                  color:
+                                      isSelected
+                                          ? Colors.white
+                                          : AppColors.textPrimary,
+                                  fontWeight:
+                                      isSelected
+                                          ? FontWeight.w600
+                                          : FontWeight.normal,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+            ),
+          ),
+          const SizedBox(height: 16),
+
           // Quick add input
           TextField(
             controller: _quickAddController,
@@ -543,15 +743,23 @@ class _AddItemSheetState extends State<AddItemSheet>
                           ),
                           child: Row(
                             children: [
-                              PhosphorIcon(
-                                PhosphorIcons.check(PhosphorIconsStyle.bold),
-                                color: AppColors.primary,
+                              Icon(
+                                item.category.icon,
+                                color: item.category.color,
                                 size: 20,
                               ),
-                              const SizedBox(width: 12),
+                              const SizedBox(width: 8),
+                              if (item.priority != ItemPriority.none) ...[
+                                PhosphorIcon(
+                                  item.priority.icon,
+                                  color: item.priority.color,
+                                  size: 18,
+                                ),
+                                const SizedBox(width: 8),
+                              ],
                               Expanded(
                                 child: Text(
-                                  item,
+                                  item.name,
                                   style: AppTypography.bodyLarge,
                                 ),
                               ),
@@ -578,38 +786,22 @@ class _AddItemSheetState extends State<AddItemSheet>
     );
   }
 
-  Future<void> _addQuickItem(String value) async {
+  void _addQuickItem(String value) {
     final itemName = value.trim();
     if (itemName.isEmpty) return;
-
-    if (_selectedList == null) {
-      AppNotification.error(context, 'Please select a list first');
-      return;
-    }
 
     // Clear input and refocus immediately for quick continuous adding
     _quickAddController.clear();
     _quickAddFocusNode.requestFocus();
 
-    try {
-      // Save item via ItemService
-      await ItemService().createItem(
-        listId: _selectedList!.id,
+    // Add to local list (will be saved when "Add" button is tapped)
+    setState(() {
+      _quickAddItems.add((
         name: itemName,
-        category: ItemCategory.stuff, // Default category for quick add
-      );
-
-      if (mounted) {
-        setState(() {
-          _quickAddItems.add(itemName);
-        });
-        AppNotification.success(context, 'Added "$itemName"');
-      }
-    } catch (e) {
-      if (mounted) {
-        AppNotification.error(context, 'Failed to add item');
-      }
-    }
+        category: _quickAddCategory,
+        priority: _quickAddPriority,
+      ));
+    });
   }
 
   Widget _buildListSelector() {
@@ -856,6 +1048,56 @@ class _AddItemSheetState extends State<AddItemSheet>
   }
 
   Future<void> _saveItem() async {
+    // Check which tab is active
+    if (_tabController.index == 1) {
+      // Quick Add tab - save all accumulated items
+
+      // First add current input if not empty
+      final currentInput = _quickAddController.text.trim();
+      if (currentInput.isNotEmpty) {
+        _addQuickItem(currentInput);
+      }
+
+      if (_quickAddItems.isEmpty) {
+        AppNotification.error(context, 'Add some items first');
+        return;
+      }
+
+      if (_selectedList == null) {
+        AppNotification.error(context, 'Please select a list first');
+        return;
+      }
+
+      setState(() => _isLoading = true);
+
+      try {
+        // Save all items to database
+        for (final item in _quickAddItems) {
+          await ItemService().createItem(
+            listId: _selectedList!.id,
+            name: item.name,
+            category: item.category,
+            priority: item.priority,
+          );
+        }
+
+        if (mounted) {
+          Navigator.pop(context);
+          AppNotification.success(
+            context,
+            'Added ${_quickAddItems.length} item${_quickAddItems.length == 1 ? '' : 's'} to "${_selectedList!.title}"',
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() => _isLoading = false);
+          AppNotification.error(context, 'Failed to add items: $e');
+        }
+      }
+      return;
+    }
+
+    // Item tab - validate form
     if (_formKey.currentState!.validate()) {
       if (_selectedList == null) {
         AppNotification.error(context, 'Please select a list');
@@ -875,15 +1117,18 @@ class _AddItemSheetState extends State<AddItemSheet>
         await ItemService().createItem(
           listId: _selectedList!.id,
           name: _nameController.text.trim(),
-          description: _descriptionController.text.trim().isEmpty
-              ? null
-              : _descriptionController.text.trim(),
+          description:
+              _descriptionController.text.trim().isEmpty
+                  ? null
+                  : _descriptionController.text.trim(),
           price: price,
           currency: UserSettingsService().currency.code,
-          retailerUrl: _urlController.text.trim().isEmpty
-              ? null
-              : _urlController.text.trim(),
+          retailerUrl:
+              _urlController.text.trim().isEmpty
+                  ? null
+                  : _urlController.text.trim(),
           category: _selectedCategory,
+          priority: _selectedPriority,
         );
 
         if (mounted) {

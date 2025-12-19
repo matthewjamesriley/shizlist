@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../core/theme/app_colors.dart';
 import 'currency.dart';
 
@@ -72,23 +73,28 @@ enum ItemCategory {
 
 /// Item priority enum
 enum ItemPriority {
+  none,
   low,
   medium,
   high;
 
   String get displayName {
     switch (this) {
+      case ItemPriority.none:
+        return 'No priority';
       case ItemPriority.low:
-        return 'So good';
+        return 'Good';
       case ItemPriority.medium:
-        return 'Into it';
+        return 'Into';
       case ItemPriority.high:
-        return 'Love it';
+        return 'Love';
     }
   }
 
   Color get color {
     switch (this) {
+      case ItemPriority.none:
+        return const Color(0xFF9E9E9E); // Grey
       case ItemPriority.low:
         return const Color(0xFF2196F3); // Blue
       case ItemPriority.medium:
@@ -98,10 +104,23 @@ enum ItemPriority {
     }
   }
 
+  IconData get icon {
+    switch (this) {
+      case ItemPriority.none:
+        return PhosphorIcons.circle();
+      case ItemPriority.low:
+        return PhosphorIcons.thumbsUp(PhosphorIconsStyle.fill);
+      case ItemPriority.medium:
+        return PhosphorIcons.smiley(PhosphorIconsStyle.fill);
+      case ItemPriority.high:
+        return PhosphorIcons.heartStraight(PhosphorIconsStyle.fill);
+    }
+  }
+
   static ItemPriority fromString(String value) {
     return ItemPriority.values.firstWhere(
       (e) => e.name.toLowerCase() == value.toLowerCase(),
-      orElse: () => ItemPriority.medium,
+      orElse: () => ItemPriority.none,
     );
   }
 }
@@ -143,7 +162,7 @@ class ListItem {
     this.retailerUrl,
     this.amazonAsin,
     required this.category,
-    this.priority = ItemPriority.medium,
+    this.priority = ItemPriority.none,
     this.quantity = 1,
     this.isClaimed = false,
     this.claimedByUserId,

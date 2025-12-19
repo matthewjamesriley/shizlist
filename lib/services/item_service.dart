@@ -17,18 +17,17 @@ class ItemService {
         .eq('list_id', listId)
         .order('created_at', ascending: false);
 
-    return (response as List)
-        .map((json) => ListItem.fromJson(json))
-        .toList();
+    return (response as List).map((json) => ListItem.fromJson(json)).toList();
   }
 
   /// Get a single item by UID
   Future<ListItem?> getItemByUid(String uid) async {
-    final response = await _client
-        .from(SupabaseConfig.listItemsTable)
-        .select()
-        .eq('uid', uid)
-        .maybeSingle();
+    final response =
+        await _client
+            .from(SupabaseConfig.listItemsTable)
+            .select()
+            .eq('uid', uid)
+            .maybeSingle();
 
     if (response == null) return null;
     return ListItem.fromJson(response);
@@ -43,27 +42,28 @@ class ItemService {
     String? currency,
     String? retailerUrl,
     required ItemCategory category,
-    ItemPriority priority = ItemPriority.medium,
+    ItemPriority priority = ItemPriority.none,
     int quantity = 1,
   }) async {
     final uid = _uuid.v4();
-    final response = await _client
-        .from(SupabaseConfig.listItemsTable)
-        .insert({
-          'uid': uid,
-          'list_id': listId,
-          'name': name,
-          'description': description,
-          'price': price,
-          'currency': currency ?? 'USD',
-          'retailer_url': retailerUrl,
-          'category': category.name,
-          'priority': priority.name,
-          'quantity': quantity,
-          'created_at': DateTime.now().toIso8601String(),
-        })
-        .select()
-        .single();
+    final response =
+        await _client
+            .from(SupabaseConfig.listItemsTable)
+            .insert({
+              'uid': uid,
+              'list_id': listId,
+              'name': name,
+              'description': description,
+              'price': price,
+              'currency': currency ?? 'USD',
+              'retailer_url': retailerUrl,
+              'category': category.name,
+              'priority': priority.name,
+              'quantity': quantity,
+              'created_at': DateTime.now().toIso8601String(),
+            })
+            .select()
+            .single();
 
     return ListItem.fromJson(response);
   }
@@ -81,26 +81,27 @@ class ItemService {
     required ItemCategory category,
   }) async {
     final uid = _uuid.v4();
-    final response = await _client
-        .from(SupabaseConfig.listItemsTable)
-        .insert({
-          'uid': uid,
-          'list_id': listId,
-          'name': name,
-          'description': description,
-          'price': price,
-          'currency': 'USD',
-          'thumbnail_url': thumbnailUrl,
-          'main_image_url': mainImageUrl,
-          'retailer_url': affiliateUrl,
-          'amazon_asin': amazonAsin,
-          'category': category.name,
-          'priority': ItemPriority.medium.name,
-          'quantity': 1,
-          'created_at': DateTime.now().toIso8601String(),
-        })
-        .select()
-        .single();
+    final response =
+        await _client
+            .from(SupabaseConfig.listItemsTable)
+            .insert({
+              'uid': uid,
+              'list_id': listId,
+              'name': name,
+              'description': description,
+              'price': price,
+              'currency': 'USD',
+              'thumbnail_url': thumbnailUrl,
+              'main_image_url': mainImageUrl,
+              'retailer_url': affiliateUrl,
+              'amazon_asin': amazonAsin,
+              'category': category.name,
+              'priority': ItemPriority.none.name,
+              'quantity': 1,
+              'created_at': DateTime.now().toIso8601String(),
+            })
+            .select()
+            .single();
 
     return ListItem.fromJson(response);
   }
@@ -133,22 +134,20 @@ class ItemService {
     if (priority != null) updates['priority'] = priority.name;
     if (quantity != null) updates['quantity'] = quantity;
 
-    final response = await _client
-        .from(SupabaseConfig.listItemsTable)
-        .update(updates)
-        .eq('uid', uid)
-        .select()
-        .single();
+    final response =
+        await _client
+            .from(SupabaseConfig.listItemsTable)
+            .update(updates)
+            .eq('uid', uid)
+            .select()
+            .single();
 
     return ListItem.fromJson(response);
   }
 
   /// Delete an item
   Future<void> deleteItem(String uid) async {
-    await _client
-        .from(SupabaseConfig.listItemsTable)
-        .delete()
-        .eq('uid', uid);
+    await _client.from(SupabaseConfig.listItemsTable).delete().eq('uid', uid);
   }
 
   /// Claim an item (for gifters)
@@ -161,12 +160,15 @@ class ItemService {
     if (userId == null) throw Exception('User not authenticated');
 
     // Use the claim_item database function for safe transactional claim
-    await _client.rpc(SupabaseConfig.claimItemFunction, params: {
-      'p_item_id': itemId,
-      'p_user_id': userId,
-      'p_expires_at': expiresAt?.toIso8601String(),
-      'p_note': note,
-    });
+    await _client.rpc(
+      SupabaseConfig.claimItemFunction,
+      params: {
+        'p_item_id': itemId,
+        'p_user_id': userId,
+        'p_expires_at': expiresAt?.toIso8601String(),
+        'p_note': note,
+      },
+    );
   }
 
   /// Unclaim an item
@@ -174,10 +176,10 @@ class ItemService {
     final userId = SupabaseService.currentUserId;
     if (userId == null) throw Exception('User not authenticated');
 
-    await _client.rpc(SupabaseConfig.unclaimItemFunction, params: {
-      'p_item_id': itemId,
-      'p_user_id': userId,
-    });
+    await _client.rpc(
+      SupabaseConfig.unclaimItemFunction,
+      params: {'p_item_id': itemId, 'p_user_id': userId},
+    );
   }
 
   /// Mark claim as purchased
@@ -203,9 +205,7 @@ class ItemService {
         .select()
         .eq('list_id', listId);
 
-    return (response as List)
-        .map((json) => ListItem.fromJson(json))
-        .toList();
+    return (response as List).map((json) => ListItem.fromJson(json)).toList();
   }
 
   /// Subscribe to real-time item changes
@@ -233,5 +233,3 @@ class ItemService {
         .subscribe();
   }
 }
-
-

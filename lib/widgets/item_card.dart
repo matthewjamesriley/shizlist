@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_typography.dart';
 import '../models/list_item.dart';
@@ -33,16 +34,22 @@ class ItemCard extends StatelessWidget {
               // Thumbnail image
               _buildThumbnail(),
               const SizedBox(width: 12),
-              
+
               // Item details
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Category badge
-                    _buildCategoryBadge(),
+                    // Category and priority badges
+                    Row(
+                      children: [
+                        _buildCategoryBadge(),
+                        const Spacer(),
+                        _buildPriorityBadge(),
+                      ],
+                    ),
                     const SizedBox(height: 6),
-                    
+
                     // Item name
                     Text(
                       item.name,
@@ -50,7 +57,7 @@ class ItemCard extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    
+
                     if (item.description != null) ...[
                       const SizedBox(height: 4),
                       Text(
@@ -60,9 +67,9 @@ class ItemCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ],
-                    
+
                     const SizedBox(height: 8),
-                    
+
                     // Price and claim status row
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -74,16 +81,15 @@ class ItemCard extends StatelessWidget {
                           )
                         else
                           const SizedBox.shrink(),
-                        
+
                         // Show claim status only for non-owners
-                        if (!isOwner && item.isClaimed)
-                          _buildClaimedBadge(),
+                        if (!isOwner && item.isClaimed) _buildClaimedBadge(),
                       ],
                     ),
                   ],
                 ),
               ),
-              
+
               // Claim button for gifters
               if (!isOwner && !item.isClaimed) ...[
                 const SizedBox(width: 8),
@@ -105,24 +111,23 @@ class ItemCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
       ),
       clipBehavior: Clip.antiAlias,
-      child: item.thumbnailUrl != null
-          ? CachedNetworkImage(
-              imageUrl: item.thumbnailUrl!,
-              fit: BoxFit.cover,
-              placeholder: (context, url) => const Center(
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-              errorWidget: (context, url, error) => Icon(
-                item.category.icon,
-                color: AppColors.textHint,
-                size: 32,
-              ),
-            )
-          : Icon(
-              item.category.icon,
-              color: AppColors.textHint,
-              size: 32,
-            ),
+      child:
+          item.thumbnailUrl != null
+              ? CachedNetworkImage(
+                imageUrl: item.thumbnailUrl!,
+                fit: BoxFit.cover,
+                placeholder:
+                    (context, url) => const Center(
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                errorWidget:
+                    (context, url, error) => Icon(
+                      item.category.icon,
+                      color: AppColors.textHint,
+                      size: 32,
+                    ),
+              )
+              : Icon(item.category.icon, color: AppColors.textHint, size: 32),
     );
   }
 
@@ -135,10 +140,21 @@ class ItemCard extends StatelessWidget {
       ),
       child: Text(
         item.category.displayName,
-        style: AppTypography.categoryBadge.copyWith(
-          color: item.category.color,
-        ),
+        style: AppTypography.categoryBadge.copyWith(color: item.category.color),
       ),
+    );
+  }
+
+  Widget _buildPriorityBadge() {
+    // Don't show priority icon if none
+    if (item.priority == ItemPriority.none) {
+      return const SizedBox.shrink();
+    }
+
+    return PhosphorIcon(
+      item.priority.icon,
+      size: 20,
+      color: item.priority.color,
     );
   }
 
@@ -152,16 +168,9 @@ class ItemCard extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
-            Icons.check_circle,
-            size: 14,
-            color: AppColors.primary,
-          ),
+          const Icon(Icons.check_circle, size: 14, color: AppColors.primary),
           const SizedBox(width: 4),
-          Text(
-            'CLAIMED',
-            style: AppTypography.claimedBadge,
-          ),
+          Text('CLAIMED', style: AppTypography.claimedBadge),
         ],
       ),
     );
@@ -182,5 +191,3 @@ class ItemCard extends StatelessWidget {
     );
   }
 }
-
-

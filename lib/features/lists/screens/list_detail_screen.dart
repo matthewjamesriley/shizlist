@@ -151,18 +151,23 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                   PopupMenuItem(
                     value: 'edit',
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
+                      horizontal: 12,
+                      vertical: 4,
                     ),
                     child: Row(
                       children: [
                         PhosphorIcon(
                           PhosphorIcons.pencilSimple(),
-                          size: 22,
+                          size: 20,
                           color: AppColors.textPrimary,
                         ),
-                        const SizedBox(width: 12),
-                        Text('Edit list', style: AppTypography.bodyLarge),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Edit list',
+                          style: AppTypography.titleMedium.copyWith(
+                            fontSize: 16,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -170,20 +175,21 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                   PopupMenuItem(
                     value: 'delete',
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
+                      horizontal: 12,
+                      vertical: 4,
                     ),
                     child: Row(
                       children: [
                         PhosphorIcon(
                           PhosphorIcons.trash(),
-                          size: 22,
+                          size: 20,
                           color: AppColors.error,
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 8),
                         Text(
                           'Delete list',
-                          style: AppTypography.bodyLarge.copyWith(
+                          style: AppTypography.titleMedium.copyWith(
+                            fontSize: 16,
                             color: AppColors.error,
                           ),
                         ),
@@ -206,7 +212,18 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
-                    color: AppColors.surfaceVariant,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.white,
+                          Colors.white,
+                          AppColors.background,
+                        ],
+                        stops: const [0.0, 0.66, 1.0],
+                      ),
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
@@ -322,6 +339,13 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                         label: const Text('All'),
                         selected: true,
                         onSelected: (_) {},
+                        backgroundColor: Colors.white,
+                        selectedColor: Colors.white,
+                        showCheckmark: false,
+                        side: BorderSide(color: AppColors.primary),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
                       ),
                       const SizedBox(width: 8),
                       ...ItemCategory.values.map((category) {
@@ -335,6 +359,13 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                               category.icon,
                               size: 16,
                               color: category.color,
+                            ),
+                            backgroundColor: Colors.white,
+                            selectedColor: Colors.white,
+                            showCheckmark: false,
+                            side: BorderSide(color: AppColors.divider),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
                             ),
                           ),
                         );
@@ -495,11 +526,14 @@ class _ListDetailScreenState extends State<ListDetailScreen>
             children: [
               // Selected count
               Expanded(
-                child: Text(
-                  '${_selectedItemUids.length} selected',
-                  style: AppTypography.titleMedium.copyWith(
-                    color: Colors.white,
-                    fontSize: 18,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 8),
+                  child: Text(
+                    '${_selectedItemUids.length} selected',
+                    style: AppTypography.titleMedium.copyWith(
+                      color: Colors.white,
+                      fontSize: 18,
+                    ),
                   ),
                 ),
               ),
@@ -508,7 +542,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                 IconButton(
                   onPressed: _showPrioritySheet,
                   icon: PhosphorIcon(
-                    PhosphorIcons.flagBanner(),
+                    PhosphorIcons.heartStraight(),
                     color: Colors.white,
                   ),
                   tooltip: 'Set Priority',
@@ -523,6 +557,25 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                   ),
                   tooltip: 'Delete',
                 ),
+              // Dotted separator
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: List.generate(
+                    6,
+                    (index) => Container(
+                      width: 2,
+                      height: 2,
+                      margin: const EdgeInsets.symmetric(vertical: 1.5),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.4),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
               // Cancel/Close button
               IconButton(
                 onPressed:
@@ -567,20 +620,22 @@ class _ListDetailScreenState extends State<ListDetailScreen>
     final isSelected = _sortOption == value;
     return PopupMenuItem<String>(
       value: value,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: Row(
         children: [
           if (isSelected)
             PhosphorIcon(
               PhosphorIcons.check(),
-              size: 18,
+              size: 20,
               color: AppColors.primary,
             )
           else
-            const SizedBox(width: 18),
+            const SizedBox(width: 20),
           const SizedBox(width: 8),
           Text(
             label,
-            style: AppTypography.bodyMedium.copyWith(
+            style: AppTypography.titleMedium.copyWith(
+              fontSize: 16,
               color: isSelected ? AppColors.primary : AppColors.textPrimary,
               fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
             ),
@@ -976,11 +1031,11 @@ class _ListDetailScreenState extends State<ListDetailScreen>
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primaryLight : Colors.white,
+          color: Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected ? AppColors.primary : AppColors.divider,
-            width: isSelected ? 2 : 1,
+            width: 1,
           ),
         ),
         child: Row(
@@ -1129,7 +1184,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                     ],
                   ),
                 ),
-                // Priority options (reversed: high to low)
+                // Priority options (reversed: high to low, then none)
                 ...ItemPriority.values.reversed.toList().asMap().entries.map((
                   entry,
                 ) {
@@ -1141,13 +1196,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                         Divider(height: 1, color: AppColors.divider),
                       ListTile(
                         leading: PhosphorIcon(
-                          priority == ItemPriority.high
-                              ? PhosphorIcons.heartStraight(
-                                PhosphorIconsStyle.fill,
-                              )
-                              : priority == ItemPriority.medium
-                              ? PhosphorIcons.smiley(PhosphorIconsStyle.fill)
-                              : PhosphorIcons.thumbsUp(PhosphorIconsStyle.fill),
+                          priority.icon,
                           color: priority.color,
                           size: 28,
                         ),
