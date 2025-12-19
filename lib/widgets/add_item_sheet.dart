@@ -4,6 +4,7 @@ import '../core/theme/app_colors.dart';
 import '../core/theme/app_typography.dart';
 import '../models/list_item.dart';
 import '../models/wish_list.dart';
+import '../services/item_service.dart';
 import '../services/list_service.dart';
 import '../services/user_settings_service.dart';
 import 'app_notification.dart';
@@ -577,7 +578,7 @@ class _AddItemSheetState extends State<AddItemSheet>
     );
   }
 
-  void _addQuickItem(String value) {
+  Future<void> _addQuickItem(String value) async {
     final itemName = value.trim();
     if (itemName.isEmpty) return;
 
@@ -586,16 +587,29 @@ class _AddItemSheetState extends State<AddItemSheet>
       return;
     }
 
-    setState(() {
-      _quickAddItems.add(itemName);
-      _quickAddController.clear();
-    });
-
-    // Refocus the input for quick continuous adding
+    // Clear input and refocus immediately for quick continuous adding
+    _quickAddController.clear();
     _quickAddFocusNode.requestFocus();
 
-    // TODO: Save item via ItemService
-    AppNotification.success(context, 'Added "$itemName"');
+    try {
+      // Save item via ItemService
+      await ItemService().createItem(
+        listId: _selectedList!.id,
+        name: itemName,
+        category: ItemCategory.stuff, // Default category for quick add
+      );
+
+      if (mounted) {
+        setState(() {
+          _quickAddItems.add(itemName);
+        });
+        AppNotification.success(context, 'Added "$itemName"');
+      }
+    } catch (e) {
+      if (mounted) {
+        AppNotification.error(context, 'Failed to add item');
+      }
+    }
   }
 
   Widget _buildListSelector() {
@@ -841,7 +855,7 @@ class _AddItemSheetState extends State<AddItemSheet>
     );
   }
 
-  void _saveItem() {
+  Future<void> _saveItem() async {
     if (_formKey.currentState!.validate()) {
       if (_selectedList == null) {
         AppNotification.error(context, 'Please select a list');
@@ -850,8 +864,28 @@ class _AddItemSheetState extends State<AddItemSheet>
 
       setState(() => _isLoading = true);
 
-      // TODO: Save item via ItemService with _selectedList.id
-      Future.delayed(const Duration(milliseconds: 500), () {
+      try {
+        // Parse price if provided
+        double? price;
+        if (_priceController.text.isNotEmpty) {
+          price = double.tryParse(_priceController.text.replaceAll(',', '.'));
+        }
+
+        // Save item via ItemService
+        await ItemService().createItem(
+          listId: _selectedList!.id,
+          name: _nameController.text.trim(),
+          description: _descriptionController.text.trim().isEmpty
+              ? null
+              : _descriptionController.text.trim(),
+          price: price,
+          currency: UserSettingsService().currency.code,
+          retailerUrl: _urlController.text.trim().isEmpty
+              ? null
+              : _urlController.text.trim(),
+          category: _selectedCategory,
+        );
+
         if (mounted) {
           Navigator.pop(context);
           AppNotification.success(
@@ -859,7 +893,12 @@ class _AddItemSheetState extends State<AddItemSheet>
             'Added "${_nameController.text}" to "${_selectedList!.title}"',
           );
         }
-      });
+      } catch (e) {
+        if (mounted) {
+          setState(() => _isLoading = false);
+          AppNotification.error(context, 'Failed to add item: $e');
+        }
+      }
     }
   }
 }

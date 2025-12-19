@@ -80,6 +80,20 @@ class _ListsScreenState extends State<ListsScreen> {
     }
   }
 
+  /// Silently refresh lists without showing loading indicator
+  Future<void> _silentRefresh() async {
+    try {
+      final lists = await _listService.getUserLists();
+      if (mounted) {
+        setState(() {
+          _lists = lists;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error refreshing lists: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -173,8 +187,10 @@ class _ListsScreenState extends State<ListsScreen> {
     await _loadLists();
   }
 
-  void _openList(WishList list) {
-    context.go('/lists/${list.uid}');
+  void _openList(WishList list) async {
+    await context.push('/lists/${list.uid}');
+    // Silently refresh lists when returning to get updated item counts
+    _silentRefresh();
   }
 
   void _shareList(WishList list) {

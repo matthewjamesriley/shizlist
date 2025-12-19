@@ -87,6 +87,17 @@ enum ItemPriority {
     }
   }
 
+  Color get color {
+    switch (this) {
+      case ItemPriority.low:
+        return const Color(0xFF9E9E9E); // Grey
+      case ItemPriority.medium:
+        return const Color(0xFFFFA000); // Amber
+      case ItemPriority.high:
+        return const Color(0xFFE53935); // Red
+    }
+  }
+
   static ItemPriority fromString(String value) {
     return ItemPriority.values.firstWhere(
       (e) => e.name.toLowerCase() == value.toLowerCase(),

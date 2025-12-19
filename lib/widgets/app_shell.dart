@@ -24,6 +24,18 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  bool _showButtons = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Delay showing buttons to avoid spin animation
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted) {
+        setState(() => _showButtons = true);
+      }
+    });
+  }
 
   int _getCurrentIndex(BuildContext context) {
     final location = GoRouterState.of(context).matchedLocation;
@@ -145,41 +157,46 @@ class _AppShellState extends State<AppShell> {
           ),
         ),
       ),
-      floatingActionButton:
-          currentIndex == 0
-              ? Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // Add List button (left)
-                  Padding(
-                    padding: const EdgeInsets.only(left: 32),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(32),
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 6.5, sigmaY: 6.5),
-                        child: Material(
-                          color: Colors.white.withValues(alpha: 0.92),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(32),
-                            side: BorderSide(
-                              color: Colors.black.withValues(alpha: 0.2),
-                              width: 1,
-                            ),
+      floatingActionButton: AnimatedSlide(
+        duration: const Duration(milliseconds: 200),
+        offset: (_showButtons && currentIndex == 0) ? Offset.zero : const Offset(0, 0.3),
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 200),
+          opacity: (_showButtons && currentIndex == 0) ? 1.0 : 0.0,
+          child: IgnorePointer(
+            ignoring: !_showButtons || currentIndex != 0,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Add List button (left)
+                Padding(
+                  padding: const EdgeInsets.only(left: 32),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(32),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 6.5, sigmaY: 6.5),
+                      child: Material(
+                        color: Colors.white.withValues(alpha: 0.92),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(32),
+                          side: BorderSide(
+                            color: Colors.black.withValues(alpha: 0.2),
+                            width: 1,
                           ),
-                          child: InkWell(
-                            onTap: _showCreateListDialog,
-                            borderRadius: BorderRadius.circular(32),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 28,
-                                vertical: 16,
-                              ),
-                              child: Text(
-                                'Add list',
-                                style: AppTypography.titleMedium.copyWith(
-                                  color: Colors.black,
-                                  fontSize: 16,
-                                ),
+                        ),
+                        child: InkWell(
+                          onTap: _showCreateListDialog,
+                          borderRadius: BorderRadius.circular(32),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 28,
+                              vertical: 16,
+                            ),
+                            child: Text(
+                              'Add list',
+                              style: AppTypography.titleMedium.copyWith(
+                                color: Colors.black,
+                                fontSize: 16,
                               ),
                             ),
                           ),
@@ -187,19 +204,28 @@ class _AppShellState extends State<AppShell> {
                       ),
                     ),
                   ),
-                  // Add Item button (right) - Orange
-                  FloatingActionButton(
-                    heroTag: 'addItem',
-                    backgroundColor: AppColors.accent,
-                    foregroundColor: Colors.white,
-                    onPressed: () {
-                      _showAddItemSheet(context);
-                    },
-                    child: PhosphorIcon(PhosphorIcons.plus(), size: 28),
+                ),
+                // Add Item button (right) - Orange
+                Material(
+                  color: AppColors.accent,
+                  shape: const CircleBorder(),
+                  elevation: 6,
+                  shadowColor: Colors.black.withValues(alpha: 0.3),
+                  child: InkWell(
+                    onTap: () => _showAddItemSheet(context),
+                    customBorder: const CircleBorder(),
+                    child: SizedBox(
+                      width: 56,
+                      height: 56,
+                      child: PhosphorIcon(PhosphorIcons.plus(), size: 28, color: Colors.white),
+                    ),
                   ),
-                ],
-              )
-              : null,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 

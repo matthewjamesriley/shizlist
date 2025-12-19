@@ -108,19 +108,36 @@ class ListCard extends StatelessWidget {
                   // Stats row
                   Row(
                     children: [
-                      // Item count
-                      _buildStat(
-                        icon: PhosphorIcons.listBullets(),
-                        value: '${list.itemCount}',
-                        label: 'items',
+                      // Stats with pipe separators
+                      Text(
+                        '${list.itemCount} ${list.itemCount == 1 ? 'item' : 'items'}',
+                        style: AppTypography.bodyMedium.copyWith(
+                          color: AppColors.textPrimary,
+                        ),
                       ),
-                      const SizedBox(width: 16),
-                      
-                      // Claimed count
-                      _buildStat(
-                        icon: PhosphorIcons.gift(),
-                        value: '${list.claimedCount}',
-                        label: 'claimed',
+                      Text(
+                        '  |  ',
+                        style: AppTypography.bodyMedium.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      Text(
+                        '${list.claimedCount} committed',
+                        style: AppTypography.bodyMedium.copyWith(
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      Text(
+                        '  |  ',
+                        style: AppTypography.bodyMedium.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      Text(
+                        '0 purchased',
+                        style: AppTypography.bodyMedium.copyWith(
+                          color: AppColors.textPrimary,
+                        ),
                       ),
                       
                       const Spacer(),
@@ -158,34 +175,6 @@ class ListCard extends StatelessWidget {
     );
   }
 
-  Widget _buildStat({
-    required PhosphorIconData icon,
-    required String value,
-    required String label,
-  }) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        PhosphorIcon(
-          icon,
-          size: 18,
-          color: AppColors.textSecondary,
-        ),
-        const SizedBox(width: 4),
-        Text(
-          value,
-          style: AppTypography.labelLarge,
-        ),
-        const SizedBox(width: 3),
-        Text(
-          label,
-          style: AppTypography.bodyMedium.copyWith(
-            color: AppColors.textSecondary,
-          ),
-        ),
-      ],
-    );
-  }
 }
 
 

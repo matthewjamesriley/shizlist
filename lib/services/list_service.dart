@@ -16,26 +16,35 @@ class ListService {
 
     final response = await _client
         .from(SupabaseConfig.listsTable)
-        .select()
+        .select('*, list_items(count)')
         .eq('owner_id', userId)
         .eq('is_deleted', false)
         .order('created_at', ascending: false);
 
-    return (response as List)
-        .map((json) => WishList.fromJson(json))
-        .toList();
+    return (response as List).map((json) {
+      // Extract item count from the nested list_items count
+      final itemCount = json['list_items']?[0]?['count'] as int? ?? 0;
+      final listJson = Map<String, dynamic>.from(json);
+      listJson['item_count'] = itemCount;
+      return WishList.fromJson(listJson);
+    }).toList();
   }
 
   /// Get a single list by UID
   Future<WishList?> getListByUid(String uid) async {
     final response = await _client
         .from(SupabaseConfig.listsTable)
-        .select()
+        .select('*, list_items(count)')
         .eq('uid', uid)
         .maybeSingle();
 
     if (response == null) return null;
-    return WishList.fromJson(response);
+    
+    // Extract item count from the nested list_items count
+    final itemCount = response['list_items']?[0]?['count'] as int? ?? 0;
+    final listJson = Map<String, dynamic>.from(response);
+    listJson['item_count'] = itemCount;
+    return WishList.fromJson(listJson);
   }
 
   /// Create a new list
