@@ -31,11 +31,11 @@ class _ListDetailScreenState extends State<ListDetailScreen>
   bool _isLoading = true;
   final bool _isOwner = true; // TODO: Determine from auth
   String _sortOption = 'newest';
-  
+
   // Multi-select mode
   bool _isMultiSelectMode = false;
   final Set<String> _selectedItemUids = {};
-  
+
   // Controls FAB visibility (starts hidden to avoid spin animation)
   bool _showButtons = false;
 
@@ -85,7 +85,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
 
       // Start fade-in animation after content loads
       _fadeController.forward();
-      
+
       // Show buttons after a brief delay to avoid spin animation
       Future.delayed(const Duration(milliseconds: 100), () {
         if (mounted) {
@@ -273,16 +273,35 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                                   ),
                                 ],
                               ),
-                              itemBuilder: (context) => [
-                                _buildSortMenuItem('priority_high', 'Priority: High to Low'),
-                                _buildSortMenuItem('priority_low', 'Priority: Low to High'),
-                                const PopupMenuDivider(),
-                                _buildSortMenuItem('price_high', 'Price: High to Low'),
-                                _buildSortMenuItem('price_low', 'Price: Low to High'),
-                                const PopupMenuDivider(),
-                                _buildSortMenuItem('newest', 'Newest First'),
-                                _buildSortMenuItem('oldest', 'Oldest First'),
-                              ],
+                              itemBuilder:
+                                  (context) => [
+                                    _buildSortMenuItem(
+                                      'priority_high',
+                                      'Priority: High to Low',
+                                    ),
+                                    _buildSortMenuItem(
+                                      'priority_low',
+                                      'Priority: Low to High',
+                                    ),
+                                    const PopupMenuDivider(),
+                                    _buildSortMenuItem(
+                                      'price_high',
+                                      'Price: High to Low',
+                                    ),
+                                    _buildSortMenuItem(
+                                      'price_low',
+                                      'Price: Low to High',
+                                    ),
+                                    const PopupMenuDivider(),
+                                    _buildSortMenuItem(
+                                      'newest',
+                                      'Newest First',
+                                    ),
+                                    _buildSortMenuItem(
+                                      'oldest',
+                                      'Oldest First',
+                                    ),
+                                  ],
                             ),
                           ],
                         ),
@@ -293,7 +312,10 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                 // Category filter chips
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   child: Row(
                     children: [
                       FilterChip(
@@ -333,12 +355,14 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                               itemCount: _items.length,
                               itemBuilder: (context, index) {
                                 final item = _items[index];
-                                final isSelected = _selectedItemUids.contains(item.uid);
-                                
+                                final isSelected = _selectedItemUids.contains(
+                                  item.uid,
+                                );
+
                                 if (_isMultiSelectMode) {
                                   return _buildSelectableItem(item, isSelected);
                                 }
-                                
+
                                 return ItemCard(
                                   item: item,
                                   isOwner: _isOwner,
@@ -352,7 +376,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
               ],
             ),
           ),
-          
+
           // Floating buttons (positioned at bottom)
           Positioned(
             left: 16,
@@ -360,7 +384,10 @@ class _ListDetailScreenState extends State<ListDetailScreen>
             bottom: 32,
             child: AnimatedSlide(
               duration: const Duration(milliseconds: 200),
-              offset: (_showButtons && !_isMultiSelectMode) ? Offset.zero : const Offset(0, 0.5),
+              offset:
+                  (_showButtons && !_isMultiSelectMode)
+                      ? Offset.zero
+                      : const Offset(0, 0.5),
               child: AnimatedOpacity(
                 duration: const Duration(milliseconds: 200),
                 opacity: (_showButtons && !_isMultiSelectMode) ? 1.0 : 0.0,
@@ -384,10 +411,11 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                               ),
                             ),
                             child: InkWell(
-                              onTap: () => setState(() {
-                                _isMultiSelectMode = true;
-                                _selectedItemUids.clear();
-                              }),
+                              onTap:
+                                  () => setState(() {
+                                    _isMultiSelectMode = true;
+                                    _selectedItemUids.clear();
+                                  }),
                               borderRadius: BorderRadius.circular(32),
                               child: Padding(
                                 padding: const EdgeInsets.symmetric(
@@ -418,7 +446,11 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                           child: SizedBox(
                             width: 56,
                             height: 56,
-                            child: PhosphorIcon(PhosphorIcons.plus(), size: 28, color: Colors.white),
+                            child: PhosphorIcon(
+                              PhosphorIcons.plus(),
+                              size: 28,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
                       ),
@@ -436,76 +468,78 @@ class _ListDetailScreenState extends State<ListDetailScreen>
         child: AnimatedOpacity(
           duration: const Duration(milliseconds: 200),
           opacity: _isMultiSelectMode ? 1.0 : 0.0,
-          child: _isMultiSelectMode ? _buildMultiSelectBar() : const SizedBox.shrink(),
+          child:
+              _isMultiSelectMode
+                  ? _buildMultiSelectBar()
+                  : const SizedBox.shrink(),
         ),
       ),
     );
   }
-  
+
   Widget _buildMultiSelectBar() {
-    return Container(
-      padding: EdgeInsets.only(
-        left: 16,
-        right: 16,
-        top: 12,
-        bottom: 12 + MediaQuery.of(context).padding.bottom,
-      ),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 8,
-            offset: const Offset(0, -2),
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 6.5, sigmaY: 6.5),
+        child: Container(
+          padding: EdgeInsets.only(
+            left: 16,
+            right: 16,
+            top: 12,
+            bottom: 12 + MediaQuery.of(context).padding.bottom,
           ),
-        ],
-      ),
-      child: Row(
-        children: [
-          // Cancel button
-          TextButton(
-            onPressed: () => setState(() {
-              _isMultiSelectMode = false;
-              _selectedItemUids.clear();
-            }),
-            child: Text(
-              'Cancel',
-              style: AppTypography.bodyLarge.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.85),
           ),
-          const SizedBox(width: 8),
-          // Selected count
-          Expanded(
-            child: Text(
-              '${_selectedItemUids.length} selected',
-              style: AppTypography.bodyMedium.copyWith(
-                color: AppColors.textPrimary,
+          child: Row(
+            children: [
+              // Selected count
+              Expanded(
+                child: Text(
+                  '${_selectedItemUids.length} selected',
+                  style: AppTypography.titleMedium.copyWith(
+                    color: Colors.white,
+                    fontSize: 18,
+                  ),
+                ),
               ),
-            ),
+              // Set Priority button
+              if (_selectedItemUids.isNotEmpty)
+                IconButton(
+                  onPressed: _showPrioritySheet,
+                  icon: PhosphorIcon(
+                    PhosphorIcons.flagBanner(),
+                    color: Colors.white,
+                  ),
+                  tooltip: 'Set Priority',
+                ),
+              // Delete button
+              if (_selectedItemUids.isNotEmpty)
+                IconButton(
+                  onPressed: _deleteSelectedItems,
+                  icon: PhosphorIcon(
+                    PhosphorIcons.trash(),
+                    color: AppColors.error,
+                  ),
+                  tooltip: 'Delete',
+                ),
+              // Cancel/Close button
+              IconButton(
+                onPressed:
+                    () => setState(() {
+                      _isMultiSelectMode = false;
+                      _selectedItemUids.clear();
+                    }),
+                icon: PhosphorIcon(
+                  PhosphorIcons.xCircle(),
+                  color: Colors.white.withValues(alpha: 0.7),
+                  size: 28,
+                ),
+                tooltip: 'Cancel',
+              ),
+            ],
           ),
-          // Set Priority button
-          if (_selectedItemUids.isNotEmpty)
-            IconButton(
-              onPressed: _showPrioritySheet,
-              icon: PhosphorIcon(
-                PhosphorIcons.flagBanner(),
-                color: AppColors.primary,
-              ),
-              tooltip: 'Set Priority',
-            ),
-          // Delete button
-          if (_selectedItemUids.isNotEmpty)
-            IconButton(
-              onPressed: _deleteSelectedItems,
-              icon: PhosphorIcon(
-                PhosphorIcons.trash(),
-                color: AppColors.error,
-              ),
-              tooltip: 'Delete',
-            ),
-        ],
+        ),
       ),
     );
   }
@@ -926,7 +960,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
     // Refresh items after the sheet is closed
     _refreshItems();
   }
-  
+
   Widget _buildSelectableItem(ListItem item, bool isSelected) {
     return InkWell(
       onTap: () {
@@ -963,9 +997,10 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                   width: 2,
                 ),
               ),
-              child: isSelected
-                  ? const Icon(Icons.check, size: 16, color: Colors.white)
-                  : null,
+              child:
+                  isSelected
+                      ? const Icon(Icons.check, size: 16, color: Colors.white)
+                      : null,
             ),
             const SizedBox(width: 12),
             // Item image
@@ -977,12 +1012,13 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                   width: 50,
                   height: 50,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
-                    width: 50,
-                    height: 50,
-                    color: AppColors.surfaceVariant,
-                    child: Icon(Icons.image, color: AppColors.textHint),
-                  ),
+                  errorBuilder:
+                      (_, __, ___) => Container(
+                        width: 50,
+                        height: 50,
+                        color: AppColors.surfaceVariant,
+                        child: Icon(Icons.image, color: AppColors.textHint),
+                      ),
                 ),
               )
             else
@@ -1041,115 +1077,161 @@ class _ListDetailScreenState extends State<ListDetailScreen>
       ),
     );
   }
-  
+
   void _showPrioritySheet() {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.only(top: 12),
-              decoration: BoxDecoration(
-                color: AppColors.divider,
-                borderRadius: BorderRadius.circular(2),
-              ),
+      isScrollControlled: true,
+      showDragHandle: false,
+      builder:
+          (context) => Container(
+            decoration: const BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
             ),
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Text(
-                'Set Priority',
-                style: AppTypography.titleLarge,
-              ),
-            ),
-            ...ItemPriority.values.map((priority) => ListTile(
-              leading: Container(
-                width: 12,
-                height: 12,
-                decoration: BoxDecoration(
-                  color: priority.color,
-                  shape: BoxShape.circle,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header using same style as BottomSheetHeader
+                Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.black,
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(24),
+                    ),
+                  ),
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Title - centered
+                      Text(
+                        'Set priority',
+                        style: AppTypography.titleLarge.copyWith(
+                          color: Colors.white,
+                        ),
+                      ),
+                      // Close button on right
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          GestureDetector(
+                            onTap: () => Navigator.pop(context),
+                            child: PhosphorIcon(
+                              PhosphorIcons.xCircle(),
+                              color: Colors.white70,
+                              size: 28,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              title: Text(priority.displayName),
-              onTap: () async {
-                Navigator.pop(context);
-                await _setSelectedItemsPriority(priority);
-              },
-            )),
-            SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
-          ],
-        ),
-      ),
+                // Priority options (reversed: high to low)
+                ...ItemPriority.values.reversed.toList().asMap().entries.map((
+                  entry,
+                ) {
+                  final index = entry.key;
+                  final priority = entry.value;
+                  return Column(
+                    children: [
+                      if (index > 0)
+                        Divider(height: 1, color: AppColors.divider),
+                      ListTile(
+                        leading: PhosphorIcon(
+                          priority == ItemPriority.high
+                              ? PhosphorIcons.heartStraight(
+                                PhosphorIconsStyle.fill,
+                              )
+                              : priority == ItemPriority.medium
+                              ? PhosphorIcons.smiley(PhosphorIconsStyle.fill)
+                              : PhosphorIcons.thumbsUp(PhosphorIconsStyle.fill),
+                          color: priority.color,
+                          size: 28,
+                        ),
+                        title: Text(
+                          priority.displayName,
+                          style: AppTypography.titleMedium.copyWith(
+                            color: AppColors.textPrimary,
+                            fontSize: 18,
+                          ),
+                        ),
+                        onTap: () async {
+                          Navigator.pop(context);
+                          await _setSelectedItemsPriority(priority);
+                        },
+                      ),
+                    ],
+                  );
+                }),
+                SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
+              ],
+            ),
+          ),
     );
   }
-  
+
   Future<void> _setSelectedItemsPriority(ItemPriority priority) async {
     try {
       for (final itemUid in _selectedItemUids) {
         await ItemService().updateItem(uid: itemUid, priority: priority);
       }
-      
+
       AppNotification.success(
         context,
         'Updated ${_selectedItemUids.length} items to ${priority.displayName}',
       );
-      
+
       setState(() {
         _isMultiSelectMode = false;
         _selectedItemUids.clear();
       });
-      
+
       _refreshItems();
     } catch (e) {
       AppNotification.error(context, 'Failed to update priority: $e');
     }
   }
-  
+
   void _deleteSelectedItems() async {
     final count = _selectedItemUids.length;
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete items?'),
-        content: Text(
-          'Are you sure you want to delete $count ${count == 1 ? 'item' : 'items'}?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Delete items?'),
+            content: Text(
+              'Are you sure you want to delete $count ${count == 1 ? 'item' : 'items'}?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: TextButton.styleFrom(foregroundColor: AppColors.error),
+                child: const Text('Delete'),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: AppColors.error),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
     );
-    
+
     if (confirmed == true) {
       try {
         for (final itemUid in _selectedItemUids) {
           await ItemService().deleteItem(itemUid);
         }
-        
+
         AppNotification.success(context, 'Deleted $count items');
-        
+
         setState(() {
           _isMultiSelectMode = false;
           _selectedItemUids.clear();
         });
-        
+
         _refreshItems();
       } catch (e) {
         AppNotification.error(context, 'Failed to delete items: $e');

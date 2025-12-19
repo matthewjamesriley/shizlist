@@ -79,18 +79,18 @@ enum ItemPriority {
   String get displayName {
     switch (this) {
       case ItemPriority.low:
-        return 'Nice to have';
+        return 'So good';
       case ItemPriority.medium:
-        return 'Would like';
+        return 'Into it';
       case ItemPriority.high:
-        return 'Really want';
+        return 'Love it';
     }
   }
 
   Color get color {
     switch (this) {
       case ItemPriority.low:
-        return const Color(0xFF9E9E9E); // Grey
+        return const Color(0xFF2196F3); // Blue
       case ItemPriority.medium:
         return const Color(0xFFFFA000); // Amber
       case ItemPriority.high:
