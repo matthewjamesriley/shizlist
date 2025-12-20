@@ -12,6 +12,7 @@ import 'edit_item_sheet.dart';
 class ItemSearchDelegate extends SearchDelegate<ItemSearchResult?> {
   final ItemService _itemService = ItemService();
   Timer? _debounceTimer;
+  int _refreshKey = 0; // Used to force FutureBuilder to refetch
   
   ItemSearchDelegate() : super(
     searchFieldLabel: 'Search all items...',
@@ -19,6 +20,11 @@ class ItemSearchDelegate extends SearchDelegate<ItemSearchResult?> {
       color: AppColors.textPrimary,
     ),
   );
+
+  /// Force refresh of search results
+  void _refresh() {
+    _refreshKey++;
+  }
 
   @override
   ThemeData appBarTheme(BuildContext context) {
@@ -98,6 +104,7 @@ class ItemSearchDelegate extends SearchDelegate<ItemSearchResult?> {
 
   Widget _buildSearchResults(BuildContext context) {
     return FutureBuilder<List<ItemSearchResult>>(
+      key: ValueKey('search_$query\_$_refreshKey'), // Force rebuild on refresh
       future: _itemService.searchAllItems(query),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -263,7 +270,8 @@ class ItemSearchDelegate extends SearchDelegate<ItemSearchResult?> {
           item: result.item,
           onSaved: () {
             AppNotification.success(context, 'Item updated');
-            // Refresh search results after save
+            // Force refresh and show updated results
+            _refresh();
             showResults(context);
           },
           onDeleted: () async {
@@ -291,7 +299,8 @@ class ItemSearchDelegate extends SearchDelegate<ItemSearchResult?> {
               try {
                 await ItemService().deleteItem(result.item.uid);
                 AppNotification.success(context, 'Item deleted');
-                // Refresh search results after delete
+                // Force refresh and show updated results
+                _refresh();
                 showResults(context);
               } catch (e) {
                 AppNotification.error(context, 'Failed to delete item');
