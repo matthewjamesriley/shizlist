@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../core/theme/app_colors.dart';
+import '../core/theme/app_theme.dart';
 import '../core/theme/app_typography.dart';
 import '../models/list_item.dart';
 import '../models/currency.dart';
@@ -37,11 +38,14 @@ class EditItemSheet extends StatefulWidget {
       isScrollControlled: true,
       showDragHandle: false,
       backgroundColor: Colors.transparent,
-      useRootNavigator: true, // Use root navigator to get correct theme
-      builder: (context) => EditItemSheet(
-        item: item,
-        onSaved: onSaved,
-        onDeleted: onDeleted,
+      builder: (sheetContext) => Theme(
+        // Use app theme to ensure consistent styling
+        data: AppTheme.lightTheme,
+        child: EditItemSheet(
+          item: item,
+          onSaved: onSaved,
+          onDeleted: onDeleted,
+        ),
       ),
     );
   }
@@ -136,9 +140,10 @@ class _EditItemSheetState extends State<EditItemSheet>
         widget.onSaved?.call();
       }
     } catch (e) {
+      debugPrint('Error updating item: $e');
       setState(() => _isLoading = false);
       if (mounted) {
-        AppNotification.error(context, 'Failed to update item');
+        AppNotification.error(context, 'Failed to update item: $e');
       }
     }
   }
