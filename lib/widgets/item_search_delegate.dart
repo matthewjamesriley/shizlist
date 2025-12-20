@@ -29,12 +29,6 @@ class ItemSearchDelegate extends SearchDelegate<ItemSearchResult?> {
         elevation: 0,
         iconTheme: const IconThemeData(color: AppColors.textPrimary),
       ),
-      inputDecorationTheme: InputDecorationTheme(
-        hintStyle: AppTypography.bodyLarge.copyWith(
-          color: AppColors.textSecondary,
-        ),
-        border: InputBorder.none,
-      ),
     );
   }
 
