@@ -272,6 +272,38 @@ class ItemSearchDelegate extends SearchDelegate<ItemSearchResult?> {
             // Refresh search results after save
             showResults(context);
           },
+          onDeleted: () async {
+            // Confirm and delete the item
+            final confirmed = await showDialog<bool>(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: const Text('Delete item?'),
+                content: Text('Are you sure you want to delete "${result.item.name}"?'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: const Text('Cancel'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, true),
+                    style: TextButton.styleFrom(foregroundColor: AppColors.error),
+                    child: const Text('Delete'),
+                  ),
+                ],
+              ),
+            );
+            
+            if (confirmed == true) {
+              try {
+                await ItemService().deleteItem(result.item.uid);
+                AppNotification.success(context, 'Item deleted');
+                // Refresh search results after delete
+                showResults(context);
+              } catch (e) {
+                AppNotification.error(context, 'Failed to delete item');
+              }
+            }
+          },
         );
       },
     );
