@@ -440,7 +440,7 @@ class _AddItemSheetState extends State<AddItemSheet>
             TextFormField(
               controller: _urlController,
               decoration: const InputDecoration(
-                hintText: 'Item URL (optional)',
+                hintText: 'Item link (optional)',
               ),
               keyboardType: TextInputType.url,
               style: AppTypography.bodyLarge,
@@ -528,7 +528,7 @@ class _AddItemSheetState extends State<AddItemSheet>
             controller: _amazonUrlController,
             style: AppTypography.bodyLarge,
             decoration: InputDecoration(
-              hintText: 'Paste Amazon product URL...',
+              hintText: 'Paste Amazon product link...',
               prefixIcon: Padding(
                 padding: const EdgeInsets.only(left: 12, right: 8),
                 child: PhosphorIcon(
@@ -786,7 +786,7 @@ class _AddItemSheetState extends State<AddItemSheet>
                         const SizedBox(height: 8),
                         _buildInstructionStep('2', 'Tap Share → Copy Link'),
                         const SizedBox(height: 8),
-                        _buildInstructionStep('3', 'Paste the URL here'),
+                        _buildInstructionStep('3', 'Paste the link URL above'),
                       ],
                     ),
                   ),

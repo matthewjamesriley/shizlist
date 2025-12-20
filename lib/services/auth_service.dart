@@ -23,7 +23,7 @@ class AuthService {
   }) async {
     await _client.auth.signInWithOtp(
       email: email,
-      emailRedirectTo: kIsWeb ? null : 'com.shizlist.shizlist://login-callback',
+      emailRedirectTo: kIsWeb ? null : 'co.shizlist.app://login-callback',
       data: displayName != null ? {'display_name': displayName} : null,
     );
   }
@@ -146,7 +146,7 @@ class AuthService {
 
     final response = await _client.auth.signInWithOAuth(
       oauthProvider,
-      redirectTo: kIsWeb ? null : 'com.shizlist.shizlist://login-callback',
+      redirectTo: kIsWeb ? null : 'co.shizlist.app://login-callback',
       authScreenLaunchMode: LaunchMode.platformDefault,
     );
 

@@ -65,10 +65,10 @@ class _ListCardState extends State<ListCard> {
     } else if (days < 0) {
       return widget.list.isRecurring ? '${-days}d ago' : 'Passed';
     } else if (days <= 7) {
-      return 'In ${days}d';
+      return '${days}d';
     } else if (days <= 30) {
       final weeks = (days / 7).floor();
-      return weeks == 1 ? 'In 1 week' : 'In ${weeks} weeks';
+      return weeks == 1 ? '1 week' : '$weeks weeks';
     } else {
       const months = [
         'Jan',

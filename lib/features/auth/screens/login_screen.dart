@@ -288,13 +288,15 @@ class _LoginScreenState extends State<LoginScreen> {
               // Main login buttons
               else if (!_showEmailLogin) ...[
                 // Log in with email
-                AppButton.primary(
+                _SocialButton(
                   label: 'Log in with email',
                   icon: PhosphorIcons.envelope(),
                   onPressed:
                       _isLoading
                           ? null
                           : () => setState(() => _showEmailLogin = true),
+                  backgroundColor: AppColors.primary,
+                  textColor: Colors.white,
                 ),
 
                 const SizedBox(height: 16),
@@ -307,9 +309,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       _isLoading
                           ? null
                           : () => _handleSocialLogin(SocialProvider.google),
-                  backgroundColor: Colors.white,
-                  textColor: AppColors.textPrimary,
-                  borderColor: AppColors.border,
+                  backgroundColor: AppColors.accent,
+                  textColor: Colors.white,
                 ),
 
                 const SizedBox(height: 16),
@@ -323,20 +324,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           ? null
                           : () => _handleSocialLogin(SocialProvider.apple),
                   backgroundColor: Colors.black,
-                  textColor: Colors.white,
-                ),
-
-                const SizedBox(height: 16),
-
-                // Log in with Facebook
-                _SocialButton(
-                  label: 'Log in with Facebook',
-                  icon: PhosphorIcons.facebookLogo(),
-                  onPressed:
-                      _isLoading
-                          ? null
-                          : () => _handleSocialLogin(SocialProvider.facebook),
-                  backgroundColor: const Color(0xFF1877F2),
                   textColor: Colors.white,
                 ),
 
@@ -355,9 +342,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 16),
 
                 // Sign up button
-                AppButton.outlinePrimary(
+                _SocialButton(
                   label: 'Sign up',
+                  icon: PhosphorIcons.userPlus(),
                   onPressed: () => context.go(AppRoutes.signup),
+                  backgroundColor: Colors.white,
+                  textColor: AppColors.primary,
+                  borderColor: AppColors.primary,
                 ),
               ]
               // Email login form (just email)

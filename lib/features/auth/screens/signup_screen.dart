@@ -209,11 +209,11 @@ class _SignupScreenState extends State<SignupScreen> {
               if (!_showEmailSignup && !_showOtpVerification) ...[
                 const SizedBox(height: 12),
                 Text(
-                  'It only takes a minute to share the stuff you love.',
+                  'Get started and share the stuff you love.',
                   style: GoogleFonts.lato(
                     fontSize: 18,
                     fontWeight: FontWeight.w400,
-                    color: AppColors.textSecondary,
+                    color: AppColors.textPrimary,
                     height: 1.4,
                   ),
                   textAlign: TextAlign.center,
@@ -303,13 +303,15 @@ class _SignupScreenState extends State<SignupScreen> {
               // Main signup buttons
               else if (!_showEmailSignup) ...[
                 // Sign up with email
-                AppButton.primary(
+                _SocialButton(
                   label: 'Sign up with email',
                   icon: PhosphorIcons.envelope(),
                   onPressed:
                       _isLoading
                           ? null
                           : () => setState(() => _showEmailSignup = true),
+                  backgroundColor: AppColors.primary,
+                  textColor: Colors.white,
                 ),
 
                 const SizedBox(height: 16),
@@ -322,9 +324,8 @@ class _SignupScreenState extends State<SignupScreen> {
                       _isLoading
                           ? null
                           : () => _handleSocialSignup(SocialProvider.google),
-                  backgroundColor: Colors.white,
-                  textColor: AppColors.textPrimary,
-                  borderColor: AppColors.border,
+                  backgroundColor: AppColors.accent,
+                  textColor: Colors.white,
                 ),
 
                 const SizedBox(height: 16),
@@ -338,20 +339,6 @@ class _SignupScreenState extends State<SignupScreen> {
                           ? null
                           : () => _handleSocialSignup(SocialProvider.apple),
                   backgroundColor: Colors.black,
-                  textColor: Colors.white,
-                ),
-
-                const SizedBox(height: 16),
-
-                // Sign up with Facebook
-                _SocialButton(
-                  label: 'Sign up with Facebook',
-                  icon: PhosphorIcons.facebookLogo(),
-                  onPressed:
-                      _isLoading
-                          ? null
-                          : () => _handleSocialSignup(SocialProvider.facebook),
-                  backgroundColor: const Color(0xFF1877F2),
                   textColor: Colors.white,
                 ),
 
@@ -370,9 +357,13 @@ class _SignupScreenState extends State<SignupScreen> {
                 const SizedBox(height: 16),
 
                 // Log in button
-                AppButton.outlinePrimary(
+                _SocialButton(
                   label: 'Log in',
+                  icon: PhosphorIcons.signIn(),
                   onPressed: () => context.go(AppRoutes.login),
+                  backgroundColor: Colors.white,
+                  textColor: AppColors.primary,
+                  borderColor: AppColors.primary,
                 ),
               ]
               // Email signup form (simplified - just name and email)

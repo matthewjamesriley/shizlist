@@ -291,7 +291,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                         Text(
                           'Edit list',
                           style: AppTypography.titleMedium.copyWith(
-                            fontSize: 16,
+                            fontSize: 15,
                           ),
                         ),
                       ],
@@ -315,7 +315,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                         Text(
                           'Delete list',
                           style: AppTypography.titleMedium.copyWith(
-                            fontSize: 16,
+                            fontSize: 15,
                             color: AppColors.error,
                           ),
                         ),
@@ -366,25 +366,18 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                                   _list.isPublic
                                       ? PhosphorIcons.usersThree()
                                       : PhosphorIcons.lock(),
-                                  size: 22,
+                                  size: 20,
                                   color: AppColors.textPrimary,
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
                                   _list.isPublic ? 'Public' : 'Private',
-                                  style: AppTypography.titleMedium.copyWith(
+                                  style: AppTypography.bodyLarge.copyWith(
                                     color: AppColors.textPrimary,
+                                    fontSize: 15,
                                   ),
                                 ),
                               ],
-                            ),
-                            Text(
-                              _selectedCategoryFilter != null
-                                  ? '${_filteredItems.length} of ${_items.length} ${_items.length == 1 ? 'item' : 'items'}'
-                                  : '${_items.length} ${_items.length == 1 ? 'item' : 'items'}',
-                              style: AppTypography.titleMedium.copyWith(
-                                color: AppColors.textPrimary,
-                              ),
                             ),
                             if (_list.hasEventDate)
                               Row(
@@ -398,10 +391,11 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                                             ? AppColors.primary
                                             : AppColors.textPrimary,
                                   ),
-                                  const SizedBox(width: 6),
+                                  const SizedBox(width: 4),
                                   Text(
                                     _getEventDateDisplay(),
-                                    style: AppTypography.titleMedium.copyWith(
+                                    style: AppTypography.bodyLarge.copyWith(
+                                      fontSize: 15,
                                       color:
                                           _list.isUpcoming
                                               ? AppColors.primary
@@ -430,8 +424,9 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                               children: [
                                 Text(
                                   _getSortLabel(_sortOption),
-                                  style: AppTypography.titleMedium.copyWith(
+                                  style: AppTypography.bodyLarge.copyWith(
                                     color: AppColors.textPrimary,
+                                    fontSize: 15,
                                   ),
                                 ),
                                 const SizedBox(width: 4),
@@ -668,10 +663,10 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                                   vertical: 16,
                                 ),
                                 child: Text(
-                                  'Multi select',
+                                  'Multi select (${_items.length} ${_items.length == 1 ? 'item' : 'items'})',
                                   style: AppTypography.titleMedium.copyWith(
                                     color: Colors.black,
-                                    fontSize: 16,
+                                    fontSize: 15,
                                   ),
                                 ),
                               ),
@@ -853,7 +848,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
           Text(
             label,
             style: AppTypography.titleMedium.copyWith(
-              fontSize: 16,
+              fontSize: 15,
               color: isSelected ? AppColors.primary : AppColors.textPrimary,
               fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
             ),
@@ -1831,12 +1826,12 @@ class _ListDetailScreenState extends State<ListDetailScreen>
     } else if (days == 1) {
       return 'Tomorrow';
     } else if (days < 0) {
-      return _list.isRecurring ? '${-days} days ago' : 'Passed';
+      return _list.isRecurring ? '${-days}d ago' : 'Passed';
     } else if (days <= 7) {
-      return 'In $days days';
+      return '$days days';
     } else if (days <= 30) {
       final weeks = (days / 7).floor();
-      return weeks == 1 ? 'In 1 week' : 'In $weeks weeks';
+      return weeks == 1 ? '1 week' : '$weeks weeks';
     } else {
       const months = [
         'Jan',

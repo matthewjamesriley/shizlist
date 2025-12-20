@@ -8,6 +8,7 @@ import '../core/theme/app_typography.dart';
 import '../models/list_item.dart';
 import '../services/item_service.dart';
 import '../services/image_upload_service.dart';
+import '../services/amazon_service.dart';
 import '../services/user_settings_service.dart';
 import 'app_button.dart';
 import 'app_notification.dart';
@@ -38,15 +39,16 @@ class EditItemSheet extends StatefulWidget {
       isScrollControlled: true,
       showDragHandle: false,
       backgroundColor: Colors.transparent,
-      builder: (sheetContext) => Theme(
-        // Use app theme to ensure consistent styling
-        data: AppTheme.lightTheme,
-        child: EditItemSheet(
-          item: item,
-          onSaved: onSaved,
-          onDeleted: onDeleted,
-        ),
-      ),
+      builder:
+          (sheetContext) => Theme(
+            // Use app theme to ensure consistent styling
+            data: AppTheme.lightTheme,
+            child: EditItemSheet(
+              item: item,
+              onSaved: onSaved,
+              onDeleted: onDeleted,
+            ),
+          ),
     );
   }
 
@@ -75,6 +77,9 @@ class _EditItemSheetState extends State<EditItemSheet>
   String? _mainImageUrl;
   final ImageUploadService _imageService = ImageUploadService();
 
+  // Amazon URL fetching
+  bool _isFetchingAmazon = false;
+
   @override
   void initState() {
     super.initState();
@@ -84,9 +89,10 @@ class _EditItemSheetState extends State<EditItemSheet>
       text: widget.item.description ?? '',
     );
     _priceController = TextEditingController(
-      text: widget.item.price != null
-          ? widget.item.price!.toStringAsFixed(2)
-          : '',
+      text:
+          widget.item.price != null
+              ? widget.item.price!.toStringAsFixed(2)
+              : '',
     );
     _urlController = TextEditingController(text: widget.item.retailerUrl ?? '');
     _selectedCategory = widget.item.category;
@@ -122,7 +128,7 @@ class _EditItemSheetState extends State<EditItemSheet>
       // Always pass description (empty string to clear)
       final description = _descriptionController.text.trim();
       final retailerUrl = _urlController.text.trim();
-      
+
       await ItemService().updateItem(
         uid: widget.item.uid,
         name: _nameController.text.trim(),
@@ -231,9 +237,12 @@ class _EditItemSheetState extends State<EditItemSheet>
                       child: InteractiveViewer(
                         minScale: 0.5,
                         maxScale: 4.0,
-                        child: _selectedImage != null
-                            ? Image.file(_selectedImage!)
-                            : Image.network(_mainImageUrl ?? _thumbnailUrl!),
+                        child:
+                            _selectedImage != null
+                                ? Image.file(_selectedImage!)
+                                : Image.network(
+                                  _mainImageUrl ?? _thumbnailUrl!,
+                                ),
                       ),
                     ),
                     Positioned(
@@ -329,22 +338,24 @@ class _EditItemSheetState extends State<EditItemSheet>
                                 color: AppColors.accent,
                                 borderRadius: BorderRadius.circular(24),
                               ),
-                              child: _isLoading
-                                  ? const SizedBox(
-                                      height: 20,
-                                      width: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: Colors.white,
+                              child:
+                                  _isLoading
+                                      ? const SizedBox(
+                                        height: 20,
+                                        width: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.white,
+                                        ),
+                                      )
+                                      : Text(
+                                        'Save',
+                                        style: AppTypography.titleMedium
+                                            .copyWith(
+                                              color: Colors.white,
+                                              fontSize: 16,
+                                            ),
                                       ),
-                                    )
-                                  : Text(
-                                      'Save',
-                                      style: AppTypography.titleMedium.copyWith(
-                                        color: Colors.white,
-                                        fontSize: 16,
-                                      ),
-                                    ),
                             ),
                           ),
                         ],
@@ -460,27 +471,28 @@ class _EditItemSheetState extends State<EditItemSheet>
                           style: AppTypography.bodyLarge.copyWith(
                             color: AppColors.textPrimary,
                           ),
-                          items: ItemPriority.values.map((priority) {
-                            return DropdownMenuItem<ItemPriority>(
-                              value: priority,
-                              child: Row(
-                                children: [
-                                  PhosphorIcon(
-                                    priority.icon,
-                                    color: priority.color,
-                                    size: 18,
+                          items:
+                              ItemPriority.values.map((priority) {
+                                return DropdownMenuItem<ItemPriority>(
+                                  value: priority,
+                                  child: Row(
+                                    children: [
+                                      PhosphorIcon(
+                                        priority.icon,
+                                        color: priority.color,
+                                        size: 18,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Flexible(
+                                        child: Text(
+                                          priority.displayName,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                  const SizedBox(width: 8),
-                                  Flexible(
-                                    child: Text(
-                                      priority.displayName,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }).toList(),
+                                );
+                              }).toList(),
                           onChanged: (value) {
                             if (value != null) {
                               setState(() => _selectedPriority = value);
@@ -502,46 +514,51 @@ class _EditItemSheetState extends State<EditItemSheet>
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: ItemCategory.values.map((category) {
-              final isSelected = _selectedCategory == category;
-              return GestureDetector(
-                onTap: () => setState(() => _selectedCategory = category),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isSelected ? category.color : Colors.white,
-                    borderRadius: BorderRadius.circular(50),
-                    border: Border.all(
-                      color: isSelected ? category.color : AppColors.divider,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      PhosphorIcon(
-                        category.icon,
-                        size: 16,
-                        color: isSelected ? Colors.white : category.color,
+            children:
+                ItemCategory.values.map((category) {
+                  final isSelected = _selectedCategory == category;
+                  return GestureDetector(
+                    onTap: () => setState(() => _selectedCategory = category),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
                       ),
-                      const SizedBox(width: 6),
-                      Text(
-                        category.displayName,
-                        style: AppTypography.bodyMedium.copyWith(
-                          color: isSelected
-                              ? Colors.white
-                              : AppColors.textPrimary,
-                          fontWeight:
-                              isSelected ? FontWeight.w600 : FontWeight.normal,
+                      decoration: BoxDecoration(
+                        color: isSelected ? category.color : Colors.white,
+                        borderRadius: BorderRadius.circular(50),
+                        border: Border.all(
+                          color:
+                              isSelected ? category.color : AppColors.divider,
                         ),
                       ),
-                    ],
-                  ),
-                ),
-              );
-            }).toList(),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          PhosphorIcon(
+                            category.icon,
+                            size: 16,
+                            color: isSelected ? Colors.white : category.color,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            category.displayName,
+                            style: AppTypography.bodyMedium.copyWith(
+                              color:
+                                  isSelected
+                                      ? Colors.white
+                                      : AppColors.textPrimary,
+                              fontWeight:
+                                  isSelected
+                                      ? FontWeight.w600
+                                      : FontWeight.normal,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
           ),
           const SizedBox(height: 24),
 
@@ -560,7 +577,9 @@ class _EditItemSheetState extends State<EditItemSheet>
                 ),
                 label: Text(
                   'Delete item',
-                  style: AppTypography.bodyLarge.copyWith(color: AppColors.error),
+                  style: AppTypography.bodyLarge.copyWith(
+                    color: AppColors.error,
+                  ),
                 ),
               ),
             ),
@@ -581,7 +600,7 @@ class _EditItemSheetState extends State<EditItemSheet>
           const SizedBox(height: 24),
 
           // URL field
-          Text('Item URL (optional)', style: AppTypography.titleMedium),
+          Text('Item link (optional)', style: AppTypography.titleMedium),
           const SizedBox(height: 8),
           TextFormField(
             controller: _urlController,
@@ -592,13 +611,38 @@ class _EditItemSheetState extends State<EditItemSheet>
           ),
           const SizedBox(height: 12),
 
-          // Open URL button
+          // Buttons row
           if (_urlController.text.trim().isNotEmpty)
-            AppButton.outlinePrimary(
-              label: 'View item',
-              icon: PhosphorIcons.arrowSquareOut(),
-              size: ButtonSize.small,
-              onPressed: _openProductUrl,
+            Row(
+              children: [
+                // Get product info button (only for Amazon URLs)
+                if (AmazonService.isAmazonUrl(_urlController.text.trim()) ||
+                    AmazonService.isShortLink(_urlController.text.trim()))
+                  Expanded(
+                    child: AppButton.primary(
+                      label:
+                          _isFetchingAmazon
+                              ? 'Fetching...'
+                              : 'Get product info',
+                      onPressed:
+                          !_isFetchingAmazon ? _fetchAmazonProductInfo : null,
+                      isLoading: _isFetchingAmazon,
+                      size: ButtonSize.small,
+                    ),
+                  ),
+                if (AmazonService.isAmazonUrl(_urlController.text.trim()) ||
+                    AmazonService.isShortLink(_urlController.text.trim()))
+                  const SizedBox(width: 12),
+                // View item button
+                Expanded(
+                  child: AppButton.outlinePrimary(
+                    label: 'View item',
+                    icon: PhosphorIcons.arrowSquareOut(),
+                    size: ButtonSize.small,
+                    onPressed: _openProductUrl,
+                  ),
+                ),
+              ],
             ),
           const SizedBox(height: 16),
         ],
@@ -657,9 +701,10 @@ class _EditItemSheetState extends State<EditItemSheet>
                     border: Border.all(color: AppColors.divider),
                   ),
                   clipBehavior: Clip.antiAlias,
-                  child: _selectedImage != null
-                      ? Image.file(_selectedImage!, fit: BoxFit.cover)
-                      : Image.network(_thumbnailUrl!, fit: BoxFit.cover),
+                  child:
+                      _selectedImage != null
+                          ? Image.file(_selectedImage!, fit: BoxFit.cover)
+                          : Image.network(_thumbnailUrl!, fit: BoxFit.cover),
                 ),
               ),
               Positioned(
@@ -780,5 +825,131 @@ class _EditItemSheetState extends State<EditItemSheet>
       }
     }
   }
-}
 
+  Future<void> _fetchAmazonProductInfo() async {
+    final url = _urlController.text.trim();
+    if (url.isEmpty) return;
+
+    setState(() => _isFetchingAmazon = true);
+
+    try {
+      // Resolve short links first (amzn.to, a.co, amzn.eu, etc.)
+      String resolvedUrl = url;
+      if (AmazonService.isShortLink(url)) {
+        resolvedUrl = await AmazonService.resolveShortLink(url);
+      }
+
+      if (!AmazonService.isAmazonUrl(resolvedUrl)) {
+        if (mounted) {
+          setState(() => _isFetchingAmazon = false);
+          AppNotification.error(context, 'Please enter a valid Amazon URL');
+        }
+        return;
+      }
+
+      if (AmazonService.isSearchUrl(resolvedUrl)) {
+        if (mounted) {
+          setState(() => _isFetchingAmazon = false);
+          AppNotification.error(
+            context,
+            'This is a search page. Please select a specific product first.',
+          );
+        }
+        return;
+      }
+
+      final asin = AmazonService.extractAsin(resolvedUrl);
+      if (asin == null) {
+        if (mounted) {
+          setState(() => _isFetchingAmazon = false);
+          AppNotification.error(context, 'Could not find product in this URL');
+        }
+        return;
+      }
+
+      final info = await AmazonService.fetchProductInfo(url);
+      if (mounted) {
+        // Update name if found
+        if (info['title'] != null && info['title']!.isNotEmpty) {
+          _nameController.text = info['title']!;
+        }
+
+        // Update price if found
+        if (info['price'] != null && info['price']!.isNotEmpty) {
+          _priceController.text = info['price']!;
+        }
+
+        // Update URL with affiliate link
+        if (info['affiliateUrl'] != null) {
+          _urlController.text = info['affiliateUrl']!;
+        }
+
+        // Download and upload Amazon image if found and no image currently set
+        if (info['imageUrl'] != null &&
+            info['imageUrl']!.isNotEmpty &&
+            _thumbnailUrl == null &&
+            _mainImageUrl == null &&
+            _selectedImage == null) {
+          setState(() {
+            _uploadStatus = 'Downloading image...';
+            _isUploadingImage = true;
+            _uploadProgress = 0.1;
+          });
+
+          try {
+            final uploadResult = await _imageService.downloadAndUpload(
+              info['imageUrl']!,
+              onProgress: (progress, status) {
+                if (mounted) {
+                  setState(() {
+                    _uploadProgress = progress;
+                    _uploadStatus = status;
+                  });
+                }
+              },
+            );
+
+            if (uploadResult != null && mounted) {
+              setState(() {
+                _thumbnailUrl = uploadResult.thumbnailUrl;
+                _mainImageUrl = uploadResult.mainImageUrl;
+                _isUploadingImage = false;
+                _isFetchingAmazon = false;
+              });
+              AppNotification.success(context, 'Product info and image updated!');
+            } else {
+              setState(() {
+                _isUploadingImage = false;
+                _isFetchingAmazon = false;
+              });
+              AppNotification.success(context, 'Product info updated!');
+            }
+          } catch (e) {
+            // Image upload failed, but other info was still updated
+            if (mounted) {
+              setState(() {
+                _isUploadingImage = false;
+                _isFetchingAmazon = false;
+              });
+              AppNotification.success(
+                context,
+                'Product info updated! (Image could not be downloaded)',
+              );
+            }
+          }
+        } else {
+          setState(() => _isFetchingAmazon = false);
+          AppNotification.success(context, 'Product info updated!');
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isFetchingAmazon = false;
+          _isUploadingImage = false;
+        });
+        AppNotification.error(context, 'Failed to fetch product info');
+      }
+    }
+  }
+}

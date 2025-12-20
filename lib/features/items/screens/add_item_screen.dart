@@ -135,7 +135,7 @@ class _AddItemScreenState extends State<AddItemScreen>
                   child: TextFormField(
                     controller: _urlController,
                     decoration: const InputDecoration(
-                      labelText: 'Item URL',
+                      labelText: 'Item link',
                       hintText: 'Optional',
                       prefixIcon: Icon(Icons.link),
                     ),
