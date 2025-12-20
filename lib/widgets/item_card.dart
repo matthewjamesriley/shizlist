@@ -176,11 +176,6 @@ class ItemCard extends StatelessWidget {
   }
 
   Widget _buildPriorityBadge() {
-    // Don't show priority icon if none
-    if (item.priority == ItemPriority.none) {
-      return const SizedBox.shrink();
-    }
-
     return PhosphorIcon(
       item.priority.icon,
       size: 20,

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'app_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -269,8 +270,8 @@ class _AddItemSheetState extends State<AddItemSheet>
                   ),
                   tabs: [
                     const Tab(text: 'Item details'),
-                    const Tab(text: 'Quick add'),
                     const Tab(text: 'Amazon link'),
+                    const Tab(text: 'Quick add'),
                   ],
                 ),
               ],
@@ -283,8 +284,8 @@ class _AddItemSheetState extends State<AddItemSheet>
               controller: _tabController,
               children: [
                 _buildQuickAddTab(),
-                _buildPasteLinkTab(),
                 _buildAmazonSearchTab(),
+                _buildPasteLinkTab(),
               ],
             ),
           ),
@@ -535,36 +536,14 @@ class _AddItemSheetState extends State<AddItemSheet>
           const SizedBox(height: 12),
 
           // Process button
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed:
-                  _amazonUrlController.text.isNotEmpty && !_isFetchingAmazon
-                      ? _processAmazonUrl
-                      : null,
-              icon:
-                  _isFetchingAmazon
-                      ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                      : PhosphorIcon(PhosphorIcons.arrowRight(), size: 20),
-              label: Text(
-                _isFetchingAmazon ? 'Fetching...' : 'Get Product Info',
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
+          AppButton.primary(
+            label: _isFetchingAmazon ? 'Fetching...' : 'Get product info',
+            onPressed:
+                _amazonUrlController.text.isNotEmpty && !_isFetchingAmazon
+                    ? _processAmazonUrl
+                    : null,
+            trailingIcon: PhosphorIcons.arrowRight(),
+            isLoading: _isFetchingAmazon,
           ),
 
           // Product info display
@@ -614,213 +593,161 @@ class _AddItemSheetState extends State<AddItemSheet>
                             ),
                             const SizedBox(height: 6),
                             // Price if available
-                            if (_amazonProductInfo!['price'] != null) ...[
+                            if (_amazonProductInfo!['price'] != null)
                               Text(
-                                '£${_amazonProductInfo!['price']}',
+                                '${UserSettingsService().currencySymbol}${_amazonProductInfo!['price']}',
                                 style: AppTypography.titleLarge.copyWith(
                                   color: AppColors.primary,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              const SizedBox(height: 4),
-                            ],
-                            // ASIN
-                            Text(
-                              'ASIN: ${_amazonProductInfo!['asin']}',
-                              style: AppTypography.bodySmall.copyWith(
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                PhosphorIcon(
-                                  PhosphorIcons.checkCircle(
-                                    PhosphorIconsStyle.fill,
-                                  ),
-                                  color: AppColors.primary,
-                                  size: 16,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  'Affiliate link ready',
-                                  style: AppTypography.bodySmall.copyWith(
-                                    color: AppColors.primary,
-                                  ),
-                                ),
-                              ],
-                            ),
                           ],
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  const Divider(),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
 
-                  // Category selection
-                  Text('Category', style: AppTypography.titleSmall),
+                  // Priority dropdown
+                  Text('Priority', style: AppTypography.titleMedium),
                   const SizedBox(height: 8),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children:
-                          ItemCategory.values.map((category) {
-                            final isSelected = _amazonCategory == category;
-                            return Padding(
-                              padding: const EdgeInsets.only(right: 8),
-                              child: GestureDetector(
-                                onTap:
-                                    () => setState(
-                                      () => _amazonCategory = category,
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.divider),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<ItemPriority>(
+                        value: _amazonPriority,
+                        isExpanded: true,
+                        icon: PhosphorIcon(
+                          PhosphorIcons.caretDown(),
+                          color: AppColors.textSecondary,
+                          size: 18,
+                        ),
+                        style: AppTypography.bodyLarge.copyWith(
+                          color: AppColors.textPrimary,
+                        ),
+                        items:
+                            ItemPriority.values.map((priority) {
+                              return DropdownMenuItem<ItemPriority>(
+                                value: priority,
+                                child: Row(
+                                  children: [
+                                    PhosphorIcon(
+                                      priority.icon,
+                                      color: priority.color,
+                                      size: 18,
                                     ),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 6,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color:
-                                        isSelected
-                                            ? category.color
-                                            : Colors.white,
-                                    borderRadius: BorderRadius.circular(50),
-                                    border: Border.all(
-                                      color:
-                                          isSelected
-                                              ? category.color
-                                              : AppColors.divider,
+                                    const SizedBox(width: 8),
+                                    Flexible(
+                                      child: Text(
+                                        priority.displayName,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      PhosphorIcon(
-                                        category.icon,
-                                        size: 16,
-                                        color:
-                                            isSelected
-                                                ? Colors.white
-                                                : category.color,
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        category.displayName,
-                                        style: AppTypography.bodySmall.copyWith(
-                                          color:
-                                              isSelected
-                                                  ? Colors.white
-                                                  : AppColors.textPrimary,
-                                          fontWeight:
-                                              isSelected
-                                                  ? FontWeight.w600
-                                                  : FontWeight.normal,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                                  ],
                                 ),
-                              ),
-                            );
-                          }).toList(),
+                              );
+                            }).toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            setState(() => _amazonPriority = value);
+                          }
+                        },
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
 
-                  // Priority selection
-                  Text('Priority', style: AppTypography.titleSmall),
-                  const SizedBox(height: 8),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children:
-                          ItemPriority.values.map((priority) {
-                            final isSelected = _amazonPriority == priority;
-                            return Padding(
-                              padding: const EdgeInsets.only(right: 8),
-                              child: GestureDetector(
-                                onTap:
-                                    () => setState(
-                                      () => _amazonPriority = priority,
-                                    ),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 6,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color:
-                                        isSelected
-                                            ? priority.color
-                                            : Colors.white,
-                                    borderRadius: BorderRadius.circular(50),
-                                    border: Border.all(
-                                      color:
-                                          isSelected
-                                              ? priority.color
-                                              : AppColors.divider,
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      PhosphorIcon(
-                                        priority.icon,
-                                        size: 16,
-                                        color:
-                                            isSelected
-                                                ? Colors.white
-                                                : priority.color,
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        priority.displayName,
-                                        style: AppTypography.bodySmall.copyWith(
-                                          color:
-                                              isSelected
-                                                  ? Colors.white
-                                                  : AppColors.textPrimary,
-                                          fontWeight:
-                                              isSelected
-                                                  ? FontWeight.w600
-                                                  : FontWeight.normal,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                  // Category selection (wrapped)
+                  Text('Category', style: AppTypography.titleMedium),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children:
+                        ItemCategory.values.map((category) {
+                          final isSelected = _amazonCategory == category;
+                          return GestureDetector(
+                            onTap:
+                                () =>
+                                    setState(() => _amazonCategory = category),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color:
+                                    isSelected ? category.color : Colors.white,
+                                borderRadius: BorderRadius.circular(50),
+                                border: Border.all(
+                                  color:
+                                      isSelected
+                                          ? category.color
+                                          : AppColors.divider,
                                 ),
                               ),
-                            );
-                          }).toList(),
-                    ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  PhosphorIcon(
+                                    category.icon,
+                                    size: 16,
+                                    color:
+                                        isSelected
+                                            ? Colors.white
+                                            : category.color,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    category.displayName,
+                                    style: AppTypography.bodyMedium.copyWith(
+                                      color:
+                                          isSelected
+                                              ? Colors.white
+                                              : AppColors.textPrimary,
+                                      fontWeight:
+                                          isSelected
+                                              ? FontWeight.w600
+                                              : FontWeight.normal,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }).toList(),
                   ),
                 ],
               ),
             ),
           ] else ...[
             // Empty state
-            const SizedBox(height: 48),
+            const SizedBox(height: 28),
             Center(
               child: Column(
                 children: [
                   PhosphorIcon(
                     PhosphorIcons.amazonLogo(),
                     size: 64,
-                    color: AppColors.textHint,
+                    color: AppColors.categoryCrafted,
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Paste an Amazon product URL',
-                    style: AppTypography.titleMedium.copyWith(
-                      color: AppColors.textSecondary,
+                    'Paste an Amazon product',
+                    style: AppTypography.titleLarge.copyWith(
+                      color: AppColors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'We\'ll create an affiliate link automatically',
-                    style: AppTypography.bodyMedium.copyWith(
-                      color: AppColors.textHint,
+                    'The product info will be fetched automatically',
+                    style: AppTypography.bodyLarge.copyWith(
+                      color: AppColors.textPrimary,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -837,7 +764,7 @@ class _AddItemSheetState extends State<AddItemSheet>
                       children: [
                         Text(
                           'How to get a product URL:',
-                          style: AppTypography.titleSmall,
+                          style: AppTypography.titleMedium,
                         ),
                         const SizedBox(height: 12),
                         _buildInstructionStep('1', 'Find a product on Amazon'),
@@ -878,7 +805,7 @@ class _AddItemSheetState extends State<AddItemSheet>
           ),
         ),
         const SizedBox(width: 12),
-        Text(text, style: AppTypography.bodyMedium),
+        Text(text, style: AppTypography.bodyLarge),
       ],
     );
   }
@@ -982,9 +909,18 @@ class _AddItemSheetState extends State<AddItemSheet>
         }
       }
 
+      // Parse price from string to double
+      double? price;
+      final priceStr = _amazonProductInfo!['price'];
+      if (priceStr != null && priceStr.isNotEmpty) {
+        price = double.tryParse(priceStr.replaceAll(',', ''));
+      }
+
       await ItemService().createItem(
         listId: _selectedList!.id,
         name: _amazonProductInfo!['title'] ?? 'Amazon Product',
+        price: price,
+        currency: UserSettingsService().currencyCode,
         retailerUrl: _amazonProductInfo!['affiliateUrl'],
         category: _amazonCategory,
         priority: _amazonPriority,
@@ -1738,13 +1674,13 @@ class _AddItemSheetState extends State<AddItemSheet>
   Future<void> _saveItem() async {
     // Check which tab is active
 
-    // Amazon tab (index 2)
-    if (_tabController.index == 2) {
+    // Amazon tab (index 1)
+    if (_tabController.index == 1) {
       await _addAmazonItem();
       return;
     }
 
-    if (_tabController.index == 1) {
+    if (_tabController.index == 2) {
       // Quick Add tab - save all accumulated items
 
       // First add current input if not empty
