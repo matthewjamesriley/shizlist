@@ -37,6 +37,7 @@ class EditItemSheet extends StatefulWidget {
       isScrollControlled: true,
       showDragHandle: false,
       backgroundColor: Colors.transparent,
+      useRootNavigator: true, // Use root navigator to get correct theme
       builder: (context) => EditItemSheet(
         item: item,
         onSaved: onSaved,
@@ -382,9 +383,11 @@ class _EditItemSheetState extends State<EditItemSheet>
           const SizedBox(height: 8),
           TextFormField(
             controller: _nameController,
-            style: AppTypography.titleMedium,
+            style: AppTypography.bodyLarge,
+            minLines: 1,
+            maxLines: 3,
             decoration: const InputDecoration(hintText: 'Item name'),
-            textCapitalization: TextCapitalization.words,
+            textCapitalization: TextCapitalization.sentences,
           ),
           const SizedBox(height: 16),
 
