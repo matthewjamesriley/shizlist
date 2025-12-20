@@ -52,6 +52,31 @@ class _ListCardState extends State<ListCard> {
     }
   }
 
+  String _getEventDateLabel() {
+    if (!widget.list.hasEventDate) return '';
+    
+    final days = widget.list.daysUntilEvent;
+    if (days == null) return '';
+    
+    if (days == 0) {
+      return 'Today!';
+    } else if (days == 1) {
+      return 'Tomorrow';
+    } else if (days < 0) {
+      return widget.list.isRecurring ? '${-days}d ago' : 'Passed';
+    } else if (days <= 7) {
+      return 'In ${days}d';
+    } else if (days <= 30) {
+      final weeks = (days / 7).floor();
+      return weeks == 1 ? 'In 1 wk' : 'In ${weeks}wk';
+    } else {
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      final date = widget.list.nextEventDate!;
+      return '${date.day} ${months[date.month - 1]}';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -86,41 +111,81 @@ class _ListCardState extends State<ListCard> {
                               ? Alignment.topCenter
                               : Alignment.center,
                     ),
-                  // Visibility badge (left)
+                  // Visibility badge and event date (left)
                   Positioned(
                     top: 8,
                     left: 8,
-                    child: GestureDetector(
-                      onTap: _showVisibilityDialog,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.7),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            PhosphorIcon(
-                              widget.list.isPublic
-                                  ? PhosphorIcons.usersThree()
-                                  : PhosphorIcons.lock(),
-                              size: 14,
-                              color: Colors.white,
+                    child: Row(
+                      children: [
+                        // Visibility badge
+                        GestureDetector(
+                          onTap: _showVisibilityDialog,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
                             ),
-                            const SizedBox(width: 4),
-                            Text(
-                              widget.list.isPublic ? 'Public' : 'Private',
-                              style: AppTypography.labelMedium.copyWith(
-                                color: Colors.white,
-                              ),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.7),
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                          ],
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                PhosphorIcon(
+                                  widget.list.isPublic
+                                      ? PhosphorIcons.usersThree()
+                                      : PhosphorIcons.lock(),
+                                  size: 14,
+                                  color: Colors.white,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  widget.list.isPublic ? 'Public' : 'Private',
+                                  style: AppTypography.labelMedium.copyWith(
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
-                      ),
+                        // Event date badge
+                        if (widget.list.hasEventDate) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: widget.list.isUpcoming
+                                  ? AppColors.primary.withValues(alpha: 0.9)
+                                  : Colors.black.withValues(alpha: 0.7),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                PhosphorIcon(
+                                  widget.list.isRecurring
+                                      ? PhosphorIcons.arrowsClockwise()
+                                      : PhosphorIcons.calendarDots(),
+                                  size: 14,
+                                  color: Colors.white,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  _getEventDateLabel(),
+                                  style: AppTypography.labelMedium.copyWith(
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
                   // View image button (right) - only if cover image exists

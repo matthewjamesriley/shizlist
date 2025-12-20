@@ -19,6 +19,8 @@ class WishList {
   final DateTime? deletedAt;
   final int itemCount;
   final int claimedCount;
+  final DateTime? eventDate;
+  final bool isRecurring;
 
   const WishList({
     required this.id,
@@ -34,6 +36,8 @@ class WishList {
     this.deletedAt,
     this.itemCount = 0,
     this.claimedCount = 0,
+    this.eventDate,
+    this.isRecurring = false,
   });
 
   factory WishList.fromJson(Map<String, dynamic> json) {
@@ -60,6 +64,11 @@ class WishList {
               : null,
       itemCount: json['item_count'] as int? ?? 0,
       claimedCount: json['claimed_count'] as int? ?? 0,
+      eventDate:
+          json['event_date'] != null
+              ? DateTime.parse(json['event_date'] as String)
+              : null,
+      isRecurring: json['is_recurring'] as bool? ?? false,
     );
   }
 
@@ -74,6 +83,8 @@ class WishList {
       'visibility': visibility == ListVisibility.public ? 'public' : 'private',
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
+      'event_date': eventDate?.toIso8601String().split('T').first,
+      'is_recurring': isRecurring,
     };
   }
 
@@ -86,6 +97,8 @@ class WishList {
       'description': description,
       'cover_image_url': coverImageUrl,
       'visibility': visibility == ListVisibility.public ? 'public' : 'private',
+      'event_date': eventDate?.toIso8601String().split('T').first,
+      'is_recurring': isRecurring,
     };
   }
 
@@ -103,6 +116,8 @@ class WishList {
     DateTime? deletedAt,
     int? itemCount,
     int? claimedCount,
+    DateTime? eventDate,
+    bool? isRecurring,
   }) {
     return WishList(
       id: id ?? this.id,
@@ -118,6 +133,8 @@ class WishList {
       deletedAt: deletedAt ?? this.deletedAt,
       itemCount: itemCount ?? this.itemCount,
       claimedCount: claimedCount ?? this.claimedCount,
+      eventDate: eventDate ?? this.eventDate,
+      isRecurring: isRecurring ?? this.isRecurring,
     );
   }
 
@@ -131,6 +148,53 @@ class WishList {
   double get progressPercentage {
     if (itemCount == 0) return 0;
     return claimedCount / itemCount;
+  }
+
+  /// Check if this list has an event date set
+  bool get hasEventDate => eventDate != null;
+
+  /// Get the next occurrence of the event date
+  /// For recurring events, calculates next anniversary
+  DateTime? get nextEventDate {
+    if (eventDate == null) return null;
+    if (!isRecurring) return eventDate;
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    
+    // Calculate this year's occurrence
+    var nextDate = DateTime(now.year, eventDate!.month, eventDate!.day);
+    
+    // If it's already passed this year, use next year
+    if (nextDate.isBefore(today)) {
+      nextDate = DateTime(now.year + 1, eventDate!.month, eventDate!.day);
+    }
+    
+    return nextDate;
+  }
+
+  /// Get days until the next event date
+  int? get daysUntilEvent {
+    final next = nextEventDate;
+    if (next == null) return null;
+    
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    return next.difference(today).inDays;
+  }
+
+  /// Check if the event date has passed (for non-recurring lists)
+  bool get isExpired {
+    if (eventDate == null || isRecurring) return false;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    return eventDate!.isBefore(today);
+  }
+
+  /// Check if the event is coming up soon (within 30 days)
+  bool get isUpcoming {
+    final days = daysUntilEvent;
+    return days != null && days >= 0 && days <= 30;
   }
 
   @override

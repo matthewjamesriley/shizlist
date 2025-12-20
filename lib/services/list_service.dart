@@ -52,21 +52,30 @@ class ListService {
     required String title,
     String? description,
     ListVisibility visibility = ListVisibility.private,
+    DateTime? eventDate,
+    bool isRecurring = false,
   }) async {
     final userId = SupabaseService.currentUserId;
     if (userId == null) throw Exception('User not authenticated');
 
     final uid = _uuid.v4();
+    final insertData = <String, dynamic>{
+      'uid': uid,
+      'owner_id': userId,
+      'title': title,
+      'description': description,
+      'visibility': visibility == ListVisibility.public ? 'public' : 'private',
+      'created_at': DateTime.now().toIso8601String(),
+    };
+    
+    if (eventDate != null) {
+      insertData['event_date'] = eventDate.toIso8601String().split('T').first;
+      insertData['is_recurring'] = isRecurring;
+    }
+    
     final response = await _client
         .from(SupabaseConfig.listsTable)
-        .insert({
-          'uid': uid,
-          'owner_id': userId,
-          'title': title,
-          'description': description,
-          'visibility': visibility == ListVisibility.public ? 'public' : 'private',
-          'created_at': DateTime.now().toIso8601String(),
-        })
+        .insert(insertData)
         .select()
         .single();
 
@@ -75,6 +84,7 @@ class ListService {
 
   /// Update an existing list
   /// Set [clearDescription] to true to explicitly remove the description
+  /// Set [clearEventDate] to true to remove the event date
   Future<WishList> updateList({
     required String uid,
     String? title,
@@ -83,6 +93,9 @@ class ListService {
     String? coverImageUrl,
     bool clearCoverImage = false,
     ListVisibility? visibility,
+    DateTime? eventDate,
+    bool clearEventDate = false,
+    bool? isRecurring,
   }) async {
     final updates = <String, dynamic>{
       'updated_at': DateTime.now().toIso8601String(),
@@ -100,6 +113,15 @@ class ListService {
     }
     if (visibility != null) {
       updates['visibility'] = visibility == ListVisibility.public ? 'public' : 'private';
+    }
+    if (eventDate != null) {
+      updates['event_date'] = eventDate.toIso8601String().split('T').first;
+    } else if (clearEventDate) {
+      updates['event_date'] = null;
+      updates['is_recurring'] = false;
+    }
+    if (isRecurring != null) {
+      updates['is_recurring'] = isRecurring;
     }
 
     final response = await _client

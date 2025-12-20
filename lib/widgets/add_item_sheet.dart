@@ -285,7 +285,7 @@ class _AddItemSheetState extends State<AddItemSheet>
                   ),
                   tabs: [
                     const Tab(text: 'Item details'),
-                    const Tab(text: 'Amazon link'),
+                    const Tab(text: 'Amazon'),
                     const Tab(text: 'Quick add'),
                   ],
                 ),
@@ -868,15 +868,24 @@ class _AddItemSheetState extends State<AddItemSheet>
       return;
     }
 
-    final asin = AmazonService.extractAsin(url);
-    if (asin == null) {
-      AppNotification.error(context, 'Could not find product in this URL');
-      return;
-    }
-
     setState(() => _isFetchingAmazon = true);
 
     try {
+      // Resolve short links first (amzn.to, a.co, amzn.eu, etc.)
+      String resolvedUrl = url;
+      if (AmazonService.isShortLink(url)) {
+        resolvedUrl = await AmazonService.resolveShortLink(url);
+      }
+
+      final asin = AmazonService.extractAsin(resolvedUrl);
+      if (asin == null) {
+        if (mounted) {
+          setState(() => _isFetchingAmazon = false);
+          AppNotification.error(context, 'Could not find product in this URL');
+        }
+        return;
+      }
+
       final info = await AmazonService.fetchProductInfo(url);
       if (mounted) {
         setState(() {

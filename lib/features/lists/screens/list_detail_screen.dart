@@ -352,33 +352,68 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Left side - public/private and item count
-                      Row(
-                        children: [
-                          PhosphorIcon(
-                            _list.isPublic
-                                ? PhosphorIcons.usersThree()
-                                : PhosphorIcons.lock(),
-                            size: 22,
-                            color: AppColors.textPrimary,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            _list.isPublic ? 'Public' : 'Private',
-                            style: AppTypography.titleMedium.copyWith(
-                              color: AppColors.textPrimary,
+                      // Left side - public/private, item count, and event date
+                      Expanded(
+                        child: Wrap(
+                          spacing: 16,
+                          runSpacing: 8,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                PhosphorIcon(
+                                  _list.isPublic
+                                      ? PhosphorIcons.usersThree()
+                                      : PhosphorIcons.lock(),
+                                  size: 22,
+                                  color: AppColors.textPrimary,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  _list.isPublic ? 'Public' : 'Private',
+                                  style: AppTypography.titleMedium.copyWith(
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                          const SizedBox(width: 16),
-                          Text(
-                            _selectedCategoryFilter != null
-                                ? '${_filteredItems.length} of ${_items.length} ${_items.length == 1 ? 'item' : 'items'}'
-                                : '${_items.length} ${_items.length == 1 ? 'item' : 'items'}',
-                            style: AppTypography.titleMedium.copyWith(
-                              color: AppColors.textPrimary,
+                            Text(
+                              _selectedCategoryFilter != null
+                                  ? '${_filteredItems.length} of ${_items.length} ${_items.length == 1 ? 'item' : 'items'}'
+                                  : '${_items.length} ${_items.length == 1 ? 'item' : 'items'}',
+                              style: AppTypography.titleMedium.copyWith(
+                                color: AppColors.textPrimary,
+                              ),
                             ),
-                          ),
-                        ],
+                            if (_list.hasEventDate)
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  PhosphorIcon(
+                                    _list.isRecurring
+                                        ? PhosphorIcons.arrowsClockwise()
+                                        : PhosphorIcons.calendarDots(),
+                                    size: 20,
+                                    color:
+                                        _list.isUpcoming
+                                            ? AppColors.primary
+                                            : AppColors.textPrimary,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    _getEventDateDisplay(),
+                                    style: AppTypography.titleMedium.copyWith(
+                                      color:
+                                          _list.isUpcoming
+                                              ? AppColors.primary
+                                              : AppColors.textPrimary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                          ],
+                        ),
                       ),
                       // Right side - Sort dropdown
                       Row(
@@ -920,6 +955,10 @@ class _ListDetailScreenState extends State<ListDetailScreen>
     double uploadProgress = 0;
     String uploadStatus = '';
 
+    // Event date state
+    DateTime? eventDate = _list.eventDate;
+    bool isRecurring = _list.isRecurring;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -1000,6 +1039,10 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                     clearCoverImage:
                         uploadedImageUrl == null && _list.coverImageUrl != null,
                     visibility: visibility,
+                    eventDate: eventDate,
+                    clearEventDate:
+                        eventDate == null && _list.eventDate != null,
+                    isRecurring: isRecurring,
                   );
 
                   setState(() {
@@ -1243,224 +1286,577 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                 );
               }
 
-              return Container(
-                constraints: BoxConstraints(
-                  maxHeight: MediaQuery.of(context).size.height * 0.85,
-                ),
-                decoration: const BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Shared header component
-                    BottomSheetHeader(
-                      title: 'Edit list',
-                      confirmText: 'Save',
-                      onCancel: () => Navigator.pop(context),
-                      onConfirm: handleSave,
-                      isLoading: isLoading,
+              return DefaultTabController(
+                length: 2,
+                child: Container(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 0.85,
+                  ),
+                  decoration: const BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(24),
                     ),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Shared header component
+                      BottomSheetHeader(
+                        title: 'Edit list',
+                        confirmText: 'Save',
+                        onCancel: () => Navigator.pop(context),
+                        onConfirm: handleSave,
+                        isLoading: isLoading,
+                      ),
 
-                    // Form content
-                    Flexible(
-                      child: SingleChildScrollView(
-                        padding: EdgeInsets.fromLTRB(
-                          24,
-                          24,
-                          24,
-                          24 + MediaQuery.of(context).viewInsets.bottom,
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Title field
-                            Text('List name', style: AppTypography.titleMedium),
-                            const SizedBox(height: 8),
-                            TextFormField(
-                              controller: titleController,
-                              style: AppTypography.titleMedium,
-                              textCapitalization: TextCapitalization.words,
-                              decoration: const InputDecoration(
-                                hintText:
-                                    'e.g. Gift ideas, Wish list, Things to do etc...',
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-
-                            // Description field
-                            Text(
-                              'Description (optional)',
-                              style: AppTypography.titleMedium,
-                            ),
-                            const SizedBox(height: 8),
-                            TextFormField(
-                              controller: descriptionController,
-                              style: AppTypography.titleMedium,
-                              textCapitalization: TextCapitalization.sentences,
-                              minLines: 2,
-                              maxLines: 3,
-                              decoration: const InputDecoration(
-                                hintText:
-                                    'e.g. These are a few of my favourite things',
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-
-                            // Cover image
-                            Text(
-                              'Cover image (optional)',
-                              style: AppTypography.titleMedium.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            buildCoverImagePicker(),
-                            const SizedBox(height: 24),
-
-                            // Visibility
-                            Text(
-                              'Visibility',
-                              style: AppTypography.titleMedium.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-
-                            // Public option
-                            GestureDetector(
-                              onTap:
-                                  () => setSheetState(
-                                    () => visibility = ListVisibility.public,
-                                  ),
-                              child: Container(
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  border: Border.all(
-                                    color:
-                                        visibility == ListVisibility.public
-                                            ? AppColors.primary
-                                            : AppColors.divider,
-                                    width: 2,
-                                  ),
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: Row(
-                                  children: [
-                                    PhosphorIcon(
-                                      PhosphorIcons.usersThree(),
-                                      size: 28,
-                                      color:
-                                          visibility == ListVisibility.public
-                                              ? AppColors.primary
-                                              : AppColors.textSecondary,
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            'Public',
-                                            style: AppTypography.titleMedium,
-                                          ),
-                                          Text(
-                                            'Anyone with the link can see',
-                                            style: AppTypography.bodyMedium
-                                                .copyWith(
-                                                  color:
-                                                      AppColors.textSecondary,
-                                                ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    if (visibility == ListVisibility.public)
-                                      PhosphorIcon(
-                                        PhosphorIcons.checkCircle(
-                                          PhosphorIconsStyle.fill,
-                                        ),
-                                        color: AppColors.primary,
-                                      ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-
-                            // Private option
-                            GestureDetector(
-                              onTap:
-                                  () => setSheetState(
-                                    () => visibility = ListVisibility.private,
-                                  ),
-                              child: Container(
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  border: Border.all(
-                                    color:
-                                        visibility == ListVisibility.private
-                                            ? AppColors.primary
-                                            : AppColors.divider,
-                                    width: 2,
-                                  ),
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: Row(
-                                  children: [
-                                    PhosphorIcon(
-                                      PhosphorIcons.lock(),
-                                      size: 28,
-                                      color:
-                                          visibility == ListVisibility.private
-                                              ? AppColors.primary
-                                              : AppColors.textSecondary,
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            'Private',
-                                            style: AppTypography.titleMedium,
-                                          ),
-                                          Text(
-                                            'Only people you share with can see',
-                                            style: AppTypography.bodyMedium
-                                                .copyWith(
-                                                  color:
-                                                      AppColors.textSecondary,
-                                                ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    if (visibility == ListVisibility.private)
-                                      PhosphorIcon(
-                                        PhosphorIcons.checkCircle(
-                                          PhosphorIconsStyle.fill,
-                                        ),
-                                        color: AppColors.primary,
-                                      ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
+                      // Tabs
+                      Container(
+                        color: Colors.black,
+                        padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+                        child: TabBar(
+                          labelColor: Colors.white,
+                          unselectedLabelColor: Colors.white60,
+                          labelStyle: AppTypography.titleMedium,
+                          unselectedLabelStyle: AppTypography.titleMedium,
+                          indicatorColor: AppColors.primary,
+                          indicatorWeight: 3,
+                          dividerColor: Colors.transparent,
+                          tabs: const [
+                            Tab(text: 'List details'),
+                            Tab(text: 'Set date'),
                           ],
                         ),
                       ),
-                    ),
-                  ],
+
+                      // Tab content
+                      Flexible(
+                        child: TabBarView(
+                          children: [
+                            // Tab 1: Details
+                            SingleChildScrollView(
+                              padding: EdgeInsets.fromLTRB(
+                                24,
+                                24,
+                                24,
+                                24 + MediaQuery.of(context).viewInsets.bottom,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Title field
+                                  Text(
+                                    'List name',
+                                    style: AppTypography.titleMedium,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  TextFormField(
+                                    controller: titleController,
+                                    style: AppTypography.titleMedium,
+                                    textCapitalization:
+                                        TextCapitalization.words,
+                                    decoration: const InputDecoration(
+                                      hintText:
+                                          'e.g. Gift ideas, Wish list, Things to do etc...',
+                                    ),
+                                  ),
+                                  const SizedBox(height: 24),
+
+                                  // Description field
+                                  Text(
+                                    'Description (optional)',
+                                    style: AppTypography.titleMedium,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  TextFormField(
+                                    controller: descriptionController,
+                                    style: AppTypography.titleMedium,
+                                    textCapitalization:
+                                        TextCapitalization.sentences,
+                                    minLines: 2,
+                                    maxLines: 3,
+                                    decoration: const InputDecoration(
+                                      hintText:
+                                          'e.g. These are a few of my favourite things',
+                                    ),
+                                  ),
+                                  const SizedBox(height: 24),
+
+                                  // Cover image
+                                  Text(
+                                    'Cover image (optional)',
+                                    style: AppTypography.titleMedium.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  buildCoverImagePicker(),
+                                  const SizedBox(height: 24),
+
+                                  // Visibility
+                                  Text(
+                                    'Visibility',
+                                    style: AppTypography.titleMedium.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+
+                                  // Public option
+                                  GestureDetector(
+                                    onTap:
+                                        () => setSheetState(
+                                          () =>
+                                              visibility =
+                                                  ListVisibility.public,
+                                        ),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(16),
+                                      decoration: BoxDecoration(
+                                        border: Border.all(
+                                          color:
+                                              visibility ==
+                                                      ListVisibility.public
+                                                  ? AppColors.primary
+                                                  : AppColors.divider,
+                                          width: 2,
+                                        ),
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          PhosphorIcon(
+                                            PhosphorIcons.usersThree(),
+                                            size: 28,
+                                            color:
+                                                visibility ==
+                                                        ListVisibility.public
+                                                    ? AppColors.primary
+                                                    : AppColors.textSecondary,
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  'Public',
+                                                  style:
+                                                      AppTypography.titleMedium,
+                                                ),
+                                                Text(
+                                                  'Anyone with the link can see',
+                                                  style: AppTypography
+                                                      .bodyMedium
+                                                      .copyWith(
+                                                        color:
+                                                            AppColors
+                                                                .textSecondary,
+                                                      ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          if (visibility ==
+                                              ListVisibility.public)
+                                            PhosphorIcon(
+                                              PhosphorIcons.checkCircle(
+                                                PhosphorIconsStyle.fill,
+                                              ),
+                                              color: AppColors.primary,
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+
+                                  // Private option
+                                  GestureDetector(
+                                    onTap:
+                                        () => setSheetState(
+                                          () =>
+                                              visibility =
+                                                  ListVisibility.private,
+                                        ),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(16),
+                                      decoration: BoxDecoration(
+                                        border: Border.all(
+                                          color:
+                                              visibility ==
+                                                      ListVisibility.private
+                                                  ? AppColors.primary
+                                                  : AppColors.divider,
+                                          width: 2,
+                                        ),
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          PhosphorIcon(
+                                            PhosphorIcons.lock(),
+                                            size: 28,
+                                            color:
+                                                visibility ==
+                                                        ListVisibility.private
+                                                    ? AppColors.primary
+                                                    : AppColors.textSecondary,
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  'Private',
+                                                  style:
+                                                      AppTypography.titleMedium,
+                                                ),
+                                                Text(
+                                                  'Only people you share with can see',
+                                                  style: AppTypography
+                                                      .bodyMedium
+                                                      .copyWith(
+                                                        color:
+                                                            AppColors
+                                                                .textSecondary,
+                                                      ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          if (visibility ==
+                                              ListVisibility.private)
+                                            PhosphorIcon(
+                                              PhosphorIcons.checkCircle(
+                                                PhosphorIconsStyle.fill,
+                                              ),
+                                              color: AppColors.primary,
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                ],
+                              ),
+                            ),
+
+                            // Tab 2: Event
+                            SingleChildScrollView(
+                              padding: EdgeInsets.fromLTRB(
+                                24,
+                                24,
+                                24,
+                                24 + MediaQuery.of(context).viewInsets.bottom,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Event date section
+                                  Text(
+                                    'Event date',
+                                    style: AppTypography.titleMedium.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Set a date for birthdays, weddings, holidays, etc.',
+                                    style: AppTypography.bodyMedium.copyWith(
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+
+                                  // Date picker row
+                                  GestureDetector(
+                                    onTap: () async {
+                                      final picked = await showDatePicker(
+                                        context: context,
+                                        initialDate:
+                                            eventDate ?? DateTime.now(),
+                                        firstDate: DateTime(2000),
+                                        lastDate: DateTime(2100),
+                                        builder: (context, child) {
+                                          return Theme(
+                                            data: Theme.of(context).copyWith(
+                                              colorScheme:
+                                                  const ColorScheme.light(
+                                                    primary: AppColors.primary,
+                                                    onPrimary: Colors.white,
+                                                    surface: AppColors.surface,
+                                                    onSurface:
+                                                        AppColors.textPrimary,
+                                                  ),
+                                            ),
+                                            child: child!,
+                                          );
+                                        },
+                                      );
+                                      if (picked != null) {
+                                        setSheetState(() => eventDate = picked);
+                                      }
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.all(16),
+                                      decoration: BoxDecoration(
+                                        border: Border.all(
+                                          color: AppColors.divider,
+                                        ),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          PhosphorIcon(
+                                            PhosphorIcons.calendarDots(),
+                                            size: 24,
+                                            color:
+                                                eventDate != null
+                                                    ? AppColors.primary
+                                                    : AppColors.textSecondary,
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Text(
+                                              eventDate != null
+                                                  ? _formatEventDate(eventDate!)
+                                                  : 'Select a date',
+                                              style: AppTypography.bodyLarge
+                                                  .copyWith(
+                                                    color:
+                                                        eventDate != null
+                                                            ? AppColors
+                                                                .textPrimary
+                                                            : AppColors
+                                                                .textSecondary,
+                                                  ),
+                                            ),
+                                          ),
+                                          if (eventDate != null)
+                                            GestureDetector(
+                                              onTap:
+                                                  () => setSheetState(() {
+                                                    eventDate = null;
+                                                    isRecurring = false;
+                                                  }),
+                                              child: PhosphorIcon(
+                                                PhosphorIcons.xCircle(),
+                                                size: 24,
+                                                color: AppColors.textSecondary,
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+
+                                  const SizedBox(height: 24),
+
+                                  // Recurring section
+                                  Text(
+                                    'Recurring',
+                                    style: AppTypography.titleMedium.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Enable for events that happen every year',
+                                    style: AppTypography.bodyMedium.copyWith(
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+
+                                  // Recurring toggle
+                                  GestureDetector(
+                                    onTap:
+                                        () => setSheetState(
+                                          () => isRecurring = !isRecurring,
+                                        ),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(16),
+                                      decoration: BoxDecoration(
+                                        border: Border.all(
+                                          color:
+                                              isRecurring
+                                                  ? AppColors.primary
+                                                  : AppColors.divider,
+                                          width: isRecurring ? 2 : 1,
+                                        ),
+                                        borderRadius: BorderRadius.circular(12),
+                                        color:
+                                            isRecurring
+                                                ? AppColors.primary.withOpacity(
+                                                  0.05,
+                                                )
+                                                : null,
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          PhosphorIcon(
+                                            PhosphorIcons.arrowsClockwise(),
+                                            size: 24,
+                                            color:
+                                                isRecurring
+                                                    ? AppColors.primary
+                                                    : AppColors.textSecondary,
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  'Recurring annually',
+                                                  style: AppTypography
+                                                      .titleSmall
+                                                      .copyWith(
+                                                        color:
+                                                            isRecurring
+                                                                ? AppColors
+                                                                    .primary
+                                                                : AppColors
+                                                                    .textPrimary,
+                                                      ),
+                                                ),
+                                                Text(
+                                                  'For birthdays and yearly events',
+                                                  style: AppTypography.bodySmall
+                                                      .copyWith(
+                                                        color:
+                                                            AppColors
+                                                                .textSecondary,
+                                                      ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          PhosphorIcon(
+                                            isRecurring
+                                                ? PhosphorIcons.checkCircle(
+                                                  PhosphorIconsStyle.fill,
+                                                )
+                                                : PhosphorIcons.circle(),
+                                            size: 24,
+                                            color:
+                                                isRecurring
+                                                    ? AppColors.primary
+                                                    : AppColors.divider,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+
+                                  // Info about event date
+                                  if (eventDate != null) ...[
+                                    const SizedBox(height: 24),
+                                    Container(
+                                      padding: const EdgeInsets.all(16),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.primary.withOpacity(
+                                          0.1,
+                                        ),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          PhosphorIcon(
+                                            PhosphorIcons.info(),
+                                            size: 24,
+                                            color: AppColors.primary,
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Text(
+                                              isRecurring
+                                                  ? 'This date will repeat every year'
+                                                  : 'This is a one-time event',
+                                              style: AppTypography.bodyMedium
+                                                  .copyWith(
+                                                    color: AppColors.primary,
+                                                  ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                  const SizedBox(height: 16),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               );
             },
           ),
     );
+  }
+
+  String _formatEventDate(DateTime date) {
+    const months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+    return '${date.day} ${months[date.month - 1]} ${date.year}';
+  }
+
+  String _getEventDateDisplay() {
+    if (!_list.hasEventDate) return '';
+
+    final days = _list.daysUntilEvent;
+    if (days == null) return '';
+
+    if (days == 0) {
+      return 'Today!';
+    } else if (days == 1) {
+      return 'Tomorrow';
+    } else if (days < 0) {
+      return _list.isRecurring ? '${-days} days ago' : 'Passed';
+    } else if (days <= 7) {
+      return 'In $days days';
+    } else if (days <= 30) {
+      final weeks = (days / 7).floor();
+      return weeks == 1 ? 'In 1 week' : 'In $weeks weeks';
+    } else {
+      const months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
+      final date = _list.nextEventDate!;
+      return '${date.day} ${months[date.month - 1]}';
+    }
   }
 
   void _confirmDeleteList() async {

@@ -5,6 +5,125 @@ class AmazonService {
   // Your Amazon Associates affiliate tag
   static const String affiliateTag = 'cosyhomefinds-21';
 
+  /// Check if URL is an Amazon short link that needs resolving
+  static bool isShortLink(String url) {
+    if (url.isEmpty) return false;
+    url = url.toLowerCase();
+    return url.contains('amzn.to') ||
+        url.contains('a.co/') ||
+        url.contains('amzn.eu/') ||
+        url.contains('amzn.asia/') ||
+        url.contains('amzn.com/') ||
+        // Short links don't have /dp/ pattern
+        (url.contains('amzn') && !url.contains('/dp/'));
+  }
+
+  /// Resolve a short link to get the final destination URL
+  /// Returns the original URL if not a short link or if resolution fails
+  static Future<String> resolveShortLink(String url, {int depth = 0}) async {
+    if (!isShortLink(url) || depth > 5) return url;
+
+    try {
+      // Create a client that doesn't follow redirects automatically
+      final client = http.Client();
+      try {
+        final request = http.Request('GET', Uri.parse(url));
+        request.followRedirects = false;
+        request.headers.addAll({
+          'User-Agent':
+              'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+          'Accept':
+              'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'en-GB,en;q=0.9',
+        });
+
+        final streamedResponse =
+            await client.send(request).timeout(const Duration(seconds: 15));
+
+        // Check for redirect (301, 302, 303, 307, 308)
+        if (streamedResponse.statusCode >= 300 &&
+            streamedResponse.statusCode < 400) {
+          var location = streamedResponse.headers['location'];
+          if (location != null && location.isNotEmpty) {
+            // Handle relative URLs
+            if (location.startsWith('/')) {
+              final uri = Uri.parse(url);
+              location = '${uri.scheme}://${uri.host}$location';
+            }
+            // If it's another short link or Amazon URL without ASIN, resolve recursively
+            if (isShortLink(location) ||
+                (isAmazonUrl(location) && extractAsin(location) == null)) {
+              return resolveShortLink(location, depth: depth + 1);
+            }
+            return location;
+          }
+        }
+
+        // If we get a 200, try to extract redirect info from HTML
+        if (streamedResponse.statusCode == 200) {
+          final body = await streamedResponse.stream.bytesToString();
+
+          // Check for canonical URL (most reliable)
+          var match = RegExp(
+            r'<link[^>]+rel="canonical"[^>]+href="([^"]+)"',
+            caseSensitive: false,
+          ).firstMatch(body);
+          if (match != null) {
+            final canonical = match.group(1);
+            if (canonical != null && extractAsin(canonical) != null) {
+              return canonical;
+            }
+          }
+
+          // Check for og:url meta tag
+          match = RegExp(
+            r'<meta[^>]+property="og:url"[^>]+content="([^"]+)"',
+            caseSensitive: false,
+          ).firstMatch(body);
+          if (match != null) {
+            final ogUrl = match.group(1);
+            if (ogUrl != null && extractAsin(ogUrl) != null) {
+              return ogUrl;
+            }
+          }
+
+          // Check for meta refresh redirect
+          match = RegExp(
+            r'<meta[^>]+http-equiv="refresh"[^>]+content="[^"]*url=([^"]+)"',
+            caseSensitive: false,
+          ).firstMatch(body);
+          if (match != null) {
+            return match.group(1) ?? url;
+          }
+
+          // Check for JavaScript redirect
+          match = RegExp(
+            'window\\.location\\s*=\\s*["\']([^"\']+)["\']',
+            caseSensitive: false,
+          ).firstMatch(body);
+          if (match != null) {
+            return match.group(1) ?? url;
+          }
+
+          // Try to find any Amazon product URL in the page
+          match = RegExp(
+            r'https?://(?:www\.)?amazon\.[a-z.]+/[^"\s]*?/dp/([A-Z0-9]{10})',
+            caseSensitive: false,
+          ).firstMatch(body);
+          if (match != null) {
+            return match.group(0) ?? url;
+          }
+        }
+      } finally {
+        client.close();
+      }
+    } catch (e) {
+      // If resolution fails, return original URL
+    }
+
+    return url;
+  }
+
   /// Extract ASIN from various Amazon URL formats
   /// Returns null if no valid ASIN found
   static String? extractAsin(String url) {
@@ -18,6 +137,8 @@ class AmazonService {
       RegExp(r'/gp/aw/d/([A-Z0-9]{10})', caseSensitive: false),
       RegExp(r'/product/([A-Z0-9]{10})', caseSensitive: false),
       RegExp(r'amazon\.[a-z.]+/([A-Z0-9]{10})(?:/|\?|$)', caseSensitive: false),
+      // Short link patterns like a.co/d/ASIN
+      RegExp(r'a\.co/d/([A-Z0-9]{10})', caseSensitive: false),
     ];
 
     for (final pattern in patterns) {
@@ -34,7 +155,9 @@ class AmazonService {
   static bool isAmazonUrl(String url) {
     if (url.isEmpty) return false;
     url = url.toLowerCase();
-    return url.contains('amazon.') || url.contains('amzn.');
+    return url.contains('amazon.') ||
+        url.contains('amzn.') ||
+        url.contains('a.co/');
   }
 
   /// Check if URL is a search results page (not a product)
@@ -86,17 +209,23 @@ class AmazonService {
       'affiliateUrl': null,
     };
 
-    final asin = extractAsin(url);
+    // Resolve short links first
+    String resolvedUrl = url;
+    if (isShortLink(url)) {
+      resolvedUrl = await resolveShortLink(url);
+    }
+
+    final asin = extractAsin(resolvedUrl);
     if (asin == null) return result;
 
     result['asin'] = asin;
-    result['affiliateUrl'] = convertToAffiliateLink(url);
+    result['affiliateUrl'] = convertToAffiliateLink(resolvedUrl);
 
     // Extract domain from URL
     String domain = 'amazon.co.uk';
     final domainMatch = RegExp(
       r'amazon\.([a-z.]+)',
-    ).firstMatch(url.toLowerCase());
+    ).firstMatch(resolvedUrl.toLowerCase());
     if (domainMatch != null) {
       domain = 'amazon.${domainMatch.group(1)}';
     }
@@ -105,7 +234,7 @@ class AmazonService {
     final urlsToTry = [
       'https://www.$domain/dp/$asin', // Clean desktop URL
       'https://www.$domain/gp/aw/d/$asin', // Mobile URL (often has cleaner HTML)
-      url, // Original URL as fallback
+      resolvedUrl, // Resolved URL as fallback
     ];
 
     String? body;
@@ -153,7 +282,7 @@ class AmazonService {
 
     // Fallback: if no title found, try URL slug
     if (result['title'] == null || result['title']!.isEmpty) {
-      result['title'] = _extractTitleFromUrl(url);
+      result['title'] = _extractTitleFromUrl(resolvedUrl);
     }
 
     return result;
