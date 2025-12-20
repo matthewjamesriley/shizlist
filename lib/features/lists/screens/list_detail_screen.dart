@@ -13,6 +13,7 @@ import '../../../services/item_service.dart';
 import '../../../services/list_service.dart';
 import '../../../services/lists_notifier.dart';
 import '../../../widgets/add_item_sheet.dart';
+import '../../../widgets/app_dialog.dart';
 import '../../../widgets/app_notification.dart';
 import '../../../widgets/bottom_sheet_header.dart';
 import '../../../widgets/item_card.dart';
@@ -1439,26 +1440,14 @@ class _ListDetailScreenState extends State<ListDetailScreen>
   }
 
   void _confirmDeleteList() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Delete list?'),
-            content: Text(
-              'Are you sure you want to delete "${_list.title}"? This action can be undone.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context, true),
-                style: TextButton.styleFrom(foregroundColor: AppColors.error),
-                child: const Text('Delete'),
-              ),
-            ],
-          ),
+    final confirmed = await AppDialog.show(
+      context,
+      title: 'Delete "${_list.title}"?',
+      content:
+          'Are you sure you want to delete this list? This action can be undone.',
+      cancelText: 'Cancel',
+      confirmText: 'Delete',
+      isDestructive: true,
     );
 
     if (confirmed == true) {

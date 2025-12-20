@@ -5,6 +5,8 @@ import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image/image.dart' as img;
 import 'package:uuid/uuid.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 import 'supabase_service.dart';
 import '../core/constants/supabase_config.dart';
 
@@ -142,6 +144,58 @@ class ImageUploadService {
     } catch (e) {
       onProgress?.call(0, 'Error: $e');
       rethrow;
+    }
+  }
+
+  /// Download image from URL and upload to Supabase
+  /// Returns URLs for thumbnail and main image, or null if download fails
+  Future<ImageUploadResult?> downloadAndUpload(
+    String imageUrl, {
+    void Function(double progress, String status)? onProgress,
+  }) async {
+    try {
+      final userId = SupabaseService.currentUserId;
+      if (userId == null) throw Exception('User not authenticated');
+
+      onProgress?.call(0.1, 'Downloading image...');
+      
+      // Download the image
+      final response = await http.get(
+        Uri.parse(imageUrl),
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+        },
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode != 200) {
+        throw Exception('Failed to download image: ${response.statusCode}');
+      }
+
+      onProgress?.call(0.3, 'Processing image...');
+
+      // Save to temporary file
+      final tempDir = await getTemporaryDirectory();
+      final tempFile = File('${tempDir.path}/amazon_${DateTime.now().millisecondsSinceEpoch}.jpg');
+      await tempFile.writeAsBytes(response.bodyBytes);
+
+      // Now use existing processAndUpload
+      final result = await processAndUpload(
+        tempFile,
+        onProgress: (progress, status) {
+          // Adjust progress to account for download time (30-100%)
+          onProgress?.call(0.3 + (progress * 0.7), status);
+        },
+      );
+
+      // Clean up temp file
+      try {
+        await tempFile.delete();
+      } catch (_) {}
+
+      return result;
+    } catch (e) {
+      onProgress?.call(0, 'Error: $e');
+      return null;
     }
   }
 

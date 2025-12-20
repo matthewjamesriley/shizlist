@@ -3,6 +3,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_typography.dart';
 import '../models/wish_list.dart';
+import 'app_dialog.dart';
 
 /// List card widget for displaying wish lists
 class ListCard extends StatefulWidget {
@@ -32,39 +33,23 @@ class _ListCardState extends State<ListCard> {
     });
   }
 
-  void _showVisibilityDialog() {
+  void _showVisibilityDialog() async {
     final isCurrentlyPublic = widget.list.isPublic;
     final listTitle = widget.list.title;
 
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: Text(
-              isCurrentlyPublic
-                  ? 'Make "$listTitle" private?'
-                  : 'Make "$listTitle" public?',
-            ),
-            content: Text(
-              isCurrentlyPublic
-                  ? 'Only people you share with will be able to see it.'
-                  : 'Anyone with the link will be able to see it.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  widget.onVisibilityChanged?.call(!isCurrentlyPublic);
-                },
-                child: const Text('Continue'),
-              ),
-            ],
-          ),
+    final confirmed = await AppDialog.show(
+      context,
+      title: isCurrentlyPublic
+          ? 'Make "$listTitle" private?'
+          : 'Make "$listTitle" public?',
+      content: isCurrentlyPublic
+          ? 'Only people you share with will be able to see it.'
+          : 'Anyone with the link will be able to see it.',
     );
+
+    if (confirmed) {
+      widget.onVisibilityChanged?.call(!isCurrentlyPublic);
+    }
   }
 
   @override
@@ -78,7 +63,9 @@ class _ListCardState extends State<ListCard> {
           children: [
             // Header with cover or gradient
             Container(
-              height: _isImageExpanded ? 300 : 100,
+              height: _isImageExpanded
+                  ? 300
+                  : (widget.list.coverImageUrl != null ? 100 : 55),
               width: double.infinity,
               decoration: BoxDecoration(
                 gradient:

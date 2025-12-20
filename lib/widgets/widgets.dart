@@ -2,6 +2,7 @@
 export 'add_item_sheet.dart';
 export 'app_bottom_sheet.dart';
 export 'app_button.dart';
+export 'app_dialog.dart';
 export 'app_notification.dart';
 export 'app_shell.dart';
 export 'app_drawer.dart';
