@@ -237,25 +237,13 @@ class ItemSearchDelegate extends SearchDelegate<ItemSearchResult?> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 4),
-          Row(
-            children: [
-              PhosphorIcon(
-                PhosphorIcons.star(),
-                size: 14,
-                color: AppColors.textSecondary,
-              ),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Text(
-                  result.listTitle,
-                  style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
+          Text(
+            result.listTitle,
+            style: AppTypography.bodySmall.copyWith(
+              color: AppColors.textPrimary,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           if (item.price != null) ...[
             const SizedBox(height: 2),
@@ -270,9 +258,9 @@ class ItemSearchDelegate extends SearchDelegate<ItemSearchResult?> {
         ],
       ),
       trailing: PhosphorIcon(
-        PhosphorIcons.caretRight(),
-        color: AppColors.textSecondary,
-        size: 20,
+        item.priority.icon,
+        color: item.priority.color,
+        size: 22,
       ),
       onTap: () {
         // Open the edit item sheet without closing search
