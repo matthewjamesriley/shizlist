@@ -382,11 +382,9 @@ class _EditItemSheetState extends State<EditItemSheet>
           const SizedBox(height: 8),
           TextFormField(
             controller: _nameController,
-            style: AppTypography.bodyLarge,
-            minLines: 1,
-            maxLines: 3,
+            style: AppTypography.titleMedium,
             decoration: const InputDecoration(hintText: 'Item name'),
-            textCapitalization: TextCapitalization.sentences,
+            textCapitalization: TextCapitalization.words,
           ),
           const SizedBox(height: 16),
 
