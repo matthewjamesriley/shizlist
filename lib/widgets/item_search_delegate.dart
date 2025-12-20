@@ -275,13 +275,14 @@ class ItemSearchDelegate extends SearchDelegate<ItemSearchResult?> {
         size: 20,
       ),
       onTap: () {
-        // Open the edit item sheet
-        close(context, result);
+        // Open the edit item sheet without closing search
         EditItemSheet.show(
           context,
           item: result.item,
           onSaved: () {
             AppNotification.success(context, 'Item updated');
+            // Refresh search results after save
+            showResults(context);
           },
         );
       },
