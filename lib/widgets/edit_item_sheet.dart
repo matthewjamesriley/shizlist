@@ -6,9 +6,9 @@ import '../core/theme/app_colors.dart';
 import '../core/theme/app_theme.dart';
 import '../core/theme/app_typography.dart';
 import '../models/list_item.dart';
-import '../models/currency.dart';
 import '../services/item_service.dart';
 import '../services/image_upload_service.dart';
+import '../services/user_settings_service.dart';
 import 'app_button.dart';
 import 'app_notification.dart';
 import '../core/utils/price_formatter.dart';
@@ -119,16 +119,18 @@ class _EditItemSheetState extends State<EditItemSheet>
         price = double.tryParse(_priceController.text.replaceAll(',', ''));
       }
 
+      // Always pass description (empty string to clear)
+      final description = _descriptionController.text.trim();
+      final retailerUrl = _urlController.text.trim();
+      
       await ItemService().updateItem(
         uid: widget.item.uid,
         name: _nameController.text.trim(),
-        description: _descriptionController.text.trim().isEmpty
-            ? null
-            : _descriptionController.text.trim(),
+        description: description.isEmpty ? '' : description,
         price: price,
-        retailerUrl: _urlController.text.trim().isEmpty
-            ? null
-            : _urlController.text.trim(),
+        // Set currency from user settings when price is provided
+        currency: price != null ? UserSettingsService().currencyCode : null,
+        retailerUrl: retailerUrl.isEmpty ? '' : retailerUrl,
         category: _selectedCategory,
         priority: _selectedPriority,
         thumbnailUrl: _thumbnailUrl,
@@ -426,8 +428,7 @@ class _EditItemSheetState extends State<EditItemSheet>
                       inputFormatters: [PriceInputFormatter()],
                       decoration: InputDecoration(
                         hintText: 'Price',
-                        prefixText:
-                            '${Currency.fromCode(widget.item.currency ?? 'USD').symbol} ',
+                        prefixText: '${UserSettingsService().currencySymbol} ',
                       ),
                     ),
                   ],

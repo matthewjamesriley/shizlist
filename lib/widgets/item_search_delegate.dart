@@ -12,8 +12,6 @@ import 'edit_item_sheet.dart';
 class ItemSearchDelegate extends SearchDelegate<ItemSearchResult?> {
   final ItemService _itemService = ItemService();
   Timer? _debounceTimer;
-  String _lastQuery = '';
-  Future<List<ItemSearchResult>>? _searchFuture;
   
   ItemSearchDelegate() : super(
     searchFieldLabel: 'Search all items...',
@@ -22,18 +20,16 @@ class ItemSearchDelegate extends SearchDelegate<ItemSearchResult?> {
     ),
   );
 
-  /// Force refresh of search results
-  void _refreshResults() {
-    _searchFuture = null; // Clear cached future
-  }
-
-  /// Get or create search future
-  Future<List<ItemSearchResult>> _getSearchFuture(String searchQuery) {
-    if (_searchFuture == null || _lastQuery != searchQuery) {
-      _lastQuery = searchQuery;
-      _searchFuture = _itemService.searchAllItems(searchQuery);
-    }
-    return _searchFuture!;
+  /// Force refresh of search results by re-running query
+  void _forceRefresh(BuildContext context) {
+    final currentQuery = query;
+    // Temporarily clear query to force widget rebuild
+    query = '';
+    // Use microtask to ensure the query change is processed
+    Future.microtask(() {
+      query = currentQuery;
+      showResults(context);
+    });
   }
 
   @override
@@ -114,7 +110,7 @@ class ItemSearchDelegate extends SearchDelegate<ItemSearchResult?> {
 
   Widget _buildSearchResults(BuildContext context) {
     return FutureBuilder<List<ItemSearchResult>>(
-      future: _getSearchFuture(query),
+      future: _itemService.searchAllItems(query),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
@@ -279,9 +275,8 @@ class ItemSearchDelegate extends SearchDelegate<ItemSearchResult?> {
           item: result.item,
           onSaved: () {
             AppNotification.success(context, 'Item updated');
-            // Force refresh and show updated results
-            _refreshResults();
-            showResults(context);
+            // Force full refresh by toggling query
+            _forceRefresh(context);
           },
           onDeleted: () async {
             // Confirm and delete the item
@@ -308,9 +303,8 @@ class ItemSearchDelegate extends SearchDelegate<ItemSearchResult?> {
               try {
                 await ItemService().deleteItem(result.item.uid);
                 AppNotification.success(context, 'Item deleted');
-                // Force refresh and show updated results
-                _refreshResults();
-                showResults(context);
+                // Force full refresh by toggling query
+                _forceRefresh(context);
               } catch (e) {
                 AppNotification.error(context, 'Failed to delete item');
               }

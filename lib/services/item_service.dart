@@ -154,6 +154,7 @@ class ItemService {
   }
 
   /// Update an existing item
+  /// Pass empty string to clear optional text fields (description, retailerUrl, etc.)
   Future<ListItem> updateItem({
     required String uid,
     String? name,
@@ -171,12 +172,18 @@ class ItemService {
       'updated_at': DateTime.now().toIso8601String(),
     };
     if (name != null) updates['name'] = name;
-    if (description != null) updates['description'] = description;
+    // For description: null = don't update, empty string = clear, other = set value
+    if (description != null) {
+      updates['description'] = description.isEmpty ? null : description;
+    }
     if (price != null) updates['price'] = price;
     if (currency != null) updates['currency'] = currency;
     if (thumbnailUrl != null) updates['thumbnail_url'] = thumbnailUrl;
     if (mainImageUrl != null) updates['main_image_url'] = mainImageUrl;
-    if (retailerUrl != null) updates['retailer_url'] = retailerUrl;
+    // For retailerUrl: null = don't update, empty string = clear, other = set value
+    if (retailerUrl != null) {
+      updates['retailer_url'] = retailerUrl.isEmpty ? null : retailerUrl;
+    }
     if (category != null) updates['category'] = category.name;
     if (priority != null) updates['priority'] = priority.name;
     if (quantity != null) updates['quantity'] = quantity;
