@@ -5,8 +5,11 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_typography.dart';
 import '../features/lists/widgets/create_list_dialog.dart';
+import '../models/user_profile.dart';
 import '../routing/app_router.dart';
+import '../services/auth_service.dart';
 import '../services/lists_notifier.dart';
+import '../services/user_settings_service.dart';
 import 'add_item_sheet.dart';
 import 'app_drawer.dart';
 import 'app_notification.dart';
@@ -25,17 +28,43 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  final _authService = AuthService();
   bool _showButtons = false;
+  UserProfile? _userProfile;
 
   @override
   void initState() {
     super.initState();
+    _loadUserProfile();
+    // Listen for profile updates
+    UserSettingsService().addListener(_onSettingsChanged);
     // Delay showing buttons to avoid spin animation
     Future.delayed(const Duration(milliseconds: 100), () {
       if (mounted) {
         setState(() => _showButtons = true);
       }
     });
+  }
+
+  @override
+  void dispose() {
+    UserSettingsService().removeListener(_onSettingsChanged);
+    super.dispose();
+  }
+
+  void _onSettingsChanged() {
+    _loadUserProfile();
+  }
+
+  Future<void> _loadUserProfile() async {
+    try {
+      final profile = await _authService.getCurrentUserProfile();
+      if (mounted) {
+        setState(() => _userProfile = profile);
+      }
+    } catch (e) {
+      // Silently fail - will show icon instead
+    }
   }
 
   int _getCurrentIndex(BuildContext context) {
@@ -106,12 +135,28 @@ class _AppShellState extends State<AppShell> {
                     width: 1.5,
                   ),
                 ),
-                child: Center(
-                  child: PhosphorIcon(
-                    PhosphorIcons.user(),
-                    color: AppColors.textPrimary,
-                    size: 20,
-                  ),
+                child: ClipOval(
+                  child: _userProfile?.avatarUrl != null
+                      ? Image.network(
+                          _userProfile!.avatarUrl!,
+                          width: 36,
+                          height: 36,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Center(
+                            child: PhosphorIcon(
+                              PhosphorIcons.user(),
+                              color: AppColors.textPrimary,
+                              size: 20,
+                            ),
+                          ),
+                        )
+                      : Center(
+                          child: PhosphorIcon(
+                            PhosphorIcons.user(),
+                            color: AppColors.textPrimary,
+                            size: 20,
+                          ),
+                        ),
                 ),
               ),
             ),

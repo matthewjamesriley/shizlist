@@ -201,6 +201,7 @@ class AuthService {
   }
 
   /// Update user profile
+  /// Pass empty string for avatarUrl to clear the avatar
   Future<UserProfile> updateUserProfile({
     String? displayName,
     String? avatarUrl,
@@ -215,7 +216,10 @@ class AuthService {
       'updated_at': DateTime.now().toIso8601String(),
     };
     if (displayName != null) updates['display_name'] = displayName;
-    if (avatarUrl != null) updates['avatar_url'] = avatarUrl;
+    if (avatarUrl != null) {
+      // Empty string means clear the avatar
+      updates['avatar_url'] = avatarUrl.isEmpty ? null : avatarUrl;
+    }
     if (currencyCode != null) updates['currency_code'] = currencyCode;
 
     final response = await _client
