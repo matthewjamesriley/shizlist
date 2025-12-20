@@ -12,7 +12,8 @@ import 'edit_item_sheet.dart';
 class ItemSearchDelegate extends SearchDelegate<ItemSearchResult?> {
   final ItemService _itemService = ItemService();
   Timer? _debounceTimer;
-  int _refreshKey = 0; // Used to force FutureBuilder to refetch
+  String _lastQuery = '';
+  Future<List<ItemSearchResult>>? _searchFuture;
   
   ItemSearchDelegate() : super(
     searchFieldLabel: 'Search all items...',
@@ -22,8 +23,17 @@ class ItemSearchDelegate extends SearchDelegate<ItemSearchResult?> {
   );
 
   /// Force refresh of search results
-  void _refresh() {
-    _refreshKey++;
+  void _refreshResults() {
+    _searchFuture = null; // Clear cached future
+  }
+
+  /// Get or create search future
+  Future<List<ItemSearchResult>> _getSearchFuture(String searchQuery) {
+    if (_searchFuture == null || _lastQuery != searchQuery) {
+      _lastQuery = searchQuery;
+      _searchFuture = _itemService.searchAllItems(searchQuery);
+    }
+    return _searchFuture!;
   }
 
   @override
@@ -104,8 +114,7 @@ class ItemSearchDelegate extends SearchDelegate<ItemSearchResult?> {
 
   Widget _buildSearchResults(BuildContext context) {
     return FutureBuilder<List<ItemSearchResult>>(
-      key: ValueKey('search_$query\_$_refreshKey'), // Force rebuild on refresh
-      future: _itemService.searchAllItems(query),
+      future: _getSearchFuture(query),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
@@ -271,7 +280,7 @@ class ItemSearchDelegate extends SearchDelegate<ItemSearchResult?> {
           onSaved: () {
             AppNotification.success(context, 'Item updated');
             // Force refresh and show updated results
-            _refresh();
+            _refreshResults();
             showResults(context);
           },
           onDeleted: () async {
@@ -300,7 +309,7 @@ class ItemSearchDelegate extends SearchDelegate<ItemSearchResult?> {
                 await ItemService().deleteItem(result.item.uid);
                 AppNotification.success(context, 'Item deleted');
                 // Force refresh and show updated results
-                _refresh();
+                _refreshResults();
                 showResults(context);
               } catch (e) {
                 AppNotification.error(context, 'Failed to delete item');
