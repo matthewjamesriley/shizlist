@@ -22,6 +22,9 @@ class AddItemSheet extends StatefulWidget {
   /// Optional pre-selected list (when opened from a specific list)
   final WishList? selectedList;
 
+  /// Remember the last selected tab across sessions
+  static int _lastSelectedTab = 0;
+
   const AddItemSheet({super.key, this.selectedList});
 
   /// Show the add item sheet
@@ -89,11 +92,22 @@ class _AddItemSheetState extends State<AddItemSheet>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(
+      length: 3,
+      vsync: this,
+      initialIndex: AddItemSheet._lastSelectedTab,
+    );
+    _tabController.addListener(_onTabChanged);
     _selectedList = widget.selectedList;
     _loadLists();
     _listSearchController.addListener(_filterLists);
     _priceFocusNode.addListener(_onPriceFocusChange);
+  }
+
+  void _onTabChanged() {
+    if (!_tabController.indexIsChanging) {
+      AddItemSheet._lastSelectedTab = _tabController.index;
+    }
   }
 
   void _onPriceFocusChange() {
@@ -143,6 +157,7 @@ class _AddItemSheetState extends State<AddItemSheet>
 
   @override
   void dispose() {
+    _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
     _nameController.dispose();
     _descriptionController.dispose();
@@ -425,7 +440,7 @@ class _AddItemSheetState extends State<AddItemSheet>
             TextFormField(
               controller: _urlController,
               decoration: const InputDecoration(
-                hintText: 'Product URL (optional)',
+                hintText: 'Item URL (optional)',
               ),
               keyboardType: TextInputType.url,
               style: AppTypography.bodyLarge,

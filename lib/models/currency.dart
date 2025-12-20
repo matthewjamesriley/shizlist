@@ -71,6 +71,10 @@ class Currency {
     if (code == 'JPY' || code == 'KRW' || code == 'IDR' || code == 'HUF') {
       return '$symbol${amount.round()}';
     }
+    // Don't show .00 for whole numbers
+    if (amount == amount.roundToDouble() && amount % 1 == 0) {
+      return '$symbol${amount.toInt()}';
+    }
     return '$symbol${amount.toStringAsFixed(2)}';
   }
 
