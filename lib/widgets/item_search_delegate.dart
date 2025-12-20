@@ -1,11 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_typography.dart';
 import '../services/item_service.dart';
+import 'app_notification.dart';
+import 'edit_item_sheet.dart';
 
 /// Search delegate for searching items across all lists
 class ItemSearchDelegate extends SearchDelegate<ItemSearchResult?> {
@@ -274,9 +275,15 @@ class ItemSearchDelegate extends SearchDelegate<ItemSearchResult?> {
         size: 20,
       ),
       onTap: () {
-        // Navigate to the list containing this item
+        // Open the edit item sheet
         close(context, result);
-        context.push('/lists/${result.listUid}');
+        EditItemSheet.show(
+          context,
+          item: result.item,
+          onSaved: () {
+            AppNotification.success(context, 'Item updated');
+          },
+        );
       },
     );
   }
