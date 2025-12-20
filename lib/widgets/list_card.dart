@@ -9,14 +9,12 @@ import 'app_dialog.dart';
 class ListCard extends StatefulWidget {
   final WishList list;
   final VoidCallback? onTap;
-  final VoidCallback? onShareTap;
   final Function(bool isPublic)? onVisibilityChanged;
 
   const ListCard({
     super.key,
     required this.list,
     this.onTap,
-    this.onShareTap,
     this.onVisibilityChanged,
   });
 
@@ -39,12 +37,14 @@ class _ListCardState extends State<ListCard> {
 
     final confirmed = await AppDialog.show(
       context,
-      title: isCurrentlyPublic
-          ? 'Make "$listTitle" private?'
-          : 'Make "$listTitle" public?',
-      content: isCurrentlyPublic
-          ? 'Only people you share with will be able to see it.'
-          : 'Anyone with the link will be able to see it.',
+      title:
+          isCurrentlyPublic
+              ? 'Make "$listTitle" private?'
+              : 'Make "$listTitle" public?',
+      content:
+          isCurrentlyPublic
+              ? 'Only people you share with will be able to see it.'
+              : 'Anyone with the link will be able to see it.',
     );
 
     if (confirmed) {
@@ -54,10 +54,10 @@ class _ListCardState extends State<ListCard> {
 
   String _getEventDateLabel() {
     if (!widget.list.hasEventDate) return '';
-    
+
     final days = widget.list.daysUntilEvent;
     if (days == null) return '';
-    
+
     if (days == 0) {
       return 'Today!';
     } else if (days == 1) {
@@ -68,10 +68,22 @@ class _ListCardState extends State<ListCard> {
       return 'In ${days}d';
     } else if (days <= 30) {
       final weeks = (days / 7).floor();
-      return weeks == 1 ? 'In 1 wk' : 'In ${weeks}wk';
+      return weeks == 1 ? 'In 1 week' : 'In ${weeks} weeks';
     } else {
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
       final date = widget.list.nextEventDate!;
       return '${date.day} ${months[date.month - 1]}';
     }
@@ -88,9 +100,10 @@ class _ListCardState extends State<ListCard> {
           children: [
             // Header with cover or gradient
             Container(
-              height: _isImageExpanded
-                  ? 300
-                  : (widget.list.coverImageUrl != null ? 100 : 55),
+              height:
+                  _isImageExpanded
+                      ? 300
+                      : (widget.list.coverImageUrl != null ? 100 : 55),
               width: double.infinity,
               decoration: BoxDecoration(
                 gradient:
@@ -159,18 +172,17 @@ class _ListCardState extends State<ListCard> {
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: widget.list.isUpcoming
-                                  ? AppColors.primary.withValues(alpha: 0.9)
-                                  : Colors.black.withValues(alpha: 0.7),
+                              color:
+                                  widget.list.isUpcoming
+                                      ? AppColors.primary.withValues(alpha: 0.9)
+                                      : Colors.black.withValues(alpha: 0.7),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 PhosphorIcon(
-                                  widget.list.isRecurring
-                                      ? PhosphorIcons.arrowsClockwise()
-                                      : PhosphorIcons.calendarDots(),
+                                  PhosphorIcons.calendarDots(),
                                   size: 14,
                                   color: Colors.white,
                                 ),
@@ -217,7 +229,7 @@ class _ListCardState extends State<ListCard> {
 
             // Content
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(16, 16, 12, 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -278,12 +290,24 @@ class _ListCardState extends State<ListCard> {
 
                       const Spacer(),
 
-                      // Share button
-                      IconButton(
-                        onPressed: widget.onShareTap,
-                        icon: PhosphorIcon(PhosphorIcons.shareFat(), size: 20),
-                        style: IconButton.styleFrom(
-                          foregroundColor: AppColors.primary,
+                      // Group avatar placeholder
+                      Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppColors.textPrimary,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Center(
+                          child: PhosphorIcon(
+                            PhosphorIcons.users(),
+                            size: 18,
+                            color: AppColors.textPrimary,
+                          ),
                         ),
                       ),
                     ],

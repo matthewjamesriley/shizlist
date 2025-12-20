@@ -41,9 +41,8 @@ class _AppShellState extends State<AppShell> {
   int _getCurrentIndex(BuildContext context) {
     final location = GoRouterState.of(context).matchedLocation;
     if (location.startsWith(AppRoutes.lists)) return 0;
-    if (location == AppRoutes.invite) return 1;
-    if (location == AppRoutes.contacts) return 2;
-    if (location == AppRoutes.share) return 3;
+    if (location == AppRoutes.contacts) return 1;
+    if (location == AppRoutes.invite) return 2;
     return 0;
   }
 
@@ -53,13 +52,10 @@ class _AppShellState extends State<AppShell> {
         context.go(AppRoutes.lists);
         break;
       case 1:
-        context.go(AppRoutes.invite);
-        break;
-      case 2:
         context.go(AppRoutes.contacts);
         break;
-      case 3:
-        context.go(AppRoutes.share);
+      case 2:
+        context.go(AppRoutes.invite);
         break;
     }
   }
@@ -88,24 +84,34 @@ class _AppShellState extends State<AppShell> {
                 ),
         centerTitle: true,
         actions: [
-          // Messages icon
-          IconButton(
-            icon: PhosphorIcon(PhosphorIcons.chatCircleText()),
-            onPressed: () => context.go(AppRoutes.messages),
-            tooltip: 'Messages',
-          ),
+          // Messages icon - commented out for later use
+          // IconButton(
+          //   icon: PhosphorIcon(PhosphorIcons.chatCircleText()),
+          //   onPressed: () => context.go(AppRoutes.messages),
+          //   tooltip: 'Messages',
+          // ),
           // Profile picture that opens drawer
           Padding(
-            padding: const EdgeInsets.only(right: 8),
+            padding: const EdgeInsets.only(right: 12),
             child: GestureDetector(
               onTap: () => _scaffoldKey.currentState?.openEndDrawer(),
-              child: CircleAvatar(
-                radius: 18,
-                backgroundColor: AppColors.primaryLight,
-                child: PhosphorIcon(
-                  PhosphorIcons.user(),
-                  color: AppColors.textOnPrimary,
-                  size: 20,
+              child: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: AppColors.textPrimary,
+                    width: 1.5,
+                  ),
+                ),
+                child: Center(
+                  child: PhosphorIcon(
+                    PhosphorIcons.user(),
+                    color: AppColors.textPrimary,
+                    size: 20,
+                  ),
                 ),
               ),
             ),
@@ -132,25 +138,18 @@ class _AppShellState extends State<AppShell> {
                 label: 'My lists',
               ),
               NavigationDestination(
+                icon: PhosphorIcon(PhosphorIcons.users()),
+                selectedIcon: PhosphorIcon(
+                  PhosphorIcons.users(PhosphorIconsStyle.fill),
+                ),
+                label: 'My friends',
+              ),
+              NavigationDestination(
                 icon: PhosphorIcon(PhosphorIcons.userPlus()),
                 selectedIcon: PhosphorIcon(
                   PhosphorIcons.userPlus(PhosphorIconsStyle.fill),
                 ),
                 label: 'Invite',
-              ),
-              NavigationDestination(
-                icon: PhosphorIcon(PhosphorIcons.addressBook()),
-                selectedIcon: PhosphorIcon(
-                  PhosphorIcons.addressBook(PhosphorIconsStyle.fill),
-                ),
-                label: 'Contacts',
-              ),
-              NavigationDestination(
-                icon: PhosphorIcon(PhosphorIcons.shareFat()),
-                selectedIcon: PhosphorIcon(
-                  PhosphorIcons.shareFat(PhosphorIconsStyle.fill),
-                ),
-                label: 'Share',
               ),
             ],
           ),
@@ -233,11 +232,9 @@ class _AppShellState extends State<AppShell> {
       case 0:
         return 'My lists';
       case 1:
-        return 'Invite';
+        return 'My friends';
       case 2:
-        return 'Contacts';
-      case 3:
-        return 'Share';
+        return 'Invite';
       default:
         return 'ShizList';
     }

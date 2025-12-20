@@ -138,7 +138,6 @@ class _ListsScreenState extends State<ListsScreen> {
           return ListCard(
             list: list,
             onTap: () => _openList(list),
-            onShareTap: () => _shareList(list),
             onVisibilityChanged:
                 (isPublic) => _updateListVisibility(list, isPublic),
           );
@@ -223,15 +222,6 @@ class _ListsScreenState extends State<ListsScreen> {
     await context.push('/lists/${list.uid}');
     // Silently refresh lists when returning to get updated item counts
     _silentRefresh();
-  }
-
-  void _shareList(WishList list) {
-    // TODO: Implement share functionality
-    AppNotification.show(
-      context,
-      message: 'Share link: ${list.shareUrl}',
-      icon: PhosphorIcons.link(),
-    );
   }
 
   Future<void> _updateListVisibility(WishList list, bool isPublic) async {

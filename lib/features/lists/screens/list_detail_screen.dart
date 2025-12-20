@@ -391,9 +391,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   PhosphorIcon(
-                                    _list.isRecurring
-                                        ? PhosphorIcons.arrowsClockwise()
-                                        : PhosphorIcons.calendarDots(),
+                                    PhosphorIcons.calendarDots(),
                                     size: 20,
                                     color:
                                         _list.isUpcoming
