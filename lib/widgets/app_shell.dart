@@ -10,6 +10,7 @@ import '../services/lists_notifier.dart';
 import 'add_item_sheet.dart';
 import 'app_drawer.dart';
 import 'app_notification.dart';
+import 'item_search_delegate.dart';
 import 'shizlist_logo.dart';
 
 /// Main app shell with bottom navigation and drawer
@@ -73,9 +74,7 @@ class _AppShellState extends State<AppShell> {
       appBar: AppBar(
         leading: IconButton(
           icon: PhosphorIcon(PhosphorIcons.magnifyingGlass()),
-          onPressed: () {
-            // TODO: Open search
-          },
+          onPressed: () => _openSearch(context),
         ),
         title:
             currentIndex == 0
@@ -255,5 +254,12 @@ class _AppShellState extends State<AppShell> {
 
   void _showAddItemSheet(BuildContext context) {
     AddItemSheet.show(context);
+  }
+
+  void _openSearch(BuildContext context) {
+    showSearch(
+      context: context,
+      delegate: ItemSearchDelegate(),
+    );
   }
 }

@@ -44,17 +44,20 @@ class WishList {
       title: json['title'] as String,
       description: json['description'] as String?,
       coverImageUrl: json['cover_image_url'] as String?,
-      visibility: json['visibility'] == 'public'
-          ? ListVisibility.public
-          : ListVisibility.private,
+      visibility:
+          json['visibility'] == 'public'
+              ? ListVisibility.public
+              : ListVisibility.private,
       createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: json['updated_at'] != null
-          ? DateTime.parse(json['updated_at'] as String)
-          : null,
+      updatedAt:
+          json['updated_at'] != null
+              ? DateTime.parse(json['updated_at'] as String)
+              : null,
       isDeleted: json['is_deleted'] as bool? ?? false,
-      deletedAt: json['deleted_at'] != null
-          ? DateTime.parse(json['deleted_at'] as String)
-          : null,
+      deletedAt:
+          json['deleted_at'] != null
+              ? DateTime.parse(json['deleted_at'] as String)
+              : null,
       itemCount: json['item_count'] as int? ?? 0,
       claimedCount: json['claimed_count'] as int? ?? 0,
     );
@@ -122,7 +125,7 @@ class WishList {
   bool get isPublic => visibility == ListVisibility.public;
 
   /// Get the share URL for this list
-  String get shareUrl => 'https://shizlist.app/list/$uid';
+  String get shareUrl => 'https://shizlist.co/list/$uid';
 
   /// Get progress percentage (claimed / total)
   double get progressPercentage {
@@ -142,5 +145,3 @@ class WishList {
   @override
   String toString() => 'WishList(uid: $uid, title: $title)';
 }
-
-

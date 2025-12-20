@@ -4,10 +4,53 @@ import 'supabase_service.dart';
 import '../models/models.dart';
 import '../core/constants/supabase_config.dart';
 
+/// Search result with item and list info
+class ItemSearchResult {
+  final ListItem item;
+  final String listUid;
+  final String listTitle;
+
+  const ItemSearchResult({
+    required this.item,
+    required this.listUid,
+    required this.listTitle,
+  });
+}
+
 /// Service for managing list items
 class ItemService {
   final SupabaseClient _client = SupabaseService.client;
   final _uuid = const Uuid();
+
+  /// Search all items across all lists for the current user
+  Future<List<ItemSearchResult>> searchAllItems(String query) async {
+    final userId = SupabaseService.currentUserId;
+    if (userId == null) throw Exception('User not authenticated');
+    
+    if (query.trim().isEmpty) return [];
+
+    // Get all items from user's lists that match the search query
+    final response = await _client
+        .from(SupabaseConfig.listItemsTable)
+        .select('*, lists!inner(uid, title, owner_id, is_deleted)')
+        .eq('lists.owner_id', userId)
+        .eq('lists.is_deleted', false)
+        .ilike('name', '%${query.trim()}%')
+        .order('created_at', ascending: false)
+        .limit(50);
+
+    return (response as List).map((json) {
+      final listData = json['lists'] as Map<String, dynamic>;
+      final itemJson = Map<String, dynamic>.from(json);
+      itemJson.remove('lists');
+      
+      return ItemSearchResult(
+        item: ListItem.fromJson(itemJson),
+        listUid: listData['uid'] as String,
+        listTitle: listData['title'] as String,
+      );
+    }).toList();
+  }
 
   /// Get all items for a list
   Future<List<ListItem>> getListItems(int listId) async {
