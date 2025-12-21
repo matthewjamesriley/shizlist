@@ -49,5 +49,25 @@
 	<string>ShizList needs access to your photo library to add images to your wish list items.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>ShizList needs access to your camera to take photos for your wish list items.</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>co.shizlist.app</string>
+			</array>
+			<key>CFBundleURLName</key>
+			<string>co.shizlist.app</string>
+		</dict>
+	</array>
+	<key>io.flutter.embedded_views_preview</key>
+	<true/>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+		<key>NSAllowsArbitraryLoadsInWebContent</key>
+		<true/>
+	</dict>
 </dict>
 </plist>

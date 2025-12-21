@@ -14,6 +14,7 @@ class ItemCard extends StatelessWidget {
   final bool isOwner;
   final VoidCallback? onTap;
   final VoidCallback? onClaimTap;
+  final VoidCallback? onLinkTap;
   final ItemPosition position;
 
   const ItemCard({
@@ -22,6 +23,7 @@ class ItemCard extends StatelessWidget {
     this.isOwner = false,
     this.onTap,
     this.onClaimTap,
+    this.onLinkTap,
     this.position = ItemPosition.only,
   });
 
@@ -48,9 +50,10 @@ class ItemCard extends StatelessWidget {
         border: Border(
           left: BorderSide(color: AppColors.divider, width: 1),
           right: BorderSide(color: AppColors.divider, width: 1),
-          top: position == ItemPosition.first || position == ItemPosition.only
-              ? BorderSide(color: AppColors.divider, width: 1)
-              : BorderSide.none,
+          top:
+              position == ItemPosition.first || position == ItemPosition.only
+                  ? BorderSide(color: AppColors.divider, width: 1)
+                  : BorderSide.none,
           bottom: BorderSide(color: AppColors.divider, width: 1),
         ),
       ),
@@ -62,73 +65,80 @@ class ItemCard extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Thumbnail image
-              _buildThumbnail(),
-              const SizedBox(width: 12),
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Thumbnail image
+                _buildThumbnail(),
+                const SizedBox(width: 12),
 
-              // Item details - left side
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildCategoryBadge(),
-                    const SizedBox(height: 6),
+                // Item details - left side
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Category badge and link icon row
+                      Row(
+                        children: [
+                          _buildCategoryBadge(),
+                          if (item.retailerUrl != null &&
+                              item.retailerUrl!.isNotEmpty) ...[
+                            const SizedBox(width: 6),
+                            _buildLinkButton(),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 6),
 
-                    // Item name
-                    Text(
-                      item.name,
-                      style: AppTypography.titleMedium,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-
-                    if (item.description != null) ...[
-                      const SizedBox(height: 4),
+                      // Item name
                       Text(
-                        item.description!,
-                        style: AppTypography.bodySmall,
+                        item.name,
+                        style: AppTypography.titleMedium,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                    ],
 
-                    // Claim status row (only if claimed)
-                    if (!isOwner && item.isClaimed) ...[
+                      if (item.description != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          item.description!,
+                          style: AppTypography.bodySmall,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+
+                      // Claim status row (only if claimed)
+                      if (!isOwner && item.isClaimed) ...[
+                        const SizedBox(height: 8),
+                        _buildClaimedBadge(),
+                      ],
+                    ],
+                  ),
+                ),
+
+                // Priority and price - right side
+                const SizedBox(width: 8),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    _buildPriorityBadge(),
+                    if (item.price != null) ...[
                       const SizedBox(height: 8),
-                      _buildClaimedBadge(),
+                      Text(item.formattedPrice, style: AppTypography.priceText),
                     ],
                   ],
                 ),
-              ),
-              
-              // Priority and price - right side
-              const SizedBox(width: 8),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  _buildPriorityBadge(),
-                  if (item.price != null) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      item.formattedPrice,
-                      style: AppTypography.priceText,
-                    ),
-                  ],
-                ],
-              ),
 
-              // Claim button for gifters
-              if (!isOwner && !item.isClaimed) ...[
-                const SizedBox(width: 8),
-                _buildClaimButton(),
+                // Claim button for gifters
+                if (!isOwner && !item.isClaimed) ...[
+                  const SizedBox(width: 8),
+                  _buildClaimButton(),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),
-    ),
     );
   }
 
@@ -211,6 +221,23 @@ class ItemCard extends StatelessWidget {
         style: IconButton.styleFrom(
           backgroundColor: AppColors.primary,
           foregroundColor: AppColors.textOnPrimary,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLinkButton() {
+    return GestureDetector(
+      onTap: onLinkTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        decoration: BoxDecoration(
+          color: AppColors.accent.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          'Go to link',
+          style: AppTypography.categoryBadge.copyWith(color: AppColors.accent),
         ),
       ),
     );

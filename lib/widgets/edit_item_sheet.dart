@@ -372,7 +372,7 @@ class _EditItemSheetState extends State<EditItemSheet>
                   indicatorColor: AppColors.primary,
                   indicatorWeight: 3,
                   labelStyle: AppTypography.titleMedium.copyWith(fontSize: 16),
-                  tabs: const [Tab(text: 'Details'), Tab(text: 'Media & link')],
+                  tabs: const [Tab(text: 'Details'), Tab(text: 'Image & link')],
                 ),
               ],
             ),
@@ -916,7 +916,10 @@ class _EditItemSheetState extends State<EditItemSheet>
                 _isUploadingImage = false;
                 _isFetchingAmazon = false;
               });
-              AppNotification.success(context, 'Product info and image updated!');
+              AppNotification.success(
+                context,
+                'Product info and image updated!',
+              );
             } else {
               setState(() {
                 _isUploadingImage = false;

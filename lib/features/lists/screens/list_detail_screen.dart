@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../models/models.dart';
@@ -607,6 +608,9 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                                   isOwner: _isOwner,
                                   onTap: () => _openItemDetail(item),
                                   onClaimTap: () => _claimItem(item),
+                                  onLinkTap: item.retailerUrl != null
+                                      ? () => _openProductLink(item.retailerUrl!)
+                                      : null,
                                   position: position,
                                 );
                               },
@@ -1889,6 +1893,17 @@ class _ListDetailScreenState extends State<ListDetailScreen>
     _showEditItemSheet(item);
   }
 
+  void _openProductLink(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
+    } else {
+      if (mounted) {
+        AppNotification.error(context, 'Could not open link');
+      }
+    }
+  }
+
   void _showEditItemSheet(ListItem item) {
     EditItemSheet.show(
       context,
@@ -2237,26 +2252,12 @@ class _ListDetailScreenState extends State<ListDetailScreen>
 
   void _deleteSelectedItems() async {
     final count = _selectedItemUids.length;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Delete items?'),
-            content: Text(
-              'Are you sure you want to delete $count ${count == 1 ? 'item' : 'items'}?',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context, true),
-                style: TextButton.styleFrom(foregroundColor: AppColors.error),
-                child: const Text('Delete'),
-              ),
-            ],
-          ),
+    final confirmed = await AppDialog.show(
+      context,
+      title: 'Delete $count ${count == 1 ? 'item' : 'items'}?',
+      content: 'Are you sure you want to delete ${count == 1 ? 'this item' : 'these items'}?',
+      confirmText: 'Delete',
+      isDestructive: true,
     );
 
     if (confirmed == true) {

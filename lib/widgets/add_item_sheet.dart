@@ -15,6 +15,7 @@ import '../services/list_service.dart';
 import '../services/lists_notifier.dart';
 import '../services/user_settings_service.dart';
 import '../services/image_upload_service.dart';
+import 'amazon_browser_screen.dart';
 import 'app_notification.dart';
 
 /// Unified Add Item sheet with tabs for Quick Add, Amazon Search, and Paste Link
@@ -523,6 +524,34 @@ class _AddItemSheetState extends State<AddItemSheet>
             const SizedBox(height: 24),
           ],
 
+          // Browse Amazon button - primary action
+          AppButton.accent(
+            label: 'Browse Amazon',
+            icon: PhosphorIcons.amazonLogo(),
+            onPressed: _openAmazonBrowser,
+          ),
+
+          const SizedBox(height: 20),
+
+          // Divider with "or"
+          Row(
+            children: [
+              const Expanded(child: Divider()),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  'or paste a link',
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+              const Expanded(child: Divider()),
+            ],
+          ),
+
+          const SizedBox(height: 20),
+
           // URL paste field
           TextField(
             controller: _amazonUrlController,
@@ -742,15 +771,10 @@ class _AddItemSheetState extends State<AddItemSheet>
             ),
           ] else ...[
             // Empty state
-            const SizedBox(height: 28),
+            const SizedBox(height: 16),
             Center(
               child: Column(
                 children: [
-                  PhosphorIcon(
-                    PhosphorIcons.amazonLogo(),
-                    size: 64,
-                    color: AppColors.categoryCrafted,
-                  ),
                   const SizedBox(height: 16),
                   Text(
                     'Paste an Amazon product',
@@ -898,6 +922,21 @@ class _AddItemSheetState extends State<AddItemSheet>
         setState(() => _isFetchingAmazon = false);
         AppNotification.error(context, 'Failed to fetch product info');
       }
+    }
+  }
+
+  Future<void> _openAmazonBrowser() async {
+    if (_selectedList == null) {
+      AppNotification.error(context, 'Please select a list first');
+      return;
+    }
+
+    await AmazonBrowserScreen.show(context, selectedList: _selectedList);
+
+    // Items are added directly from the browser now
+    // Just close the Add Item sheet when browser is closed
+    if (mounted) {
+      Navigator.of(context).pop();
     }
   }
 

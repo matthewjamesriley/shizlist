@@ -10,6 +10,7 @@ enum ButtonVariant {
   success,
   danger,
   warning,
+  accent,
   outline,
   outlinePrimary,
   ghost,
@@ -118,6 +119,17 @@ class AppButton extends StatelessWidget {
     this.isLoading = false,
     this.fullWidth = true,
   }) : variant = ButtonVariant.ghost;
+
+  const AppButton.accent({
+    super.key,
+    required this.label,
+    this.onPressed,
+    this.size = ButtonSize.medium,
+    this.icon,
+    this.trailingIcon,
+    this.isLoading = false,
+    this.fullWidth = true,
+  }) : variant = ButtonVariant.accent;
 
   @override
   Widget build(BuildContext context) {
@@ -267,6 +279,8 @@ class AppButton extends StatelessWidget {
         return AppColors.error;
       case ButtonVariant.warning:
         return AppColors.warning;
+      case ButtonVariant.accent:
+        return AppColors.accent;
       case ButtonVariant.outline:
       case ButtonVariant.outlinePrimary:
       case ButtonVariant.ghost:
@@ -280,6 +294,7 @@ class AppButton extends StatelessWidget {
       case ButtonVariant.secondary:
       case ButtonVariant.success:
       case ButtonVariant.danger:
+      case ButtonVariant.accent:
         return Colors.white;
       case ButtonVariant.warning:
         return AppColors.textPrimary;

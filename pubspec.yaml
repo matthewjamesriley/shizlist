@@ -40,6 +40,9 @@ dependencies:
   # Local Storage
   shared_preferences: ^2.2.2
   phosphor_flutter: ^2.1.0
+  
+  # WebView for in-app browsing
+  webview_flutter: ^4.10.0
 
 dev_dependencies:
   flutter_test:
