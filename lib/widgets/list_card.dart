@@ -10,12 +10,16 @@ class ListCard extends StatefulWidget {
   final WishList list;
   final VoidCallback? onTap;
   final Function(bool isPublic)? onVisibilityChanged;
+  final VoidCallback? onFriendsTap;
+  final int friendsCount;
 
   const ListCard({
     super.key,
     required this.list,
     this.onTap,
     this.onVisibilityChanged,
+    this.onFriendsTap,
+    this.friendsCount = 0,
   });
 
   @override
@@ -290,24 +294,61 @@ class _ListCardState extends State<ListCard> {
 
                       const Spacer(),
 
-                      // Group avatar placeholder
-                      Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: AppColors.textPrimary,
-                            width: 1.5,
-                          ),
-                        ),
-                        child: Center(
-                          child: PhosphorIcon(
-                            PhosphorIcons.users(),
-                            size: 18,
-                            color: AppColors.textPrimary,
-                          ),
+                      // Friends icon with badge
+                      GestureDetector(
+                        onTap: widget.onFriendsTap,
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: AppColors.textPrimary,
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: Center(
+                                child: PhosphorIcon(
+                                  PhosphorIcons.users(),
+                                  size: 18,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                            ),
+                            // Badge
+                            if (widget.friendsCount > 0)
+                              Positioned(
+                                right: -6,
+                                top: -6,
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: const BoxDecoration(
+                                    color: AppColors.error,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  constraints: const BoxConstraints(
+                                    minWidth: 18,
+                                    minHeight: 18,
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      widget.friendsCount > 99
+                                          ? '99+'
+                                          : '${widget.friendsCount}',
+                                      style: AppTypography.labelSmall.copyWith(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                       ),
                     ],

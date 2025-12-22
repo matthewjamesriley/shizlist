@@ -11,6 +11,7 @@ import '../features/items/screens/add_item_screen.dart';
 import '../features/contacts/screens/contacts_screen.dart';
 import '../features/messages/screens/messages_screen.dart';
 import '../features/share/screens/share_screen.dart';
+import '../features/invite/screens/invite_screen.dart';
 import '../features/settings/screens/settings_screen.dart';
 import '../widgets/app_shell.dart';
 import '../services/supabase_service.dart';
@@ -140,7 +141,7 @@ class AppRouter {
             name: 'invite',
             pageBuilder:
                 (context, state) => const NoTransitionPage(
-                  child: ShareScreen(), // Reusing share for invite
+                  child: InviteScreen(),
                 ),
           ),
 

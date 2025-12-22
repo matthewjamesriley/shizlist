@@ -3,9 +3,13 @@ import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../models/friend.dart';
 import '../../../models/wish_list.dart';
+import '../../../services/friend_service.dart';
 import '../../../services/list_service.dart';
+import '../../../services/list_share_service.dart';
 import '../../../services/lists_notifier.dart';
+import '../../../widgets/app_bottom_sheet.dart';
 import '../../../widgets/app_dialog.dart';
 import '../../../widgets/app_notification.dart';
 import '../../../widgets/list_card.dart';
@@ -22,8 +26,11 @@ class ListsScreen extends StatefulWidget {
 class _ListsScreenState extends State<ListsScreen> {
   final ListsNotifier _listsNotifier = ListsNotifier();
   final ListService _listService = ListService();
+  final ListShareService _listShareService = ListShareService();
+  final FriendService _friendService = FriendService();
 
   List<WishList> _lists = [];
+  Map<String, int> _listFriendsCount = {};
   bool _isLoading = true;
   String? _error;
 
@@ -70,9 +77,15 @@ class _ListsScreenState extends State<ListsScreen> {
   Future<void> _silentRefreshLists() async {
     try {
       final lists = await _listService.getUserLists();
+      final friendsCount = <String, int>{};
+      for (final list in lists) {
+        final users = await _listShareService.getUsersForList(list.uid);
+        friendsCount[list.uid] = users.length;
+      }
       if (mounted) {
         setState(() {
           _lists = lists;
+          _listFriendsCount = friendsCount;
         });
       }
     } catch (e) {
@@ -88,9 +101,17 @@ class _ListsScreenState extends State<ListsScreen> {
       });
 
       final lists = await _listService.getUserLists();
+      
+      // Load friends count for each list
+      final friendsCount = <String, int>{};
+      for (final list in lists) {
+        final users = await _listShareService.getUsersForList(list.uid);
+        friendsCount[list.uid] = users.length;
+      }
 
       setState(() {
         _lists = lists;
+        _listFriendsCount = friendsCount;
         _isLoading = false;
       });
     } catch (e) {
@@ -105,9 +126,15 @@ class _ListsScreenState extends State<ListsScreen> {
   Future<void> _silentRefresh() async {
     try {
       final lists = await _listService.getUserLists();
+      final friendsCount = <String, int>{};
+      for (final list in lists) {
+        final users = await _listShareService.getUsersForList(list.uid);
+        friendsCount[list.uid] = users.length;
+      }
       if (mounted) {
         setState(() {
           _lists = lists;
+          _listFriendsCount = friendsCount;
         });
       }
     } catch (e) {
@@ -141,6 +168,8 @@ class _ListsScreenState extends State<ListsScreen> {
             onTap: () => _openList(list),
             onVisibilityChanged:
                 (isPublic) => _updateListVisibility(list, isPublic),
+            friendsCount: _listFriendsCount[list.uid] ?? 0,
+            onFriendsTap: () => _showManageFriendsSheet(list),
           );
         },
       ),
@@ -299,6 +328,280 @@ class _ListsScreenState extends State<ListsScreen> {
         AppNotification.success(context, 'Created "${result.title}"');
       }
     }
+  }
+
+  void _showManageFriendsSheet(WishList list) async {
+    final friends = await _friendService.getFriends();
+
+    if (!mounted) return;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      showDragHandle: false,
+      useRootNavigator: true,
+      builder: (context) => _ManageFriendsSheet(
+        list: list,
+        friends: friends,
+        listShareService: _listShareService,
+        onComplete: () {
+          _silentRefresh();
+        },
+      ),
+    );
+  }
+}
+
+/// Sheet for managing which friends have access to a list
+class _ManageFriendsSheet extends StatefulWidget {
+  final WishList list;
+  final List<Friend> friends;
+  final ListShareService listShareService;
+  final VoidCallback onComplete;
+
+  const _ManageFriendsSheet({
+    required this.list,
+    required this.friends,
+    required this.listShareService,
+    required this.onComplete,
+  });
+
+  @override
+  State<_ManageFriendsSheet> createState() => _ManageFriendsSheetState();
+}
+
+class _ManageFriendsSheetState extends State<_ManageFriendsSheet> {
+  final _searchController = TextEditingController();
+  final Map<String, bool> _friendShareStatus = {};
+  List<Friend> _filteredFriends = [];
+  bool _isLoading = true;
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _filteredFriends = widget.friends;
+    _loadCurrentShares();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadCurrentShares() async {
+    final sharedUsers = await widget.listShareService.getUsersForList(
+      widget.list.uid,
+    );
+
+    for (final friend in widget.friends) {
+      _friendShareStatus[friend.friendUserId] = sharedUsers.contains(
+        friend.friendUserId,
+      );
+    }
+
+    if (mounted) {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  void _filterFriends(String query) {
+    if (query.isEmpty) {
+      setState(() => _filteredFriends = widget.friends);
+    } else {
+      final lowerQuery = query.toLowerCase();
+      setState(() {
+        _filteredFriends = widget.friends.where((friend) {
+          final name = friend.displayName.toLowerCase();
+          return name.contains(lowerQuery);
+        }).toList();
+      });
+    }
+  }
+
+  Future<void> _saveChanges() async {
+    setState(() => _isSaving = true);
+
+    try {
+      for (final entry in _friendShareStatus.entries) {
+        final friendId = entry.key;
+        final shouldShare = entry.value;
+
+        if (shouldShare) {
+          await widget.listShareService.shareListWithUser(
+            widget.list.uid,
+            friendId,
+          );
+        } else {
+          await widget.listShareService.unshareListWithUser(
+            widget.list.uid,
+            friendId,
+          );
+        }
+      }
+
+      if (mounted) {
+        Navigator.pop(context);
+        AppNotification.success(context, 'Friends updated');
+        widget.onComplete();
+      }
+    } catch (e) {
+      debugPrint('Error updating friends: $e');
+      if (mounted) {
+        setState(() => _isSaving = false);
+        AppNotification.error(context, 'Failed to update friends');
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AppBottomSheet(
+      title: 'Manage Friends',
+      confirmText: 'Save',
+      onCancel: () => Navigator.pop(context),
+      onConfirm: _isSaving ? null : _saveChanges,
+      isLoading: _isSaving,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Description
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: Text(
+              'Select friends who can see "${widget.list.title}":',
+              style: AppTypography.bodyMedium.copyWith(
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ),
+
+          // Search bar
+          TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: 'Search friends...',
+              prefixIcon: PhosphorIcon(PhosphorIcons.magnifyingGlass()),
+              isDense: true,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 12,
+              ),
+            ),
+            onChanged: _filterFriends,
+          ),
+          const SizedBox(height: 16),
+
+          // Friends list
+          if (_isLoading)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(32),
+                child: CircularProgressIndicator(),
+              ),
+            )
+          else if (widget.friends.isEmpty)
+            Padding(
+              padding: const EdgeInsets.all(32),
+              child: Center(
+                child: Text(
+                  'You don\'t have any friends yet.',
+                  style: AppTypography.bodyLarge.copyWith(
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ),
+            )
+          else
+            ..._filteredFriends.map((friend) {
+              final isShared = _friendShareStatus[friend.friendUserId] ?? false;
+              return _buildFriendTile(friend, isShared);
+            }),
+
+          const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFriendTile(Friend friend, bool isShared) {
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _friendShareStatus[friend.friendUserId] = !isShared;
+        });
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Row(
+          children: [
+            // Checkbox
+            Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                color: isShared ? AppColors.primary : Colors.transparent,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: isShared ? AppColors.primary : AppColors.border,
+                  width: 2,
+                ),
+              ),
+              child: isShared
+                  ? PhosphorIcon(
+                      PhosphorIcons.check(PhosphorIconsStyle.bold),
+                      size: 16,
+                      color: Colors.white,
+                    )
+                  : null,
+            ),
+            const SizedBox(width: 12),
+            // Avatar
+            _buildAvatar(friend),
+            const SizedBox(width: 12),
+            // Name
+            Expanded(
+              child: Text(
+                friend.displayName,
+                style: AppTypography.titleMedium,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAvatar(Friend friend) {
+    if (friend.friendAvatarUrl != null && friend.friendAvatarUrl!.isNotEmpty) {
+      return CircleAvatar(
+        radius: 20,
+        backgroundImage: NetworkImage(friend.friendAvatarUrl!),
+        backgroundColor: AppColors.claimedBackground,
+      );
+    }
+
+    final colors = [
+      AppColors.categoryEvents,
+      AppColors.categoryTrips,
+      AppColors.categoryStuff,
+      AppColors.categoryCrafted,
+      AppColors.categoryMeals,
+      AppColors.primary,
+    ];
+    final colorIndex = friend.id % colors.length;
+    final color = colors[colorIndex];
+
+    return CircleAvatar(
+      radius: 20,
+      backgroundColor: color.withValues(alpha: 0.2),
+      child: Text(
+        friend.initials,
+        style: AppTypography.titleMedium.copyWith(color: color),
+      ),
+    );
   }
 }
 

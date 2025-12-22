@@ -27,7 +27,8 @@ class AppShell extends StatefulWidget {
   State<AppShell> createState() => _AppShellState();
 }
 
-class _AppShellState extends State<AppShell> with SingleTickerProviderStateMixin {
+class _AppShellState extends State<AppShell>
+    with SingleTickerProviderStateMixin {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final _authService = AuthService();
   final _listService = ListService();
@@ -36,7 +37,7 @@ class _AppShellState extends State<AppShell> with SingleTickerProviderStateMixin
   bool _hasLists = false;
   bool _hasItems = false;
   UserProfile? _userProfile;
-  
+
   // Bouncing arrow animation
   late AnimationController _arrowController;
   late Animation<double> _arrowAnimation;
@@ -56,13 +57,13 @@ class _AppShellState extends State<AppShell> with SingleTickerProviderStateMixin
         setState(() => _showButtons = true);
       }
     });
-    
+
     // Setup bouncing arrow animation
     _arrowController = AnimationController(
       duration: const Duration(milliseconds: 600),
       vsync: this,
     )..repeat(reverse: true);
-    
+
     _arrowAnimation = Tween<double>(begin: 0, end: 10).animate(
       CurvedAnimation(parent: _arrowController, curve: Curves.easeInOut),
     );
@@ -84,7 +85,7 @@ class _AppShellState extends State<AppShell> with SingleTickerProviderStateMixin
     // Always refresh list/item count when notifier fires
     // (list might have been added/deleted, or items changed)
     _checkHasListsAndItems();
-    
+
     // When an item is added, immediately mark as having items
     if (_listsNotifier.itemCountChanged) {
       setState(() => _hasItems = true);
@@ -96,7 +97,10 @@ class _AppShellState extends State<AppShell> with SingleTickerProviderStateMixin
       final lists = await _listService.getUserLists();
       if (mounted) {
         // Check if any list has items
-        final totalItems = lists.fold<int>(0, (sum, list) => sum + list.itemCount);
+        final totalItems = lists.fold<int>(
+          0,
+          (sum, list) => sum + list.itemCount,
+        );
         setState(() {
           _hasLists = lists.isNotEmpty;
           _hasItems = totalItems > 0;
@@ -181,33 +185,32 @@ class _AppShellState extends State<AppShell> with SingleTickerProviderStateMixin
                 decoration: BoxDecoration(
                   color: Colors.white,
                   shape: BoxShape.circle,
-                  border: Border.all(
-                    color: AppColors.textPrimary,
-                    width: 1.5,
-                  ),
+                  border: Border.all(color: AppColors.textPrimary, width: 1.5),
                 ),
                 child: ClipOval(
-                  child: _userProfile?.avatarUrl != null
-                      ? Image.network(
-                          _userProfile!.avatarUrl!,
-                          width: 36,
-                          height: 36,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Center(
+                  child:
+                      _userProfile?.avatarUrl != null
+                          ? Image.network(
+                            _userProfile!.avatarUrl!,
+                            width: 36,
+                            height: 36,
+                            fit: BoxFit.cover,
+                            errorBuilder:
+                                (_, __, ___) => Center(
+                                  child: PhosphorIcon(
+                                    PhosphorIcons.user(),
+                                    color: AppColors.textPrimary,
+                                    size: 20,
+                                  ),
+                                ),
+                          )
+                          : Center(
                             child: PhosphorIcon(
                               PhosphorIcons.user(),
                               color: AppColors.textPrimary,
                               size: 20,
                             ),
                           ),
-                        )
-                      : Center(
-                          child: PhosphorIcon(
-                            PhosphorIcons.user(),
-                            color: AppColors.textPrimary,
-                            size: 20,
-                          ),
-                        ),
                 ),
               ),
             ),
@@ -219,41 +222,43 @@ class _AppShellState extends State<AppShell> with SingleTickerProviderStateMixin
         padding: const EdgeInsets.only(bottom: 90), // Space for tab bar
         child: widget.child,
       ),
-      bottomNavigationBar: ClipRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 6.5, sigmaY: 6.5),
-          child: NavigationBar(
-            selectedIndex: currentIndex,
-            onDestinationSelected: (index) => _onTabTapped(context, index),
-            destinations: [
-              NavigationDestination(
-                icon: PhosphorIcon(PhosphorIcons.star()),
-                selectedIcon: PhosphorIcon(
-                  PhosphorIcons.star(PhosphorIconsStyle.fill),
-                ),
-                label: 'My lists',
-              ),
-              NavigationDestination(
-                icon: PhosphorIcon(PhosphorIcons.users()),
-                selectedIcon: PhosphorIcon(
-                  PhosphorIcons.users(PhosphorIconsStyle.fill),
-                ),
-                label: 'My friends',
-              ),
-              NavigationDestination(
-                icon: PhosphorIcon(PhosphorIcons.userPlus()),
-                selectedIcon: PhosphorIcon(
-                  PhosphorIcons.userPlus(PhosphorIconsStyle.fill),
-                ),
-                label: 'Invite',
-              ),
-            ],
+      bottomNavigationBar: NavigationBar(
+        elevation: 0,
+        shadowColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        overlayColor: WidgetStateProperty.all(Colors.transparent),
+        selectedIndex: currentIndex,
+        onDestinationSelected: (index) => _onTabTapped(context, index),
+        destinations: [
+          NavigationDestination(
+            icon: PhosphorIcon(PhosphorIcons.star()),
+            selectedIcon: PhosphorIcon(
+              PhosphorIcons.star(PhosphorIconsStyle.fill),
+            ),
+            label: 'My lists',
           ),
-        ),
+          NavigationDestination(
+            icon: PhosphorIcon(PhosphorIcons.users()),
+            selectedIcon: PhosphorIcon(
+              PhosphorIcons.users(PhosphorIconsStyle.fill),
+            ),
+            label: 'My friends',
+          ),
+          NavigationDestination(
+            icon: PhosphorIcon(PhosphorIcons.userPlus()),
+            selectedIcon: PhosphorIcon(
+              PhosphorIcons.userPlus(PhosphorIconsStyle.fill),
+            ),
+            label: 'Invite',
+          ),
+        ],
       ),
       floatingActionButton: AnimatedSlide(
         duration: const Duration(milliseconds: 200),
-        offset: (_showButtons && currentIndex == 0) ? Offset.zero : const Offset(0, 0.3),
+        offset:
+            (_showButtons && currentIndex == 0)
+                ? Offset.zero
+                : const Offset(0, 0.3),
         child: AnimatedOpacity(
           duration: const Duration(milliseconds: 200),
           opacity: (_showButtons && currentIndex == 0) ? 1.0 : 0.0,
@@ -314,22 +319,26 @@ class _AppShellState extends State<AppShell> with SingleTickerProviderStateMixin
                           builder: (context, child) {
                             return Transform.translate(
                               offset: Offset(0, _arrowAnimation.value),
-                            child: PhosphorIcon(
-                              PhosphorIcons.arrowDown(PhosphorIconsStyle.bold),
-                              size: 36,
-                              color: Colors.black,
-                            ),
+                              child: PhosphorIcon(
+                                PhosphorIcons.arrowDown(
+                                  PhosphorIconsStyle.bold,
+                                ),
+                                size: 36,
+                                color: Colors.black,
+                              ),
                             );
                           },
                         ),
                       ),
                     Material(
-                      color: _hasLists ? AppColors.accent : Colors.grey.shade400,
+                      color:
+                          _hasLists ? AppColors.accent : Colors.grey.shade400,
                       shape: const CircleBorder(),
                       elevation: _hasLists ? 6 : 2,
                       shadowColor: Colors.black.withValues(alpha: 0.3),
                       child: InkWell(
-                        onTap: _hasLists ? () => _showAddItemSheet(context) : null,
+                        onTap:
+                            _hasLists ? () => _showAddItemSheet(context) : null,
                         customBorder: const CircleBorder(),
                         child: SizedBox(
                           width: 56,
@@ -359,7 +368,7 @@ class _AppShellState extends State<AppShell> with SingleTickerProviderStateMixin
       case 1:
         return 'My friends';
       case 2:
-        return 'Invite';
+        return 'Invite friends';
       default:
         return 'ShizList';
     }
@@ -381,9 +390,6 @@ class _AppShellState extends State<AppShell> with SingleTickerProviderStateMixin
   }
 
   void _openSearch(BuildContext context) {
-    showSearch(
-      context: context,
-      delegate: ItemSearchDelegate(),
-    );
+    showSearch(context: context, delegate: ItemSearchDelegate());
   }
 }

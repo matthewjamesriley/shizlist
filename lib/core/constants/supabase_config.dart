@@ -20,7 +20,7 @@ class SupabaseConfig {
   static const String conversationsTable = 'conversations';
   static const String conversationParticipantsTable =
       'conversation_participants';
-  static const String contactsTable = 'contacts';
+  static const String friendsTable = 'friends';
 
   // Database Views
   static const String publicListItemsView = 'public_list_items';

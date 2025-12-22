@@ -22,7 +22,8 @@ class ShizListLogo extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: centerTagline ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+      crossAxisAlignment:
+          centerTagline ? CrossAxisAlignment.center : CrossAxisAlignment.start,
       children: [
         Image.asset(
           'assets/images/ShizList-Logo.png',
