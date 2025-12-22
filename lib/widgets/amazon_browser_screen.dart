@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:pointer_interceptor/pointer_interceptor.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_typography.dart';
@@ -33,10 +34,7 @@ class AmazonBrowserResult {
 class AmazonBrowserScreen extends StatefulWidget {
   final WishList? selectedList;
 
-  const AmazonBrowserScreen({
-    super.key,
-    this.selectedList,
-  });
+  const AmazonBrowserScreen({super.key, this.selectedList});
 
   /// Show the Amazon browser as a full-screen modal
   static Future<AmazonBrowserResult?> show(
@@ -55,11 +53,17 @@ class AmazonBrowserScreen extends StatefulWidget {
   State<AmazonBrowserScreen> createState() => _AmazonBrowserScreenState();
 }
 
-class _AmazonBrowserScreenState extends State<AmazonBrowserScreen> {
+class _AmazonBrowserScreenState extends State<AmazonBrowserScreen>
+    with SingleTickerProviderStateMixin {
   late final WebViewController _controller;
+  late final AnimationController _buttonAnimController;
+  late final Animation<double> _buttonSlideAnimation;
+  late final Animation<double> _buttonFadeAnimation;
+
   bool _isLoading = true;
   bool _isOnProductPage = false;
   bool _isExtracting = false;
+  bool _showAddButton = false;
   String _currentUrl = '';
   String? _pageTitle;
   String? _lastAddedUrl; // Track URL of last added product
@@ -73,48 +77,87 @@ class _AmazonBrowserScreenState extends State<AmazonBrowserScreen> {
   @override
   void initState() {
     super.initState();
+    _buttonAnimController = AnimationController(
+      duration: const Duration(milliseconds: 250),
+      vsync: this,
+    );
+    _buttonSlideAnimation = Tween<double>(begin: -40, end: 0).animate(
+      CurvedAnimation(
+        parent: _buttonAnimController,
+        curve: Curves.easeOutCubic,
+      ),
+    );
+    _buttonFadeAnimation = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(
+        parent: _buttonAnimController,
+        curve: Curves.easeOutCubic,
+      ),
+    );
     _initWebView();
   }
 
-  void _initWebView() {
-    _controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setNavigationDelegate(
-        NavigationDelegate(
-          onPageStarted: (url) {
-            setState(() {
-              _isLoading = true;
-              _currentUrl = url;
-            });
-            _checkIfProductPage(url);
-          },
-          onPageFinished: (url) {
-            setState(() {
-              _isLoading = false;
-              _currentUrl = url;
-            });
-            _checkIfProductPage(url);
-            _extractPageTitle();
-          },
-          onNavigationRequest: (request) {
-            // Allow all Amazon navigation
-            return NavigationDecision.navigate;
-          },
-        ),
-      )
-      ..loadRequest(Uri.parse(_amazonBaseUrl));
+  @override
+  void dispose() {
+    _buttonAnimController.dispose();
+    super.dispose();
   }
 
-  void _checkIfProductPage(String url) {
+  void _initWebView() {
+    _controller =
+        WebViewController()
+          ..setJavaScriptMode(JavaScriptMode.unrestricted)
+          ..setNavigationDelegate(
+            NavigationDelegate(
+              onPageStarted: (url) {
+                setState(() {
+                  _isLoading = true;
+                  _currentUrl = url;
+                  _showAddButton = false;
+                });
+                _buttonAnimController.reset();
+                _checkIfProductPage(url, isPageFinished: false);
+              },
+              onPageFinished: (url) {
+                setState(() {
+                  _isLoading = false;
+                  _currentUrl = url;
+                });
+                _checkIfProductPage(url, isPageFinished: true);
+                _extractPageTitle();
+                _hideAmazonButtons();
+              },
+              onNavigationRequest: (request) {
+                // Allow all Amazon navigation
+                return NavigationDecision.navigate;
+              },
+            ),
+          )
+          ..loadRequest(Uri.parse(_amazonBaseUrl));
+  }
+
+  void _checkIfProductPage(String url, {required bool isPageFinished}) {
     // Check if URL contains product identifiers
-    final isProduct = url.contains('/dp/') ||
+    final isProduct =
+        url.contains('/dp/') ||
         url.contains('/gp/product/') ||
         url.contains('/gp/aw/d/') ||
         RegExp(r'/[A-Z0-9]{10}(?:[/?]|$)').hasMatch(url);
 
+    final isOnProduct = isProduct && AmazonService.isAmazonUrl(url);
+
     setState(() {
-      _isOnProductPage = isProduct && AmazonService.isAmazonUrl(url);
+      _isOnProductPage = isOnProduct;
     });
+
+    // Show button with delay only after page finishes loading
+    if (isPageFinished && isOnProduct && _currentUrl != _lastAddedUrl) {
+      Future.delayed(const Duration(seconds: 1), () {
+        if (mounted && _isOnProductPage && _currentUrl != _lastAddedUrl) {
+          setState(() => _showAddButton = true);
+          _buttonAnimController.forward();
+        }
+      });
+    }
   }
 
   Future<void> _extractPageTitle() async {
@@ -127,6 +170,84 @@ class _AmazonBrowserScreenState extends State<AmazonBrowserScreen> {
       });
     } catch (e) {
       debugPrint('Error extracting title: $e');
+    }
+  }
+
+  /// Hide Amazon buy/share buttons to encourage using our Add button
+  Future<void> _hideAmazonButtons() async {
+    try {
+      await _controller.runJavaScript('''
+        (function() {
+          var style = document.createElement('style');
+          style.textContent = `
+            /* Hide Add to Basket / Add to Cart buttons */
+            #add-to-cart-button,
+            #add-to-cart-button-ubb,
+            .a-button-add-to-cart,
+            [data-action="add-to-cart"],
+            #addToCart,
+            .addToCart,
+            .a-button-input,
+            #submit\\.add-to-cart,
+            #submit\\.add-to-cart-announce,
+            [name="submit.add-to-cart"],
+            #add-to-cart-button-container,
+            
+            /* Hide Buy Now buttons */
+            #buy-now-button,
+            #buyNow,
+            .buyNow,
+            [data-action="buy-now"],
+            #submit-button,
+            #submit\\.buy-now,
+            [name="submit.buy-now"],
+            
+            /* Hide Share buttons */
+            #share-button,
+            .share-button,
+            [data-action="share"],
+            #social-share,
+            .social-share,
+            #shareButtonLeft,
+            .ssf-share-trigger,
+            .share-trigger,
+            #ssf-share-trigger,
+            [class*="share-trigger"],
+            [class*="ssf-share"],
+            
+            /* Hide Wishlist/Save buttons (Amazon's own) */
+            #wishlist-button,
+            .wishlist-button,
+            [data-action="add-to-wishlist"],
+            #add-to-wishlist-button,
+            #add-to-wishlist-button-submit,
+            
+            /* Hide Like/Heart buttons */
+            .heart-button,
+            [data-action="like"],
+            
+            /* Hide Subscribe & Save */
+            #snsAccordionRowMiddle,
+            #sns-accordion,
+            
+            /* Mobile specific */
+            .atc-button,
+            .buybox-see-all-buying-choices,
+            #mbc-action-panel-wrapper,
+            
+            /* Hide entire buy box buttons area */
+            #desktop_buybox_feature_div .a-button,
+            #mobile_buybox_feature_div .a-button,
+            #buybox .a-button,
+            .buying-options-slot .a-button
+            
+            { display: none !important; visibility: hidden !important; height: 0 !important; overflow: hidden !important; }
+          `;
+          document.head.appendChild(style);
+        })();
+      ''');
+    } catch (e) {
+      debugPrint('Error hiding Amazon buttons: $e');
     }
   }
 
@@ -147,7 +268,7 @@ class _AmazonBrowserScreenState extends State<AmazonBrowserScreen> {
       // Download and upload image if available
       String? thumbnailUrl;
       String? mainImageUrl;
-      
+
       final imageUrl = info['imageUrl'];
       if (imageUrl != null && imageUrl.isNotEmpty) {
         try {
@@ -194,8 +315,10 @@ class _AmazonBrowserScreenState extends State<AmazonBrowserScreen> {
         setState(() {
           _isExtracting = false;
           _lastAddedUrl = _currentUrl; // Hide button for this product
+          _showAddButton = false;
         });
-        
+        _buttonAnimController.reset();
+
         // Show success notification - stay on browser
         AppNotification.success(
           context,
@@ -219,8 +342,12 @@ class _AmazonBrowserScreenState extends State<AmazonBrowserScreen> {
         foregroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: PhosphorIcon(PhosphorIcons.x(), color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
+          icon: PhosphorIcon(PhosphorIcons.arrowLeft(), color: Colors.white),
+          onPressed: () async {
+            if (await _controller.canGoBack()) {
+              _controller.goBack();
+            }
+          },
         ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -249,11 +376,21 @@ class _AmazonBrowserScreenState extends State<AmazonBrowserScreen> {
         actions: [
           // Refresh button
           IconButton(
-            icon: PhosphorIcon(PhosphorIcons.arrowClockwise(), color: Colors.white),
+            icon: PhosphorIcon(
+              PhosphorIcons.arrowClockwise(),
+              color: Colors.white,
+            ),
             onPressed: () {
-              setState(() => _lastAddedUrl = null); // Allow re-adding after refresh
+              setState(
+                () => _lastAddedUrl = null,
+              ); // Allow re-adding after refresh
               _controller.reload();
             },
+          ),
+          // Close button
+          IconButton(
+            icon: PhosphorIcon(PhosphorIcons.x(), color: Colors.white),
+            onPressed: () => Navigator.of(context).pop(),
           ),
         ],
       ),
@@ -274,12 +411,41 @@ class _AmazonBrowserScreenState extends State<AmazonBrowserScreen> {
               ),
             ),
 
-          // Floating "Add to ShizList" button (hide if already added this product)
-          if (_isOnProductPage && _currentUrl != _lastAddedUrl)
+          // Touch-blocking overlay behind the button area (uses PointerInterceptor for WebView)
+          if (_showAddButton && _currentUrl != _lastAddedUrl)
             Positioned(
-              bottom: MediaQuery.of(context).padding.bottom + 16,
-              left: 16,
-              right: 16,
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: PointerInterceptor(
+                child: Container(
+                  height: MediaQuery.of(context).padding.bottom + 100,
+                  color: Colors.transparent,
+                ),
+              ),
+            ),
+
+          // Floating "Add to ShizList" button (hide if already added this product)
+          if (_showAddButton && _currentUrl != _lastAddedUrl)
+            AnimatedBuilder(
+              animation: _buttonAnimController,
+              builder: (context, child) {
+                return Positioned(
+                  bottom:
+                      MediaQuery.of(context).padding.bottom +
+                      16 +
+                      _buttonSlideAnimation.value,
+                  left: 16,
+                  right: 16,
+                  child: IgnorePointer(
+                    ignoring: _buttonFadeAnimation.value < 0.9,
+                    child: Opacity(
+                      opacity: _buttonFadeAnimation.value,
+                      child: PointerInterceptor(child: child!),
+                    ),
+                  ),
+                );
+              },
               child: _buildAddButton(),
             ),
         ],
@@ -288,71 +454,67 @@ class _AmazonBrowserScreenState extends State<AmazonBrowserScreen> {
   }
 
   Widget _buildAddButton() {
-    return AnimatedOpacity(
-      opacity: _isOnProductPage ? 1.0 : 0.0,
-      duration: const Duration(milliseconds: 200),
-      child: Container(
-        decoration: BoxDecoration(
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.3),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Material(
-          color: AppColors.primary,
+    return Container(
+      decoration: BoxDecoration(
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: AppColors.primary,
+        borderRadius: BorderRadius.circular(28),
+        child: InkWell(
+          onTap: _isExtracting ? null : _addProduct,
           borderRadius: BorderRadius.circular(28),
-          child: InkWell(
-            onTap: _isExtracting ? null : _addProduct,
-            borderRadius: BorderRadius.circular(28),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (_isExtracting) ...[
-                    const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (_isExtracting) ...[
+                  const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
                     ),
-                    const SizedBox(width: 12),
-                    Text(
-                      'Getting product info...',
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Adding product to list...',
+                    style: AppTypography.titleMedium.copyWith(
+                      color: Colors.white,
+                      fontSize: 16,
+                    ),
+                  ),
+                ] else ...[
+                  PhosphorIcon(
+                    PhosphorIcons.plus(),
+                    color: Colors.white,
+                    size: 22,
+                  ),
+                  const SizedBox(width: 10),
+                  Flexible(
+                    child: Text(
+                      widget.selectedList != null
+                          ? 'Add to "${widget.selectedList!.title}"'
+                          : 'Add to ShizList',
                       style: AppTypography.titleMedium.copyWith(
                         color: Colors.white,
-                        fontSize: 16,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w600,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ] else ...[
-                    PhosphorIcon(
-                      PhosphorIcons.plus(),
-                      color: Colors.white,
-                      size: 22,
-                    ),
-                    const SizedBox(width: 10),
-                    Flexible(
-                      child: Text(
-                        widget.selectedList != null
-                            ? 'Add to "${widget.selectedList!.title}"'
-                            : 'Add to ShizList',
-                        style: AppTypography.titleMedium.copyWith(
-                          color: Colors.white,
-                          fontSize: 17,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
+                  ),
                 ],
-              ),
+              ],
             ),
           ),
         ),
@@ -360,4 +522,3 @@ class _AmazonBrowserScreenState extends State<AmazonBrowserScreen> {
     );
   }
 }
-
