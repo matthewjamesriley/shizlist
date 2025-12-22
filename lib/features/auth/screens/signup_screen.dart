@@ -129,24 +129,25 @@ class _SignupScreenState extends State<SignupScreen> {
     }
   }
 
-  Future<void> _handleSocialSignup(SocialProvider provider) async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      await _authService.signInWithProvider(provider);
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Failed to sign up. Please try again.';
-      });
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
+  // TODO: Re-enable social login later
+  // Future<void> _handleSocialSignup(SocialProvider provider) async {
+  //   setState(() {
+  //     _isLoading = true;
+  //     _errorMessage = null;
+  //   });
+  //
+  //   try {
+  //     await _authService.signInWithProvider(provider);
+  //   } catch (e) {
+  //     setState(() {
+  //       _errorMessage = 'Failed to sign up. Please try again.';
+  //     });
+  //   } finally {
+  //     if (mounted) {
+  //       setState(() => _isLoading = false);
+  //     }
+  //   }
+  // }
 
   void _goBack() {
     if (_showOtpVerification) {
@@ -190,7 +191,12 @@ class _SignupScreenState extends State<SignupScreen> {
 
               // Logo - hide when showing forms
               if (!_showEmailSignup && !_showOtpVerification) ...[
-                const Center(child: ShizListLogo(height: 50)),
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 5),
+                    child: const ShizListLogo(height: 50),
+                  ),
+                ),
                 const SizedBox(height: 48),
               ],
 
@@ -225,7 +231,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   style: GoogleFonts.lato(
                     fontSize: 16,
                     fontWeight: FontWeight.w400,
-                    color: AppColors.textSecondary,
+                    color: AppColors.textPrimary,
                     height: 1.4,
                   ),
                   textAlign: TextAlign.center,
@@ -314,33 +320,34 @@ class _SignupScreenState extends State<SignupScreen> {
                   textColor: Colors.white,
                 ),
 
-                const SizedBox(height: 16),
-
-                // Sign up with Google
-                _SocialButton(
-                  label: 'Sign up with Google',
-                  icon: PhosphorIcons.googleLogo(),
-                  onPressed:
-                      _isLoading
-                          ? null
-                          : () => _handleSocialSignup(SocialProvider.google),
-                  backgroundColor: AppColors.accent,
-                  textColor: Colors.white,
-                ),
-
-                const SizedBox(height: 16),
-
-                // Sign up with Apple
-                _SocialButton(
-                  label: 'Sign up with Apple',
-                  icon: PhosphorIcons.appleLogo(),
-                  onPressed:
-                      _isLoading
-                          ? null
-                          : () => _handleSocialSignup(SocialProvider.apple),
-                  backgroundColor: Colors.black,
-                  textColor: Colors.white,
-                ),
+                // TODO: Re-enable social login later
+                // const SizedBox(height: 16),
+                //
+                // // Sign up with Google
+                // _SocialButton(
+                //   label: 'Sign up with Google',
+                //   icon: PhosphorIcons.googleLogo(),
+                //   onPressed:
+                //       _isLoading
+                //           ? null
+                //           : () => _handleSocialSignup(SocialProvider.google),
+                //   backgroundColor: AppColors.accent,
+                //   textColor: Colors.white,
+                // ),
+                //
+                // const SizedBox(height: 16),
+                //
+                // // Sign up with Apple
+                // _SocialButton(
+                //   label: 'Sign up with Apple',
+                //   icon: PhosphorIcons.appleLogo(),
+                //   onPressed:
+                //       _isLoading
+                //           ? null
+                //           : () => _handleSocialSignup(SocialProvider.apple),
+                //   backgroundColor: Colors.black,
+                //   textColor: Colors.white,
+                // ),
 
                 const SizedBox(height: 32),
 
@@ -349,7 +356,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   'Already have an account?',
                   style: GoogleFonts.lato(
                     fontSize: 16,
-                    color: AppColors.textSecondary,
+                    color: AppColors.textPrimary,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -410,7 +417,7 @@ class _SignupScreenState extends State<SignupScreen> {
                         "We'll send you a verification code to confirm your email.",
                         style: GoogleFonts.lato(
                           fontSize: 14,
-                          color: AppColors.textSecondary,
+                          color: AppColors.textPrimary,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -436,7 +443,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       'Already have an account? ',
                       style: GoogleFonts.lato(
                         fontSize: 16,
-                        color: AppColors.textSecondary,
+                        color: AppColors.textPrimary,
                       ),
                     ),
                     GestureDetector(
@@ -487,7 +494,7 @@ class _SignupScreenState extends State<SignupScreen> {
         hintStyle: GoogleFonts.lato(fontSize: 18, color: AppColors.textHint),
         prefixIcon: Padding(
           padding: const EdgeInsets.only(left: 16, right: 12),
-          child: PhosphorIcon(icon, color: AppColors.textSecondary, size: 24),
+          child: PhosphorIcon(icon, color: AppColors.textPrimary, size: 24),
         ),
         prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
         suffixIcon: suffixIcon,

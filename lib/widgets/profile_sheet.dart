@@ -10,6 +10,7 @@ import '../services/image_upload_service.dart';
 import '../services/user_settings_service.dart';
 import 'app_notification.dart';
 import 'bottom_sheet_header.dart';
+import 'dart:ui';
 
 /// Profile editing sheet
 class ProfileSheet extends StatefulWidget {
@@ -69,6 +70,22 @@ class _ProfileSheetState extends State<ProfileSheet> {
       if (mounted) {
         setState(() => _isLoading = false);
         AppNotification.error(context, 'Failed to load profile');
+      }
+    }
+  }
+
+  Future<void> _refreshProfile() async {
+    try {
+      final profile = await _authService.getCurrentUserProfile();
+      if (mounted) {
+        setState(() {
+          _profile = profile;
+        });
+        AppNotification.success(context, 'Email refreshed');
+      }
+    } catch (e) {
+      if (mounted) {
+        AppNotification.error(context, 'Failed to refresh');
       }
     }
   }
@@ -201,9 +218,7 @@ class _ProfileSheetState extends State<ProfileSheet> {
                                 width: 2,
                               ),
                             ),
-                            child: ClipOval(
-                              child: _buildAvatarContent(),
-                            ),
+                            child: ClipOval(child: _buildAvatarContent()),
                           ),
                           Positioned(
                             bottom: 0,
@@ -229,7 +244,7 @@ class _ProfileSheetState extends State<ProfileSheet> {
                     Text(
                       'Tap to change photo',
                       style: AppTypography.bodySmall.copyWith(
-                        color: AppColors.textSecondary,
+                        color: AppColors.textPrimary,
                       ),
                     ),
 
@@ -247,7 +262,7 @@ class _ProfileSheetState extends State<ProfileSheet> {
                       Text(
                         _uploadStatus,
                         style: AppTypography.bodySmall.copyWith(
-                          color: AppColors.textSecondary,
+                          color: AppColors.textPrimary,
                         ),
                       ),
                     ],
@@ -257,7 +272,10 @@ class _ProfileSheetState extends State<ProfileSheet> {
                     // Name field
                     Align(
                       alignment: Alignment.centerLeft,
-                      child: Text('Display name', style: AppTypography.titleMedium),
+                      child: Text(
+                        'Display name',
+                        style: AppTypography.titleMedium,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     TextFormField(
@@ -272,10 +290,20 @@ class _ProfileSheetState extends State<ProfileSheet> {
 
                     const SizedBox(height: 24),
 
-                    // Email (read-only)
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text('Email', style: AppTypography.titleMedium),
+                    // Email
+                    Row(
+                      children: [
+                        Text('Email', style: AppTypography.titleMedium),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: _refreshProfile,
+                          child: PhosphorIcon(
+                            PhosphorIcons.arrowClockwise(),
+                            size: 18,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 8),
                     Container(
@@ -286,11 +314,29 @@ class _ProfileSheetState extends State<ProfileSheet> {
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: AppColors.divider),
                       ),
-                      child: Text(
-                        _profile?.email ?? '',
-                        style: AppTypography.bodyLarge.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              _profile?.email ?? '',
+                              style: AppTypography.bodyLarge.copyWith(
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ),
+                          // Only show change email for email/password users
+                          if (_authService.isEmailPasswordUser)
+                            GestureDetector(
+                              onTap: _showChangeEmailDialog,
+                              child: Text(
+                                'Change',
+                                style: AppTypography.bodyMedium.copyWith(
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                     ),
 
@@ -348,6 +394,348 @@ class _ProfileSheetState extends State<ProfileSheet> {
       !_removeImage &&
       (_selectedImageFile != null || _profile?.avatarUrl != null);
 
+  void _showChangeEmailDialog() {
+    final emailController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    bool isChanging = false;
+
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Dismiss',
+      barrierColor: Colors.black.withValues(alpha: 0.6),
+      transitionDuration: const Duration(milliseconds: 200),
+      pageBuilder: (dialogContext, animation, secondaryAnimation) {
+        return BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+          child: FadeTransition(
+            opacity: animation,
+            child: StatefulBuilder(
+              builder:
+                  (context, setDialogState) => Dialog(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      side: BorderSide(color: Colors.grey.shade800, width: 1),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Black header
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 16,
+                          ),
+                          color: Colors.black,
+                          child: Text(
+                            'Change email address',
+                            style: AppTypography.titleLarge.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+
+                        // Content
+                        Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Form(
+                            key: formKey,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Enter your new email address. We\'ll send a confirmation link to your current email to verify the change.',
+                                  style: AppTypography.bodyMedium.copyWith(
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Current email:',
+                                  style: AppTypography.labelMedium.copyWith(
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _profile?.email ?? '',
+                                  style: AppTypography.bodyMedium.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                TextFormField(
+                                  controller: emailController,
+                                  keyboardType: TextInputType.emailAddress,
+                                  decoration: const InputDecoration(
+                                    labelText: 'New email address',
+                                    hintText: 'Enter new email',
+                                  ),
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) {
+                                      return 'Please enter an email';
+                                    }
+                                    if (!RegExp(
+                                      r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                                    ).hasMatch(value)) {
+                                      return 'Please enter a valid email';
+                                    }
+                                    final currentEmail =
+                                        (_profile?.email ?? '').toLowerCase();
+                                    if (value.toLowerCase() == currentEmail) {
+                                      return 'New email must be different';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        // Action buttons
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton(
+                                  onPressed:
+                                      isChanging
+                                          ? null
+                                          : () => Navigator.pop(dialogContext),
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 14,
+                                    ),
+                                    side: BorderSide(color: AppColors.divider),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    'Cancel',
+                                    style: AppTypography.titleMedium.copyWith(
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed:
+                                      isChanging
+                                          ? null
+                                          : () async {
+                                            if (!formKey.currentState!
+                                                .validate()) {
+                                              return;
+                                            }
+
+                                            final newEmail =
+                                                emailController.text.trim();
+
+                                            setDialogState(
+                                              () => isChanging = true,
+                                            );
+
+                                            try {
+                                              // First check if email already exists
+                                              final exists = await _authService
+                                                  .emailExists(newEmail);
+                                              if (exists) {
+                                                setDialogState(
+                                                  () => isChanging = false,
+                                                );
+                                                if (mounted) {
+                                                  AppNotification.error(
+                                                    context,
+                                                    'This email is already in use',
+                                                  );
+                                                }
+                                                return;
+                                              }
+
+                                              // Email doesn't exist, proceed with change request
+                                              final currentEmail =
+                                                  _profile?.email ?? '';
+                                              await _authService.updateEmail(
+                                                newEmail,
+                                              );
+                                              if (mounted) {
+                                                Navigator.pop(dialogContext);
+                                                _showEmailChangeConfirmation(
+                                                  newEmail,
+                                                  currentEmail,
+                                                );
+                                              }
+                                            } catch (e) {
+                                              setDialogState(
+                                                () => isChanging = false,
+                                              );
+                                              if (mounted) {
+                                                AppNotification.error(
+                                                  context,
+                                                  'Failed to change email',
+                                                );
+                                              }
+                                            }
+                                          },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.primary,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 14,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  child:
+                                      isChanging
+                                          ? const SizedBox(
+                                            width: 20,
+                                            height: 20,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Colors.white,
+                                            ),
+                                          )
+                                          : Text(
+                                            'Send',
+                                            style: AppTypography.titleMedium
+                                                .copyWith(color: Colors.white),
+                                          ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showEmailChangeConfirmation(String newEmail, String currentEmail) {
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Dismiss',
+      barrierColor: Colors.black.withValues(alpha: 0.6),
+      transitionDuration: const Duration(milliseconds: 200),
+      pageBuilder: (dialogContext, animation, secondaryAnimation) {
+        return BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+          child: FadeTransition(
+            opacity: animation,
+            child: Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+                side: BorderSide(color: Colors.grey.shade800, width: 1),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Black header
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 16,
+                    ),
+                    color: Colors.black,
+                    child: Text(
+                      'Check Your Email',
+                      style: AppTypography.titleLarge.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+
+                  // Content
+                  Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        PhosphorIcon(
+                          PhosphorIcons.envelopeSimple(),
+                          size: 48,
+                          color: AppColors.primary,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'We\'ve sent a confirmation link to your current email:',
+                          style: AppTypography.bodyMedium.copyWith(
+                            color: AppColors.textPrimary,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          currentEmail,
+                          style: AppTypography.bodyLarge.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Click the link in the email to confirm the change to $newEmail. Your email won\'t change until you confirm.',
+                          style: AppTypography.bodySmall.copyWith(
+                            color: AppColors.textPrimary,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Action button
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.pop(dialogContext),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: Text(
+                          'Got it',
+                          style: AppTypography.titleMedium.copyWith(
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   void _showImagePicker() {
     showModalBottomSheet(
       context: context,
@@ -356,71 +744,69 @@ class _ProfileSheetState extends State<ProfileSheet> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Choose photo',
-                style: AppTypography.titleLarge,
-              ),
-              const SizedBox(height: 24),
-              Row(
+      builder:
+          (context) => SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Expanded(
-                    child: _ImagePickerOption(
-                      icon: PhosphorIcons.image(),
-                      label: 'Gallery',
-                      onTap: () {
-                        Navigator.pop(context);
-                        _pickImage(ImageSource.gallery);
-                      },
-                    ),
+                  Text('Choose photo', style: AppTypography.titleLarge),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _ImagePickerOption(
+                          icon: PhosphorIcons.image(),
+                          label: 'Gallery',
+                          onTap: () {
+                            Navigator.pop(context);
+                            _pickImage(ImageSource.gallery);
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _ImagePickerOption(
+                          icon: PhosphorIcons.camera(),
+                          label: 'Camera',
+                          onTap: () {
+                            Navigator.pop(context);
+                            _pickImage(ImageSource.camera);
+                          },
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _ImagePickerOption(
-                      icon: PhosphorIcons.camera(),
-                      label: 'Camera',
-                      onTap: () {
-                        Navigator.pop(context);
-                        _pickImage(ImageSource.camera);
-                      },
-                    ),
-                  ),
-                ],
-              ),
-              if (_hasImage) ...[
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: TextButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      setState(() {
-                        _selectedImageFile = null;
-                        _removeImage = true;
-                      });
-                    },
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColors.error,
-                    ),
-                    child: Text(
-                      'Remove photo',
-                      style: AppTypography.bodyLarge.copyWith(
-                        color: AppColors.error,
+                  if (_hasImage) ...[
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: TextButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          setState(() {
+                            _selectedImageFile = null;
+                            _removeImage = true;
+                          });
+                        },
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.error,
+                        ),
+                        child: Text(
+                          'Remove photo',
+                          style: AppTypography.bodyLarge.copyWith(
+                            color: AppColors.error,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ),
-              ],
-              const SizedBox(height: 16),
-            ],
+                  ],
+                  const SizedBox(height: 16),
+                ],
+              ),
+            ),
           ),
-        ),
-      ),
     );
   }
 }
@@ -448,20 +834,12 @@ class _ImagePickerOption extends StatelessWidget {
         ),
         child: Column(
           children: [
-            PhosphorIcon(
-              icon,
-              size: 32,
-              color: AppColors.primary,
-            ),
+            PhosphorIcon(icon, size: 32, color: AppColors.primary),
             const SizedBox(height: 8),
-            Text(
-              label,
-              style: AppTypography.bodyLarge,
-            ),
+            Text(label, style: AppTypography.bodyLarge),
           ],
         ),
       ),
     );
   }
 }
-

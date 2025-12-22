@@ -257,7 +257,7 @@ class _AddItemScreenState extends State<AddItemScreen>
                   Text(
                     'Search for products on Amazon',
                     style: AppTypography.bodyLarge.copyWith(
-                      color: AppColors.textSecondary,
+                      color: AppColors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -314,7 +314,7 @@ class _AddItemScreenState extends State<AddItemScreen>
                     Text(
                       'Product preview will appear here',
                       style: AppTypography.bodyMedium.copyWith(
-                        color: AppColors.textSecondary,
+                        color: AppColors.textPrimary,
                       ),
                     ),
                   ],

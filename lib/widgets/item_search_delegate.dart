@@ -93,7 +93,7 @@ class ItemSearchDelegate extends SearchDelegate<ItemSearchResult?> {
           Text(
             'Search your items',
             style: AppTypography.titleMedium.copyWith(
-              color: AppColors.textSecondary,
+              color: AppColors.textPrimary,
             ),
           ),
           const SizedBox(height: 8),
@@ -137,7 +137,7 @@ class ItemSearchDelegate extends SearchDelegate<ItemSearchResult?> {
                 Text(
                   'Please try again',
                   style: AppTypography.bodyMedium.copyWith(
-                    color: AppColors.textSecondary,
+                    color: AppColors.textPrimary,
                   ),
                 ),
               ],
@@ -161,7 +161,7 @@ class ItemSearchDelegate extends SearchDelegate<ItemSearchResult?> {
                 Text(
                   'No items found',
                   style: AppTypography.titleMedium.copyWith(
-                    color: AppColors.textSecondary,
+                    color: AppColors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -219,14 +219,14 @@ class ItemSearchDelegate extends SearchDelegate<ItemSearchResult?> {
                 errorWidget: (context, url, error) => Center(
                   child: PhosphorIcon(
                     PhosphorIcons.image(),
-                    color: AppColors.textSecondary,
+                    color: AppColors.textPrimary,
                   ),
                 ),
               )
             : Center(
                 child: PhosphorIcon(
                   item.category.icon,
-                  color: AppColors.textSecondary,
+                  color: AppColors.textPrimary,
                   size: 24,
                 ),
               ),

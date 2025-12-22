@@ -1,7 +1,9 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_typography.dart';
 import '../core/constants/app_constants.dart';
@@ -10,6 +12,7 @@ import '../models/user_profile.dart';
 import '../services/auth_service.dart';
 import '../services/supabase_service.dart';
 import 'profile_sheet.dart';
+import 'app_dialog.dart';
 
 /// App side drawer with profile, settings, and logout
 class AppDrawer extends StatefulWidget {
@@ -22,11 +25,13 @@ class AppDrawer extends StatefulWidget {
 class _AppDrawerState extends State<AppDrawer> {
   final _authService = AuthService();
   UserProfile? _userProfile;
+  String _appVersion = '';
 
   @override
   void initState() {
     super.initState();
     _loadProfile();
+    _loadAppVersion();
   }
 
   Future<void> _loadProfile() async {
@@ -38,7 +43,21 @@ class _AppDrawerState extends State<AppDrawer> {
         });
       }
     } catch (e) {
-      // Silently fail - will show initials instead
+      // Silently fail - will show icon instead
+    }
+  }
+
+  Future<void> _loadAppVersion() async {
+    try {
+      final packageInfo = await PackageInfo.fromPlatform();
+      if (mounted) {
+        setState(() {
+          _appVersion = 'v${packageInfo.version}';
+        });
+      }
+    } catch (e) {
+      // Fallback to constant
+      _appVersion = 'v${AppConstants.appVersion}';
     }
   }
 
@@ -53,11 +72,22 @@ class _AppDrawerState extends State<AppDrawer> {
         'User';
   }
 
-  String get _userEmail {
-    return _userProfile?.email ?? SupabaseService.currentUser?.email ?? '';
+  String? get _avatarUrl => _userProfile?.avatarUrl;
+
+  void _openProfile() {
+    Navigator.pop(context);
+    ProfileSheet.show(context).then((_) {
+      // Refresh drawer state after profile update
+      _loadProfile();
+    });
   }
 
-  String? get _avatarUrl => _userProfile?.avatarUrl;
+  Future<void> _openUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -70,72 +100,70 @@ class _AppDrawerState extends State<AppDrawer> {
           child: SafeArea(
             child: Column(
               children: [
-                // Header with user info
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Avatar
-                      Container(
-                        width: 72,
-                        height: 72,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: AppColors.textPrimary,
-                            width: 2,
+                // Header with user info - tappable to open profile
+                GestureDetector(
+                  onTap: _openProfile,
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(24),
+                    child: Row(
+                      children: [
+                        // Avatar
+                        Container(
+                          width: 56,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: AppColors.textPrimary,
+                              width: 2,
+                            ),
+                          ),
+                          child: ClipOval(
+                            child:
+                                _avatarUrl != null
+                                    ? Image.network(
+                                      _avatarUrl!,
+                                      width: 56,
+                                      height: 56,
+                                      fit: BoxFit.cover,
+                                      errorBuilder:
+                                          (_, __, ___) => Center(
+                                            child: PhosphorIcon(
+                                              PhosphorIcons.user(),
+                                              size: 28,
+                                              color: AppColors.textPrimary,
+                                            ),
+                                          ),
+                                    )
+                                    : Center(
+                                      child: PhosphorIcon(
+                                        PhosphorIcons.user(),
+                                        size: 28,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
                           ),
                         ),
-                        child: ClipOval(
-                          child:
-                              _avatarUrl != null
-                                  ? Image.network(
-                                    _avatarUrl!,
-                                    width: 72,
-                                    height: 72,
-                                    fit: BoxFit.cover,
-                                    errorBuilder:
-                                        (_, __, ___) => Center(
-                                          child: PhosphorIcon(
-                                            PhosphorIcons.user(),
-                                            size: 36,
-                                            color: AppColors.textPrimary,
-                                          ),
-                                        ),
-                                  )
-                                  : Center(
-                                    child: PhosphorIcon(
-                                      PhosphorIcons.user(),
-                                      size: 36,
-                                      color: AppColors.textPrimary,
-                                    ),
-                                  ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      // User name
-                      Text(
-                        _userName,
-                        style: AppTypography.titleLarge.copyWith(
-                          color: Colors.white,
-                        ),
-                      ),
-                      if (_userEmail.isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        // Email
-                        Text(
-                          _userEmail,
-                          style: AppTypography.bodyMedium.copyWith(
-                            color: Colors.white70,
+                        const SizedBox(width: 16),
+                        // User name
+                        Expanded(
+                          child: Text(
+                            _userName,
+                            style: AppTypography.titleLarge.copyWith(
+                              color: Colors.white,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
-                    ],
+                    ),
                   ),
                 ),
+
+                Divider(color: Colors.white.withValues(alpha: 0.1)),
 
                 // Menu items
                 Expanded(
@@ -145,20 +173,14 @@ class _AppDrawerState extends State<AppDrawer> {
                       _DrawerItem(
                         icon: PhosphorIcons.user(),
                         title: 'Profile',
-                        onTap: () {
-                          Navigator.pop(context);
-                          ProfileSheet.show(context).then((_) {
-                            // Refresh drawer state after profile update
-                            if (mounted) setState(() {});
-                          });
-                        },
+                        onTap: _openProfile,
                       ),
                       _DrawerItem(
                         icon: PhosphorIcons.gear(),
                         title: 'Settings',
                         onTap: () {
                           Navigator.pop(context);
-                          // TODO: Navigate to settings
+                          context.push('/settings');
                         },
                       ),
                       _DrawerItem(
@@ -166,7 +188,7 @@ class _AppDrawerState extends State<AppDrawer> {
                         title: 'Help & Support',
                         onTap: () {
                           Navigator.pop(context);
-                          // TODO: Navigate to help
+                          _openUrl('https://shizlist.co/support');
                         },
                       ),
                       _DrawerItem(
@@ -174,7 +196,7 @@ class _AppDrawerState extends State<AppDrawer> {
                         title: 'About',
                         onTap: () {
                           Navigator.pop(context);
-                          _showAboutDialog(context);
+                          _openUrl('https://shizlist.co/about');
                         },
                       ),
                       Divider(color: Colors.white.withValues(alpha: 0.1)),
@@ -188,11 +210,11 @@ class _AppDrawerState extends State<AppDrawer> {
                   ),
                 ),
 
-                // App version
+                // App version (dynamic)
                 Padding(
                   padding: const EdgeInsets.all(16),
                   child: Text(
-                    '${AppConstants.appName} v${AppConstants.appVersion}',
+                    '${AppConstants.appName} $_appVersion',
                     style: AppTypography.bodySmall.copyWith(
                       color: Colors.white54,
                     ),
@@ -206,47 +228,21 @@ class _AppDrawerState extends State<AppDrawer> {
     );
   }
 
-  void _showAboutDialog(BuildContext context) {
-    showAboutDialog(
-      context: context,
-      applicationName: AppConstants.appName,
-      applicationVersion: AppConstants.appVersion,
-      applicationLegalese: '© 2024 ShizList. All rights reserved.',
-      children: [
-        const SizedBox(height: 16),
-        Text(AppConstants.appTagline, style: AppTypography.bodyMedium),
-      ],
-    );
-  }
-
   Future<void> _handleLogout(BuildContext context) async {
     // Close the drawer first
     Navigator.pop(context);
 
     // Show confirmation dialog
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder:
-          (dialogContext) => AlertDialog(
-            title: const Text('Log Out'),
-            content: const Text('Are you sure you want to log out?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext, false),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext, true),
-                child: Text(
-                  'Log Out',
-                  style: TextStyle(color: AppColors.error),
-                ),
-              ),
-            ],
-          ),
+    final confirmed = await AppDialog.show(
+      context,
+      title: 'Log Out',
+      content: 'Are you sure you want to log out?',
+      cancelText: 'Cancel',
+      confirmText: 'Log Out',
+      isDestructive: true,
     );
 
-    if (confirmed == true) {
+    if (confirmed) {
       try {
         await _authService.signOut();
         if (mounted) {

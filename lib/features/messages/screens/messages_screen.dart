@@ -87,7 +87,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
             Text(
               'When you share lists with others, you can coordinate gift-giving here.',
               style: AppTypography.bodyLarge.copyWith(
-                color: AppColors.textSecondary,
+                color: AppColors.textPrimary,
               ),
               textAlign: TextAlign.center,
             ),

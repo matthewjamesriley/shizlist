@@ -116,7 +116,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
             Text(
               'Add friends and family to easily share your wish lists with them.',
               style: AppTypography.bodyLarge.copyWith(
-                color: AppColors.textSecondary,
+                color: AppColors.textPrimary,
               ),
               textAlign: TextAlign.center,
             ),

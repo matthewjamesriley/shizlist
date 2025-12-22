@@ -266,7 +266,7 @@ class _ListCardState extends State<ListCard> {
                       Text(
                         '  |  ',
                         style: AppTypography.bodyMedium.copyWith(
-                          color: AppColors.textSecondary,
+                          color: AppColors.textPrimary,
                         ),
                       ),
                       Text(
@@ -278,7 +278,7 @@ class _ListCardState extends State<ListCard> {
                       Text(
                         '  |  ',
                         style: AppTypography.bodyMedium.copyWith(
-                          color: AppColors.textSecondary,
+                          color: AppColors.textPrimary,
                         ),
                       ),
                       Text(

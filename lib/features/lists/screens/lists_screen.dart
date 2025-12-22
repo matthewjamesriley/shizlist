@@ -165,7 +165,7 @@ class _ListsScreenState extends State<ListsScreen> {
             Text(
               _error ?? 'Unknown error',
               style: AppTypography.bodyMedium.copyWith(
-                color: AppColors.textSecondary,
+                color: AppColors.textPrimary,
               ),
               textAlign: TextAlign.center,
             ),

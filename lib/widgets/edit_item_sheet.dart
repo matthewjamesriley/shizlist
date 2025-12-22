@@ -465,7 +465,7 @@ class _EditItemSheetState extends State<EditItemSheet>
                           isExpanded: true,
                           icon: PhosphorIcon(
                             PhosphorIcons.caretDown(),
-                            color: AppColors.textSecondary,
+                            color: AppColors.textPrimary,
                             size: 18,
                           ),
                           style: AppTypography.bodyLarge.copyWith(
@@ -681,7 +681,7 @@ class _EditItemSheetState extends State<EditItemSheet>
                 Text(
                   _uploadStatus,
                   style: AppTypography.bodyMedium.copyWith(
-                    color: AppColors.textSecondary,
+                    color: AppColors.textPrimary,
                   ),
                 ),
               ],
@@ -750,14 +750,14 @@ class _EditItemSheetState extends State<EditItemSheet>
                       children: [
                         PhosphorIcon(
                           PhosphorIcons.image(),
-                          color: AppColors.textSecondary,
+                          color: AppColors.textPrimary,
                           size: 20,
                         ),
                         const SizedBox(width: 8),
                         Text(
                           'Gallery',
                           style: AppTypography.bodyLarge.copyWith(
-                            color: AppColors.textSecondary,
+                            color: AppColors.textPrimary,
                           ),
                         ),
                       ],
@@ -784,14 +784,14 @@ class _EditItemSheetState extends State<EditItemSheet>
                       children: [
                         PhosphorIcon(
                           PhosphorIcons.camera(),
-                          color: AppColors.textSecondary,
+                          color: AppColors.textPrimary,
                           size: 20,
                         ),
                         const SizedBox(width: 8),
                         Text(
                           'Camera',
                           style: AppTypography.bodyLarge.copyWith(
-                            color: AppColors.textSecondary,
+                            color: AppColors.textPrimary,
                           ),
                         ),
                       ],

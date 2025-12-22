@@ -5,11 +5,7 @@ import '../models/user_profile.dart';
 import '../core/constants/supabase_config.dart';
 
 /// Supported OAuth providers
-enum SocialProvider {
-  google,
-  apple,
-  facebook,
-}
+enum SocialProvider { google, apple, facebook }
 
 /// Authentication service for handling user auth operations
 class AuthService {
@@ -106,11 +102,12 @@ class AuthService {
   }) async {
     try {
       // Check if profile exists
-      final existing = await _client
-          .from(SupabaseConfig.usersTable)
-          .select('uid')
-          .eq('uid', userId)
-          .maybeSingle();
+      final existing =
+          await _client
+              .from(SupabaseConfig.usersTable)
+              .select('uid')
+              .eq('uid', userId)
+              .maybeSingle();
 
       if (existing == null) {
         // Create profile if it doesn't exist
@@ -131,7 +128,7 @@ class AuthService {
   /// Sign in with OAuth provider (Google, Apple, Facebook)
   Future<bool> signInWithProvider(SocialProvider provider) async {
     final OAuthProvider oauthProvider;
-    
+
     switch (provider) {
       case SocialProvider.google:
         oauthProvider = OAuthProvider.google;
@@ -162,7 +159,8 @@ class AuthService {
       await ensureUserProfileExists(
         userId: user.id,
         email: user.email ?? '',
-        displayName: user.userMetadata?['full_name'] as String? ??
+        displayName:
+            user.userMetadata?['full_name'] as String? ??
             user.userMetadata?['name'] as String?,
       );
     }
@@ -180,9 +178,48 @@ class AuthService {
 
   /// Update password
   Future<UserResponse> updatePassword(String newPassword) async {
-    return await _client.auth.updateUser(
-      UserAttributes(password: newPassword),
-    );
+    return await _client.auth.updateUser(UserAttributes(password: newPassword));
+  }
+
+  /// Check if an email already exists in the users table
+  Future<bool> emailExists(String email) async {
+    final response = await _client
+        .from(SupabaseConfig.usersTable)
+        .select('id')
+        .eq('email', email.toLowerCase())
+        .maybeSingle();
+    return response != null;
+  }
+
+  /// Update email - sends confirmation to old email address
+  /// Returns true if the request was sent successfully
+  Future<UserResponse> updateEmail(String newEmail) async {
+    return await _client.auth.updateUser(UserAttributes(email: newEmail));
+  }
+
+  /// Check if current user is using email/password authentication (not social login)
+  bool get isEmailPasswordUser {
+    final user = SupabaseService.currentUser;
+    if (user == null) return false;
+
+    // Check app_metadata for provider
+    final provider = user.appMetadata['provider'] as String?;
+    final providers = user.appMetadata['providers'] as List<dynamic>?;
+
+    // If provider is 'email' or providers list only contains 'email', it's an email user
+    if (provider == 'email') return true;
+    if (providers != null &&
+        providers.length == 1 &&
+        providers.first == 'email')
+      return true;
+
+    // Also check identities - email users typically have identity with provider 'email'
+    final identities = user.identities;
+    if (identities != null && identities.isNotEmpty) {
+      return identities.every((i) => i.provider == 'email');
+    }
+
+    return false;
   }
 
   /// Get current user profile
@@ -190,11 +227,12 @@ class AuthService {
     final userId = SupabaseService.currentUserId;
     if (userId == null) return null;
 
-    final response = await _client
-        .from(SupabaseConfig.usersTable)
-        .select()
-        .eq('uid', userId)
-        .maybeSingle();
+    final response =
+        await _client
+            .from(SupabaseConfig.usersTable)
+            .select()
+            .eq('uid', userId)
+            .maybeSingle();
 
     if (response == null) return null;
     return UserProfile.fromJson(response);
@@ -222,12 +260,13 @@ class AuthService {
     }
     if (currencyCode != null) updates['currency_code'] = currencyCode;
 
-    final response = await _client
-        .from(SupabaseConfig.usersTable)
-        .update(updates)
-        .eq('uid', userId)
-        .select()
-        .single();
+    final response =
+        await _client
+            .from(SupabaseConfig.usersTable)
+            .update(updates)
+            .eq('uid', userId)
+            .select()
+            .single();
 
     return UserProfile.fromJson(response);
   }

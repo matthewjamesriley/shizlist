@@ -11,6 +11,7 @@ import '../features/items/screens/add_item_screen.dart';
 import '../features/contacts/screens/contacts_screen.dart';
 import '../features/messages/screens/messages_screen.dart';
 import '../features/share/screens/share_screen.dart';
+import '../features/settings/screens/settings_screen.dart';
 import '../widgets/app_shell.dart';
 import '../services/supabase_service.dart';
 import '../services/auth_service.dart';
@@ -203,6 +204,33 @@ class AppRouter {
           return MaterialPage(
             fullscreenDialog: true,
             child: AddItemScreen(listId: listId),
+          );
+        },
+      ),
+
+      // Settings screen
+      GoRoute(
+        path: AppRoutes.settings,
+        name: 'settings',
+        pageBuilder: (context, state) {
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: const SettingsScreen(),
+            transitionsBuilder: (
+              context,
+              animation,
+              secondaryAnimation,
+              child,
+            ) {
+              return SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(1, 0),
+                  end: Offset.zero,
+                ).animate(animation),
+                child: child,
+              );
+            },
+            transitionDuration: const Duration(milliseconds: 200),
           );
         },
       ),

@@ -98,7 +98,7 @@ class _CountrySelectionScreenState extends State<CountrySelectionScreen> {
                     'This helps us show prices in your local currency',
                     style: GoogleFonts.lato(
                       fontSize: 16,
-                      color: AppColors.textSecondary,
+                      color: AppColors.textPrimary,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -114,7 +114,7 @@ class _CountrySelectionScreenState extends State<CountrySelectionScreen> {
                         padding: const EdgeInsets.only(left: 16, right: 12),
                         child: PhosphorIcon(
                           PhosphorIcons.magnifyingGlass(),
-                          color: AppColors.textSecondary,
+                          color: AppColors.textPrimary,
                         ),
                       ),
                       prefixIconConstraints: const BoxConstraints(minWidth: 0),
@@ -180,7 +180,7 @@ class _CountrySelectionScreenState extends State<CountrySelectionScreen> {
                                     Text(
                                       '${currency.name} (${currency.symbol})',
                                       style: AppTypography.bodyMedium.copyWith(
-                                        color: AppColors.textSecondary,
+                                        color: AppColors.textPrimary,
                                       ),
                                     ),
                                   ],

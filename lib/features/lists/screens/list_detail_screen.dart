@@ -880,7 +880,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
             Text(
               'Add items to your list using the + button',
               style: AppTypography.bodyMedium.copyWith(
-                color: AppColors.textSecondary,
+                color: AppColors.textPrimary,
               ),
               textAlign: TextAlign.center,
             ),
@@ -911,7 +911,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
             Text(
               'Try selecting a different category or tap "All" to see all items',
               style: AppTypography.bodyMedium.copyWith(
-                color: AppColors.textSecondary,
+                color: AppColors.textPrimary,
               ),
               textAlign: TextAlign.center,
             ),
@@ -1087,7 +1087,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                         Text(
                           uploadStatus,
                           style: AppTypography.bodyMedium.copyWith(
-                            color: AppColors.textSecondary,
+                            color: AppColors.textPrimary,
                           ),
                         ),
                       ],
@@ -1230,14 +1230,14 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                             children: [
                               PhosphorIcon(
                                 PhosphorIcons.image(),
-                                color: AppColors.textSecondary,
+                                color: AppColors.textPrimary,
                                 size: 20,
                               ),
                               const SizedBox(width: 8),
                               Text(
                                 'Gallery',
                                 style: AppTypography.bodyLarge.copyWith(
-                                  color: AppColors.textSecondary,
+                                  color: AppColors.textPrimary,
                                 ),
                               ),
                             ],
@@ -1264,14 +1264,14 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                             children: [
                               PhosphorIcon(
                                 PhosphorIcons.camera(),
-                                color: AppColors.textSecondary,
+                                color: AppColors.textPrimary,
                                 size: 20,
                               ),
                               const SizedBox(width: 8),
                               Text(
                                 'Camera',
                                 style: AppTypography.bodyLarge.copyWith(
-                                  color: AppColors.textSecondary,
+                                  color: AppColors.textPrimary,
                                 ),
                               ),
                             ],
@@ -1429,7 +1429,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                                                 visibility ==
                                                         ListVisibility.public
                                                     ? AppColors.primary
-                                                    : AppColors.textSecondary,
+                                                    : AppColors.textPrimary,
                                           ),
                                           const SizedBox(width: 12),
                                           Expanded(
@@ -1449,7 +1449,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                                                       .copyWith(
                                                         color:
                                                             AppColors
-                                                                .textSecondary,
+                                                                .textPrimary,
                                                       ),
                                                 ),
                                               ],
@@ -1499,7 +1499,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                                                 visibility ==
                                                         ListVisibility.private
                                                     ? AppColors.primary
-                                                    : AppColors.textSecondary,
+                                                    : AppColors.textPrimary,
                                           ),
                                           const SizedBox(width: 12),
                                           Expanded(
@@ -1519,7 +1519,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                                                       .copyWith(
                                                         color:
                                                             AppColors
-                                                                .textSecondary,
+                                                                .textPrimary,
                                                       ),
                                                 ),
                                               ],
@@ -1564,7 +1564,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                                   Text(
                                     'Set a date for birthdays, weddings, holidays, etc.',
                                     style: AppTypography.bodyMedium.copyWith(
-                                      color: AppColors.textSecondary,
+                                      color: AppColors.textPrimary,
                                     ),
                                   ),
                                   const SizedBox(height: 16),
@@ -1614,7 +1614,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                                             color:
                                                 eventDate != null
                                                     ? AppColors.primary
-                                                    : AppColors.textSecondary,
+                                                    : AppColors.textPrimary,
                                           ),
                                           const SizedBox(width: 12),
                                           Expanded(
@@ -1629,7 +1629,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                                                             ? AppColors
                                                                 .textPrimary
                                                             : AppColors
-                                                                .textSecondary,
+                                                                .textPrimary,
                                                   ),
                                             ),
                                           ),
@@ -1643,7 +1643,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                                               child: PhosphorIcon(
                                                 PhosphorIcons.xCircle(),
                                                 size: 24,
-                                                color: AppColors.textSecondary,
+                                                color: AppColors.textPrimary,
                                               ),
                                             ),
                                         ],
@@ -1664,7 +1664,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                                   Text(
                                     'Enable for events that happen every year',
                                     style: AppTypography.bodyMedium.copyWith(
-                                      color: AppColors.textSecondary,
+                                      color: AppColors.textPrimary,
                                     ),
                                   ),
                                   const SizedBox(height: 16),
@@ -1701,7 +1701,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                                             color:
                                                 isRecurring
                                                     ? AppColors.primary
-                                                    : AppColors.textSecondary,
+                                                    : AppColors.textPrimary,
                                           ),
                                           const SizedBox(width: 12),
                                           Expanded(
@@ -1728,7 +1728,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                                                       .copyWith(
                                                         color:
                                                             AppColors
-                                                                .textSecondary,
+                                                                .textPrimary,
                                                       ),
                                                 ),
                                               ],
@@ -2112,7 +2112,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                     Text(
                       item.formattedPrice,
                       style: AppTypography.bodyMedium.copyWith(
-                        color: AppColors.textSecondary,
+                        color: AppColors.textPrimary,
                       ),
                     ),
                 ],

@@ -392,7 +392,7 @@ class _AddItemSheetState extends State<AddItemSheet>
                         isExpanded: true,
                         icon: PhosphorIcon(
                           PhosphorIcons.caretDown(),
-                          color: AppColors.textSecondary,
+                          color: AppColors.textPrimary,
                           size: 18,
                         ),
                         style: AppTypography.bodyLarge.copyWith(
@@ -542,7 +542,7 @@ class _AddItemSheetState extends State<AddItemSheet>
                 child: Text(
                   'or paste a link',
                   style: AppTypography.bodyMedium.copyWith(
-                    color: AppColors.textSecondary,
+                    color: AppColors.textPrimary,
                   ),
                 ),
               ),
@@ -562,7 +562,7 @@ class _AddItemSheetState extends State<AddItemSheet>
                 padding: const EdgeInsets.only(left: 12, right: 8),
                 child: PhosphorIcon(
                   PhosphorIcons.link(),
-                  color: AppColors.textSecondary,
+                  color: AppColors.textPrimary,
                 ),
               ),
               prefixIconConstraints: const BoxConstraints(minWidth: 0),
@@ -668,7 +668,7 @@ class _AddItemSheetState extends State<AddItemSheet>
                         isExpanded: true,
                         icon: PhosphorIcon(
                           PhosphorIcons.caretDown(),
-                          color: AppColors.textSecondary,
+                          color: AppColors.textPrimary,
                           size: 18,
                         ),
                         style: AppTypography.bodyLarge.copyWith(
@@ -1161,7 +1161,7 @@ class _AddItemSheetState extends State<AddItemSheet>
                       const SizedBox(width: 4),
                       PhosphorIcon(
                         PhosphorIcons.caretDown(),
-                        color: AppColors.textSecondary,
+                        color: AppColors.textPrimary,
                         size: 14,
                       ),
                     ],
@@ -1189,7 +1189,7 @@ class _AddItemSheetState extends State<AddItemSheet>
                           Text(
                             'Quickly add items',
                             style: AppTypography.titleMedium.copyWith(
-                              color: AppColors.textSecondary,
+                              color: AppColors.textPrimary,
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -1246,7 +1246,7 @@ class _AddItemSheetState extends State<AddItemSheet>
                                 },
                                 child: PhosphorIcon(
                                   PhosphorIcons.x(),
-                                  color: AppColors.textSecondary,
+                                  color: AppColors.textPrimary,
                                   size: 20,
                                 ),
                               ),
@@ -1310,7 +1310,7 @@ class _AddItemSheetState extends State<AddItemSheet>
                 Text(
                   _uploadStatus,
                   style: AppTypography.bodyMedium.copyWith(
-                    color: AppColors.textSecondary,
+                    color: AppColors.textPrimary,
                   ),
                 ),
               ],
@@ -1379,14 +1379,14 @@ class _AddItemSheetState extends State<AddItemSheet>
                       children: [
                         PhosphorIcon(
                           PhosphorIcons.image(),
-                          color: AppColors.textSecondary,
+                          color: AppColors.textPrimary,
                           size: 20,
                         ),
                         const SizedBox(width: 8),
                         Text(
                           'Gallery',
                           style: AppTypography.bodyLarge.copyWith(
-                            color: AppColors.textSecondary,
+                            color: AppColors.textPrimary,
                           ),
                         ),
                       ],
@@ -1413,14 +1413,14 @@ class _AddItemSheetState extends State<AddItemSheet>
                       children: [
                         PhosphorIcon(
                           PhosphorIcons.camera(),
-                          color: AppColors.textSecondary,
+                          color: AppColors.textPrimary,
                           size: 20,
                         ),
                         const SizedBox(width: 8),
                         Text(
                           'Camera',
                           style: AppTypography.bodyLarge.copyWith(
-                            color: AppColors.textSecondary,
+                            color: AppColors.textPrimary,
                           ),
                         ),
                       ],
@@ -1534,7 +1534,7 @@ class _AddItemSheetState extends State<AddItemSheet>
         child: Text(
           'No lists yet. Create one first!',
           style: AppTypography.bodyMedium.copyWith(
-            color: AppColors.textSecondary,
+            color: AppColors.textPrimary,
           ),
         ),
       );
@@ -1561,7 +1561,7 @@ class _AddItemSheetState extends State<AddItemSheet>
               children: [
                 PhosphorIcon(
                   PhosphorIcons.listBullets(),
-                  color: AppColors.textSecondary,
+                  color: AppColors.textPrimary,
                   size: 22,
                 ),
                 const SizedBox(width: 12),
@@ -1580,7 +1580,7 @@ class _AddItemSheetState extends State<AddItemSheet>
                   _showListDropdown
                       ? PhosphorIcons.caretUp()
                       : PhosphorIcons.caretDown(),
-                  color: AppColors.textSecondary,
+                  color: AppColors.textPrimary,
                   size: 20,
                 ),
               ],
@@ -1623,7 +1623,7 @@ class _AddItemSheetState extends State<AddItemSheet>
                         padding: const EdgeInsets.only(left: 12, right: 8),
                         child: PhosphorIcon(
                           PhosphorIcons.magnifyingGlass(),
-                          color: AppColors.textSecondary,
+                          color: AppColors.textPrimary,
                           size: 20,
                         ),
                       ),
@@ -1682,7 +1682,7 @@ class _AddItemSheetState extends State<AddItemSheet>
                                 color:
                                     isSelected
                                         ? AppColors.primary
-                                        : AppColors.textSecondary,
+                                        : AppColors.textPrimary,
                                 size: 18,
                               ),
                               const SizedBox(width: 10),
@@ -1722,7 +1722,7 @@ class _AddItemSheetState extends State<AddItemSheet>
                     child: Text(
                       'No lists found',
                       style: AppTypography.bodyMedium.copyWith(
-                        color: AppColors.textSecondary,
+                        color: AppColors.textPrimary,
                       ),
                     ),
                   ),

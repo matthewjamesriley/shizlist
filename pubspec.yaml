@@ -44,6 +44,9 @@ dependencies:
   # WebView for in-app browsing
   webview_flutter: ^4.10.0
   pointer_interceptor: ^0.10.1
+  
+  # App info
+  package_info_plus: ^8.0.0
 
 dev_dependencies:
   flutter_test:

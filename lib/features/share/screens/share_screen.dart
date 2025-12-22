@@ -80,7 +80,7 @@ class _ShareScreenState extends State<ShareScreen> {
                                   ? PhosphorIcons.usersThree()
                                   : PhosphorIcons.lock(),
                               size: 20,
-                              color: AppColors.textSecondary,
+                              color: AppColors.textPrimary,
                             ),
                             const SizedBox(width: 12),
                             Expanded(

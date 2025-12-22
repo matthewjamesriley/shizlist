@@ -213,7 +213,7 @@ class _CreateListDialogState extends State<CreateListDialog> {
                         Text(
                           'Set a date for birthdays, weddings, holidays, etc.',
                           style: AppTypography.bodyMedium.copyWith(
-                            color: AppColors.textSecondary,
+                            color: AppColors.textPrimary,
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -257,7 +257,7 @@ class _CreateListDialogState extends State<CreateListDialog> {
                                   size: 24,
                                   color: _eventDate != null
                                       ? AppColors.primary
-                                      : AppColors.textSecondary,
+                                      : AppColors.textPrimary,
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
@@ -268,7 +268,7 @@ class _CreateListDialogState extends State<CreateListDialog> {
                                     style: AppTypography.bodyLarge.copyWith(
                                       color: _eventDate != null
                                           ? AppColors.textPrimary
-                                          : AppColors.textSecondary,
+                                          : AppColors.textPrimary,
                                     ),
                                   ),
                                 ),
@@ -281,7 +281,7 @@ class _CreateListDialogState extends State<CreateListDialog> {
                                     child: PhosphorIcon(
                                       PhosphorIcons.xCircle(),
                                       size: 24,
-                                      color: AppColors.textSecondary,
+                                      color: AppColors.textPrimary,
                                     ),
                                   ),
                               ],
@@ -302,7 +302,7 @@ class _CreateListDialogState extends State<CreateListDialog> {
                         Text(
                           'Enable for events that happen every year',
                           style: AppTypography.bodyMedium.copyWith(
-                            color: AppColors.textSecondary,
+                            color: AppColors.textPrimary,
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -333,7 +333,7 @@ class _CreateListDialogState extends State<CreateListDialog> {
                                   size: 24,
                                   color: _isRecurring
                                       ? AppColors.primary
-                                      : AppColors.textSecondary,
+                                      : AppColors.textPrimary,
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
@@ -351,7 +351,7 @@ class _CreateListDialogState extends State<CreateListDialog> {
                                       Text(
                                         'For birthdays and yearly events',
                                         style: AppTypography.bodySmall.copyWith(
-                                          color: AppColors.textSecondary,
+                                          color: AppColors.textPrimary,
                                         ),
                                       ),
                                     ],
@@ -418,7 +418,14 @@ class _CreateListDialogState extends State<CreateListDialog> {
   }
 
   void _createList() async {
-    if (!_formKey.currentState!.validate()) return;
+    // Validate title - form might not be visible if on Set date tab
+    final title = _titleController.text.trim();
+    if (title.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a list name')),
+      );
+      return;
+    }
 
     setState(() => _isLoading = true);
 
@@ -484,7 +491,7 @@ class _VisibilityOption extends StatelessWidget {
           children: [
             PhosphorIcon(
               icon,
-              color: isSelected ? AppColors.primary : AppColors.textSecondary,
+              color: isSelected ? AppColors.primary : AppColors.textPrimary,
               size: 32,
             ),
             const SizedBox(height: 12),

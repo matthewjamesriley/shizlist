@@ -114,24 +114,25 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  Future<void> _handleSocialLogin(SocialProvider provider) async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      await _authService.signInWithProvider(provider);
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Failed to sign in. Please try again.';
-      });
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
+  // TODO: Re-enable social login later
+  // Future<void> _handleSocialLogin(SocialProvider provider) async {
+  //   setState(() {
+  //     _isLoading = true;
+  //     _errorMessage = null;
+  //   });
+  //
+  //   try {
+  //     await _authService.signInWithProvider(provider);
+  //   } catch (e) {
+  //     setState(() {
+  //       _errorMessage = 'Failed to sign in. Please try again.';
+  //     });
+  //   } finally {
+  //     if (mounted) {
+  //       setState(() => _isLoading = false);
+  //     }
+  //   }
+  // }
 
   void _goBack() {
     if (_showOtpVerification) {
@@ -175,7 +176,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
               // Logo - hide when showing forms
               if (!_showEmailLogin && !_showOtpVerification) ...[
-                const Center(child: ShizListLogo(height: 50)),
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 5),
+                    child: const ShizListLogo(height: 50),
+                  ),
+                ),
                 const SizedBox(height: 48),
               ],
 
@@ -194,11 +200,11 @@ class _LoginScreenState extends State<LoginScreen> {
               if (!_showEmailLogin && !_showOtpVerification) ...[
                 const SizedBox(height: 12),
                 Text(
-                  'Log in to continue sharing the stuff you love.',
+                  'Log in to continue.',
                   style: GoogleFonts.lato(
                     fontSize: 18,
                     fontWeight: FontWeight.w400,
-                    color: AppColors.textSecondary,
+                    color: AppColors.textPrimary,
                     height: 1.4,
                   ),
                   textAlign: TextAlign.center,
@@ -210,7 +216,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   style: GoogleFonts.lato(
                     fontSize: 16,
                     fontWeight: FontWeight.w400,
-                    color: AppColors.textSecondary,
+                    color: AppColors.textPrimary,
                     height: 1.4,
                   ),
                   textAlign: TextAlign.center,
@@ -299,34 +305,34 @@ class _LoginScreenState extends State<LoginScreen> {
                   textColor: Colors.white,
                 ),
 
-                const SizedBox(height: 16),
-
-                // Log in with Google
-                _SocialButton(
-                  label: 'Log in with Google',
-                  icon: PhosphorIcons.googleLogo(),
-                  onPressed:
-                      _isLoading
-                          ? null
-                          : () => _handleSocialLogin(SocialProvider.google),
-                  backgroundColor: AppColors.accent,
-                  textColor: Colors.white,
-                ),
-
-                const SizedBox(height: 16),
-
-                // Log in with Apple
-                _SocialButton(
-                  label: 'Log in with Apple',
-                  icon: PhosphorIcons.appleLogo(),
-                  onPressed:
-                      _isLoading
-                          ? null
-                          : () => _handleSocialLogin(SocialProvider.apple),
-                  backgroundColor: Colors.black,
-                  textColor: Colors.white,
-                ),
-
+                // TODO: Re-enable social login later
+                // const SizedBox(height: 16),
+                //
+                // // Log in with Google
+                // _SocialButton(
+                //   label: 'Log in with Google',
+                //   icon: PhosphorIcons.googleLogo(),
+                //   onPressed:
+                //       _isLoading
+                //           ? null
+                //           : () => _handleSocialLogin(SocialProvider.google),
+                //   backgroundColor: AppColors.accent,
+                //   textColor: Colors.white,
+                // ),
+                //
+                // const SizedBox(height: 16),
+                //
+                // // Log in with Apple
+                // _SocialButton(
+                //   label: 'Log in with Apple',
+                //   icon: PhosphorIcons.appleLogo(),
+                //   onPressed:
+                //       _isLoading
+                //           ? null
+                //           : () => _handleSocialLogin(SocialProvider.apple),
+                //   backgroundColor: Colors.black,
+                //   textColor: Colors.white,
+                // ),
                 const SizedBox(height: 32),
 
                 // Don't have an account
@@ -334,7 +340,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   "Don't have an account?",
                   style: GoogleFonts.lato(
                     fontSize: 16,
-                    color: AppColors.textSecondary,
+                    color: AppColors.textPrimary,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -377,10 +383,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 24),
 
                       Text(
-                        "We'll send you a verification code to log in.",
+                        "You'll receiverr a verification code to log in.",
                         style: GoogleFonts.lato(
-                          fontSize: 14,
-                          color: AppColors.textSecondary,
+                          fontSize: 15,
+                          color: AppColors.textPrimary,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -406,7 +412,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       "Don't have an account? ",
                       style: GoogleFonts.lato(
                         fontSize: 16,
-                        color: AppColors.textSecondary,
+                        color: AppColors.textPrimary,
                       ),
                     ),
                     GestureDetector(
@@ -455,7 +461,7 @@ class _LoginScreenState extends State<LoginScreen> {
         hintStyle: GoogleFonts.lato(fontSize: 18, color: AppColors.textHint),
         prefixIcon: Padding(
           padding: const EdgeInsets.only(left: 16, right: 12),
-          child: PhosphorIcon(icon, color: AppColors.textSecondary, size: 24),
+          child: PhosphorIcon(icon, color: AppColors.textPrimary, size: 24),
         ),
         prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
         suffixIcon: suffixIcon,

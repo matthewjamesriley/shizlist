@@ -8,6 +8,7 @@ import '../features/lists/widgets/create_list_dialog.dart';
 import '../models/user_profile.dart';
 import '../routing/app_router.dart';
 import '../services/auth_service.dart';
+import '../services/list_service.dart';
 import '../services/lists_notifier.dart';
 import '../services/user_settings_service.dart';
 import 'add_item_sheet.dart';
@@ -26,34 +27,84 @@ class AppShell extends StatefulWidget {
   State<AppShell> createState() => _AppShellState();
 }
 
-class _AppShellState extends State<AppShell> {
+class _AppShellState extends State<AppShell> with SingleTickerProviderStateMixin {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final _authService = AuthService();
+  final _listService = ListService();
+  final _listsNotifier = ListsNotifier();
   bool _showButtons = false;
+  bool _hasLists = false;
+  bool _hasItems = false;
   UserProfile? _userProfile;
+  
+  // Bouncing arrow animation
+  late AnimationController _arrowController;
+  late Animation<double> _arrowAnimation;
 
   @override
   void initState() {
     super.initState();
     _loadUserProfile();
+    _checkHasListsAndItems();
     // Listen for profile updates
     UserSettingsService().addListener(_onSettingsChanged);
+    // Listen for list changes
+    _listsNotifier.addListener(_onListsChanged);
     // Delay showing buttons to avoid spin animation
     Future.delayed(const Duration(milliseconds: 100), () {
       if (mounted) {
         setState(() => _showButtons = true);
       }
     });
+    
+    // Setup bouncing arrow animation
+    _arrowController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    )..repeat(reverse: true);
+    
+    _arrowAnimation = Tween<double>(begin: 0, end: 10).animate(
+      CurvedAnimation(parent: _arrowController, curve: Curves.easeInOut),
+    );
   }
 
   @override
   void dispose() {
+    _arrowController.dispose();
     UserSettingsService().removeListener(_onSettingsChanged);
+    _listsNotifier.removeListener(_onListsChanged);
     super.dispose();
   }
 
   void _onSettingsChanged() {
     _loadUserProfile();
+  }
+
+  void _onListsChanged() {
+    // Always refresh list/item count when notifier fires
+    // (list might have been added/deleted, or items changed)
+    _checkHasListsAndItems();
+    
+    // When an item is added, immediately mark as having items
+    if (_listsNotifier.itemCountChanged) {
+      setState(() => _hasItems = true);
+    }
+  }
+
+  Future<void> _checkHasListsAndItems() async {
+    try {
+      final lists = await _listService.getUserLists();
+      if (mounted) {
+        // Check if any list has items
+        final totalItems = lists.fold<int>(0, (sum, list) => sum + list.itemCount);
+        setState(() {
+          _hasLists = lists.isNotEmpty;
+          _hasItems = totalItems > 0;
+        });
+      }
+    } catch (e) {
+      // Silently fail
+    }
   }
 
   Future<void> _loadUserProfile() async {
@@ -248,21 +299,50 @@ class _AppShellState extends State<AppShell> {
                     ),
                   ),
                 ),
-                // Add Item button (right) - Orange
-                Material(
-                  color: AppColors.accent,
-                  shape: const CircleBorder(),
-                  elevation: 6,
-                  shadowColor: Colors.black.withValues(alpha: 0.3),
-                  child: InkWell(
-                    onTap: () => _showAddItemSheet(context),
-                    customBorder: const CircleBorder(),
-                    child: SizedBox(
-                      width: 56,
-                      height: 56,
-                      child: PhosphorIcon(PhosphorIcons.plus(), size: 28, color: Colors.white),
+                // Add Item button (right) - Orange (disabled if no lists)
+                // With bouncing arrow when lists exist but no items
+                Stack(
+                  clipBehavior: Clip.none,
+                  alignment: Alignment.center,
+                  children: [
+                    // Bouncing arrow (positioned above the button)
+                    if (_hasLists && !_hasItems)
+                      Positioned(
+                        top: -46,
+                        child: AnimatedBuilder(
+                          animation: _arrowAnimation,
+                          builder: (context, child) {
+                            return Transform.translate(
+                              offset: Offset(0, _arrowAnimation.value),
+                            child: PhosphorIcon(
+                              PhosphorIcons.arrowDown(PhosphorIconsStyle.bold),
+                              size: 36,
+                              color: Colors.black,
+                            ),
+                            );
+                          },
+                        ),
+                      ),
+                    Material(
+                      color: _hasLists ? AppColors.accent : Colors.grey.shade400,
+                      shape: const CircleBorder(),
+                      elevation: _hasLists ? 6 : 2,
+                      shadowColor: Colors.black.withValues(alpha: 0.3),
+                      child: InkWell(
+                        onTap: _hasLists ? () => _showAddItemSheet(context) : null,
+                        customBorder: const CircleBorder(),
+                        child: SizedBox(
+                          width: 56,
+                          height: 56,
+                          child: PhosphorIcon(
+                            PhosphorIcons.plus(),
+                            size: 28,
+                            color: _hasLists ? Colors.white : Colors.white70,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ],
             ),
@@ -289,6 +369,8 @@ class _AppShellState extends State<AppShell> {
     final result = await CreateListDialog.show(context);
 
     if (result != null && mounted) {
+      // Immediately enable the + button since we now have a list
+      setState(() => _hasLists = true);
       ListsNotifier().notifyListAdded(result);
       AppNotification.success(context, 'Created "${result.title}"');
     }
