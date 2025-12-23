@@ -105,5 +105,129 @@ function get_owner_info($owner_id) {
     
     return null;
 }
+
+/**
+ * Make a POST request to Supabase
+ */
+function supabase_post($endpoint, $data) {
+    $url = SUPABASE_URL . '/rest/v1/' . $endpoint;
+    
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'apikey: ' . SUPABASE_ANON_KEY,
+        'Authorization: Bearer ' . SUPABASE_ANON_KEY,
+        'Content-Type: application/json',
+        'Prefer: return=representation'
+    ]);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+    
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    
+    if ($httpCode >= 200 && $httpCode < 300) {
+        return json_decode($response, true);
+    }
+    
+    return null;
+}
+
+/**
+ * Get user by email
+ */
+function get_user_by_email($email) {
+    $email = strtolower(trim($email));
+    $result = supabase_get('users', [
+        'select' => 'uid,display_name,avatar_url',
+        'email' => 'eq.' . $email
+    ]);
+    
+    if (!empty($result) && is_array($result) && count($result) > 0) {
+        return $result[0];
+    }
+    
+    return null;
+}
+
+/**
+ * Check if friendship already exists
+ */
+function friendship_exists($user_id, $friend_user_id) {
+    // Check both directions
+    $result1 = supabase_get('friends', [
+        'select' => 'id',
+        'user_id' => 'eq.' . $user_id,
+        'friend_user_id' => 'eq.' . $friend_user_id
+    ]);
+    
+    if (!empty($result1) && is_array($result1) && count($result1) > 0) {
+        return true;
+    }
+    
+    $result2 = supabase_get('friends', [
+        'select' => 'id',
+        'user_id' => 'eq.' . $friend_user_id,
+        'friend_user_id' => 'eq.' . $user_id
+    ]);
+    
+    if (!empty($result2) && is_array($result2) && count($result2) > 0) {
+        return true;
+    }
+    
+    return false;
+}
+
+/**
+ * Create friendship
+ */
+function create_friendship($user_id, $friend_user_id) {
+    return supabase_post('friends', [
+        'user_id' => $user_id,
+        'friend_user_id' => $friend_user_id
+    ]);
+}
+
+/**
+ * Share list with user
+ */
+function share_list_with_user($list_uid, $user_id) {
+    // Check if already shared
+    $existing = supabase_get('list_shares', [
+        'select' => 'id',
+        'list_uid' => 'eq.' . $list_uid,
+        'shared_with_user_id' => 'eq.' . $user_id
+    ]);
+    
+    if (!empty($existing) && is_array($existing) && count($existing) > 0) {
+        return true; // Already shared
+    }
+    
+    return supabase_post('list_shares', [
+        'list_uid' => $list_uid,
+        'shared_with_user_id' => $user_id,
+        'can_edit' => false
+    ]);
+}
+
+/**
+ * Get list UID by ID
+ */
+function get_list_uid($list_id) {
+    $result = supabase_get('lists', [
+        'select' => 'uid',
+        'id' => 'eq.' . $list_id
+    ]);
+    
+    if (!empty($result) && is_array($result) && count($result) > 0) {
+        return $result[0]['uid'];
+    }
+    
+    return null;
+}
 ?>
 

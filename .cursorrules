@@ -1,410 +1,100 @@
-{\rtf1\ansi\ansicpg1252\cocoartf2822
-\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica-Bold;\f1\fswiss\fcharset0 Helvetica;\f2\fnil\fcharset0 HelveticaNeue;
-\f3\fnil\fcharset0 AppleColorEmoji;}
-{\colortbl;\red255\green255\blue255;\red0\green0\blue0;\red242\green242\blue242;\red109\green109\blue109;
-}
-{\*\expandedcolortbl;;\cssrgb\c0\c0\c0;\cssrgb\c96078\c96078\c96078;\cssrgb\c50196\c50196\c50196;
-}
-{\*\listtable{\list\listtemplateid1\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid1\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid1}
-{\list\listtemplateid2\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid101\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid2}
-{\list\listtemplateid3\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid201\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid3}
-{\list\listtemplateid4\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid301\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid4}
-{\list\listtemplateid5\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid401\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid5}
-{\list\listtemplateid6\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid501\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid6}
-{\list\listtemplateid7\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid601\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid7}
-{\list\listtemplateid8\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid701\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid8}
-{\list\listtemplateid9\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid801\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid9}}
-{\*\listoverridetable{\listoverride\listid1\listoverridecount0\ls1}{\listoverride\listid2\listoverridecount0\ls2}{\listoverride\listid3\listoverridecount0\ls3}{\listoverride\listid4\listoverridecount0\ls4}{\listoverride\listid5\listoverridecount0\ls5}{\listoverride\listid6\listoverridecount0\ls6}{\listoverride\listid7\listoverridecount0\ls7}{\listoverride\listid8\listoverridecount0\ls8}{\listoverride\listid9\listoverridecount0\ls9}}
-\paperw11905\paperh16837\margl1133\margr1133\margb1133\margt1133
-\deftab720
-\pard\pardeftab720\sa298\partightenfactor0
+# SHIZLIST APP DEVELOPMENT PROJECT BRIEF
 
-\f0\b\fs36 \cf2 \up0 \nosupersub \ulnone SHIZLIST APP DEVELOPMENT PROJECT BRIEF\
-\pard\pardeftab720\sa280\partightenfactor0
+## CRITICAL RULES
 
-\fs28 \cf2 I. Project Metadata & Goals\
+**⚠️ GIT OPERATIONS: NEVER push changes to git without explicit user approval. Always stage and commit, then ASK before pushing.**
 
-\itap1\trowd \taflags1 \trgaph108\trleft-108 \trbrdrt\brdrnil \trbrdrl\brdrnil \trbrdrr\brdrnil 
-\clvertalc \clshdrawnil \clwWidth960\clftsWidth3 \clheight680 \clbrdrt\brdrs\brdrw20\brdrcf2 \clbrdrl\brdrs\brdrw20\brdrcf2 \clbrdrb\brdrs\brdrw20\brdrcf2 \clbrdrr\brdrs\brdrw20\brdrcf2 \clpadt20 \clpadl20 \clpadb20 \clpadr20 \gaph\cellx4320
-\clvertalc \clshdrawnil \clwWidth8560\clftsWidth3 \clheight680 \clbrdrt\brdrs\brdrw20\brdrcf2 \clbrdrl\brdrs\brdrw20\brdrcf2 \clbrdrb\brdrs\brdrw20\brdrcf2 \clbrdrr\brdrs\brdrw20\brdrcf2 \clpadt20 \clpadl20 \clpadb20 \clpadr20 \gaph\cellx8640
-\pard\intbl\itap1\pardeftab720\partightenfactor0
+---
 
-\fs24 \cf2 Field
-\f1\b0 \cf0 \up0 \nosupersub \ulnone \cell 
-\pard\intbl\itap1\pardeftab720\partightenfactor0
+## I. Project Metadata & Goals
 
-\f0\b \cf2 \up0 \nosupersub \ulnone Detail
-\f1\b0 \cf0 \up0 \nosupersub \ulnone \cell \row
+| Field | Detail |
+|-------|--------|
+| Project Name | ShizList |
+| Slogan/Tagline | "Share the stuff you love" |
+| Target Platforms | iOS & Android (Flutter Codebase) |
+| Tech Stack | Frontend: Flutter (Dart). Backend/DB: Supabase (Postgres, Auth, Realtime, Storage). |
+| Primary Goal | Create a robust wish list app enabling multi-user list creation, anonymous claiming, group messaging, and Amazon affiliate revenue generation. |
+| Revenue Model | Amazon Affiliate links generated via the Product Advertising API (PA-API). |
 
-\itap1\trowd \taflags1 \trgaph108\trleft-108 \trbrdrl\brdrnil \trbrdrr\brdrnil 
-\clvertalc \clcbpat3 \clwWidth960\clftsWidth3 \clheight680 \clbrdrt\brdrs\brdrw20\brdrcf2 \clbrdrl\brdrs\brdrw20\brdrcf2 \clbrdrb\brdrs\brdrw20\brdrcf2 \clbrdrr\brdrs\brdrw20\brdrcf2 \clpadt20 \clpadl20 \clpadb20 \clpadr20 \gaph\cellx4320
-\clvertalc \clcbpat3 \clwWidth8560\clftsWidth3 \clheight680 \clbrdrt\brdrs\brdrw20\brdrcf2 \clbrdrl\brdrs\brdrw20\brdrcf2 \clbrdrb\brdrs\brdrw20\brdrcf2 \clbrdrr\brdrs\brdrw20\brdrcf2 \clpadt20 \clpadl20 \clpadb20 \clpadr20 \gaph\cellx8640
-\pard\intbl\itap1\pardeftab720\partightenfactor0
-\cf2 \up0 \nosupersub \ulnone Project Name\cf0 \up0 \nosupersub \ulnone \cell 
-\pard\intbl\itap1\pardeftab720\partightenfactor0
-\cf2 \up0 \nosupersub \ulnone ShizList\cf0 \up0 \nosupersub \ulnone \cell \row
+---
 
-\itap1\trowd \taflags1 \trgaph108\trleft-108 \trbrdrl\brdrnil \trbrdrr\brdrnil 
-\clvertalc \clshdrawnil \clwWidth960\clftsWidth3 \clheight700 \clbrdrt\brdrs\brdrw20\brdrcf2 \clbrdrl\brdrs\brdrw20\brdrcf2 \clbrdrb\brdrs\brdrw20\brdrcf2 \clbrdrr\brdrs\brdrw20\brdrcf2 \clpadt20 \clpadl20 \clpadb20 \clpadr20 \gaph\cellx4320
-\clvertalc \clshdrawnil \clwWidth8560\clftsWidth3 \clheight700 \clbrdrt\brdrs\brdrw20\brdrcf2 \clbrdrl\brdrs\brdrw20\brdrcf2 \clbrdrb\brdrs\brdrw20\brdrcf2 \clbrdrr\brdrs\brdrw20\brdrcf2 \clpadt20 \clpadl20 \clpadb20 \clpadr20 \gaph\cellx8640
-\pard\intbl\itap1\pardeftab720\partightenfactor0
-\cf2 \up0 \nosupersub \ulnone Slogan/Tagline\cf0 \up0 \nosupersub \ulnone \cell 
-\pard\intbl\itap1\pardeftab720\partightenfactor0
-\cf2 \up0 \nosupersub \ulnone "Share the stuff you love"\cf0 \up0 \nosupersub \ulnone \cell \row
+## II. Design System & Global Constraints
 
-\itap1\trowd \taflags1 \trgaph108\trleft-108 \trbrdrl\brdrnil \trbrdrr\brdrnil 
-\clvertalc \clcbpat3 \clwWidth960\clftsWidth3 \clheight1060 \clbrdrt\brdrs\brdrw20\brdrcf2 \clbrdrl\brdrs\brdrw20\brdrcf2 \clbrdrb\brdrs\brdrw20\brdrcf2 \clbrdrr\brdrs\brdrw20\brdrcf2 \clpadt20 \clpadl20 \clpadb20 \clpadr20 \gaph\cellx4320
-\clvertalc \clcbpat3 \clwWidth8560\clftsWidth3 \clheight1060 \clbrdrt\brdrs\brdrw20\brdrcf2 \clbrdrl\brdrs\brdrw20\brdrcf2 \clbrdrb\brdrs\brdrw20\brdrcf2 \clbrdrr\brdrs\brdrw20\brdrcf2 \clpadt20 \clpadl20 \clpadb20 \clpadr20 \gaph\cellx8640
-\pard\intbl\itap1\pardeftab720\partightenfactor0
-\cf2 \up0 \nosupersub \ulnone Target Platforms\cf0 \up0 \nosupersub \ulnone \cell 
-\pard\intbl\itap1\pardeftab720\partightenfactor0
-\cf2 \up0 \nosupersub \ulnone iOS & Android (Flutter Codebase)\cf0 \up0 \nosupersub \ulnone \cell \row
+### A. Typography (Readability Focus)
+- Headline/Display: **Montserrat** (Bold 700 / Black 900)
+- Body/UI Text: **Source Sans Pro** (Regular 400 / Semi-Bold 600)
 
-\itap1\trowd \taflags1 \trgaph108\trleft-108 \trbrdrl\brdrnil \trbrdrr\brdrnil 
-\clvertalc \clshdrawnil \clwWidth960\clftsWidth3 \clheight680 \clbrdrt\brdrs\brdrw20\brdrcf2 \clbrdrl\brdrs\brdrw20\brdrcf2 \clbrdrb\brdrs\brdrw20\brdrcf2 \clbrdrr\brdrs\brdrw20\brdrcf2 \clpadt20 \clpadl20 \clpadb20 \clpadr20 \gaph\cellx4320
-\clvertalc \clshdrawnil \clwWidth8560\clftsWidth3 \clheight680 \clbrdrt\brdrs\brdrw20\brdrcf2 \clbrdrl\brdrs\brdrw20\brdrcf2 \clbrdrb\brdrs\brdrw20\brdrcf2 \clbrdrr\brdrs\brdrw20\brdrcf2 \clpadt20 \clpadl20 \clpadb20 \clpadr20 \gaph\cellx8640
-\pard\intbl\itap1\pardeftab720\partightenfactor0
-\cf2 \up0 \nosupersub \ulnone Tech Stack\cf0 \up0 \nosupersub \ulnone \cell 
-\pard\intbl\itap1\pardeftab720\partightenfactor0
-\cf2 \up0 \nosupersub \ulnone Frontend: Flutter (Dart). Backend/DB: Supabase (Postgres, Auth, Realtime, Storage).\cf0 \up0 \nosupersub \ulnone \cell \row
+### B. Color Palette
+- Primary Accent (ShizList Teal): #009688
+- Background (Clean White): #FAFAFA
+- Text/Surface (Deep Charcoal): #212121
+- Error/Alert (Claim Red): #D32F2F
+- Accent (Orange/Red): #FF5722
 
-\itap1\trowd \taflags1 \trgaph108\trleft-108 \trbrdrl\brdrnil \trbrdrr\brdrnil 
-\clvertalc \clcbpat3 \clwWidth960\clftsWidth3 \clheight1080 \clbrdrt\brdrs\brdrw20\brdrcf2 \clbrdrl\brdrs\brdrw20\brdrcf2 \clbrdrb\brdrs\brdrw20\brdrcf2 \clbrdrr\brdrs\brdrw20\brdrcf2 \clpadt20 \clpadl20 \clpadb20 \clpadr20 \gaph\cellx4320
-\clvertalc \clcbpat3 \clwWidth8560\clftsWidth3 \clheight1080 \clbrdrt\brdrs\brdrw20\brdrcf2 \clbrdrl\brdrs\brdrw20\brdrcf2 \clbrdrb\brdrs\brdrw20\brdrcf2 \clbrdrr\brdrs\brdrw20\brdrcf2 \clpadt20 \clpadl20 \clpadb20 \clpadr20 \gaph\cellx8640
-\pard\intbl\itap1\pardeftab720\partightenfactor0
-\cf2 \up0 \nosupersub \ulnone Primary Goal\cf0 \up0 \nosupersub \ulnone \cell 
-\pard\intbl\itap1\pardeftab720\partightenfactor0
-\cf2 \up0 \nosupersub \ulnone Create a robust wish list app enabling multi-user list creation, anonymous claiming, group messaging, and Amazon affiliate revenue generation.\cf0 \up0 \nosupersub \ulnone \cell \row
+### C. Navigation Structure
+- Top Bar: Title, Search/My list Icon, User Profile Picture (Taps to open Drawer).
+- Bottom Tab Bar (5 Tabs): My Lists, **Invite**, Contacts, Messages, Share.
+- Floating Action Button (FAB): Opens the "Add Item" Modal.
+- Side Drawer Menu: Contains Profile, Settings, and Log Out options.
 
-\itap1\trowd \taflags1 \trgaph108\trleft-108 \trbrdrl\brdrnil \trbrdrt\brdrnil \trbrdrr\brdrnil 
-\clvertalc \clshdrawnil \clwWidth960\clftsWidth3 \clheight1060 \clbrdrt\brdrs\brdrw20\brdrcf2 \clbrdrl\brdrs\brdrw20\brdrcf2 \clbrdrb\brdrs\brdrw20\brdrcf2 \clbrdrr\brdrs\brdrw20\brdrcf2 \clpadt20 \clpadl20 \clpadb20 \clpadr20 \gaph\cellx4320
-\clvertalc \clshdrawnil \clwWidth8560\clftsWidth3 \clheight1060 \clbrdrt\brdrs\brdrw20\brdrcf2 \clbrdrl\brdrs\brdrw20\brdrcf2 \clbrdrb\brdrs\brdrw20\brdrcf2 \clbrdrr\brdrs\brdrw20\brdrcf2 \clpadt20 \clpadl20 \clpadb20 \clpadr20 \gaph\cellx8640
-\pard\intbl\itap1\pardeftab720\partightenfactor0
-\cf2 \up0 \nosupersub \ulnone Revenue Model\cf0 \up0 \nosupersub \ulnone \cell 
-\pard\intbl\itap1\pardeftab720\partightenfactor0
-\cf2 \up0 \nosupersub \ulnone Amazon Affiliate links generated via the Product Advertising API (PA-API).\cf0 \up0 \nosupersub \ulnone 
-\cf4 \up0 \nosupersub \ulnone \cell \lastrow\row
-\pard\pardeftab720\partightenfactor0
-\cf4 \
-\pard\pardeftab720\sa280\partightenfactor0
+---
 
-\f0\b\fs28 \cf2 II. Design System & Global Constraints\
-\pard\pardeftab720\sa319\partightenfactor0
+## III. Minimum Viable Product (MVP) Feature Set
 
-\fs24 \cf2 A. Typography (Readability Focus)\
-\pard\tx220\tx720\pardeftab720\li720\fi-720\sa240\partightenfactor0
-\ls1\ilvl0
-\f1\b0 \cf2 \up0 \nosupersub \ulnone {\listtext	\uc0\u8226 	}\up0 \nosupersub \ulnone Headline/Display: 
-\f0\b Montserrat
-\f1\b0  (Bold 700 / Black 900)\
-\ls1\ilvl0\up0 \nosupersub \ulnone {\listtext	\uc0\u8226 	}\up0 \nosupersub \ulnone Body/UI Text: 
-\f0\b Source Sans Pro
-\f1\b0  (Regular 400 / Semi-Bold 600)\
-\pard\pardeftab720\sa319\partightenfactor0
+### A. User & List Management
+- Authentication: Email/Password via Supabase Auth.
+- Lists: Users can create **multiple lists**.
+- Categories: **Stuff, Events, Trips, Crafted, Meals, Other.**
 
-\f0\b \cf2 B. Color Palette\
-\pard\tx220\tx720\pardeftab720\li720\fi-720\sa240\partightenfactor0
-\ls2\ilvl0
-\f1\b0 \cf2 \up0 \nosupersub \ulnone {\listtext	\uc0\u8226 	}\up0 \nosupersub \ulnone Primary Accent (ShizList Teal): #009688\
-\ls2\ilvl0\up0 \nosupersub \ulnone {\listtext	\uc0\u8226 	}\up0 \nosupersub \ulnone Background (Clean White): #FAFAFA\
-\ls2\ilvl0\up0 \nosupersub \ulnone {\listtext	\uc0\u8226 	}\up0 \nosupersub \ulnone Text/Surface (Deep Charcoal): #212121\
-\ls2\ilvl0\up0 \nosupersub \ulnone {\listtext	\uc0\u8226 	}\up0 \nosupersub \ulnone Error/Alert (Claim Red): #D32F2F\
-\pard\pardeftab720\sa319\partightenfactor0
+### B. Item Creation & Data
+- Add Item Entry Points: **1. Quick Add**, **2. Search on Amazon** (via PA-API), **3. Paste Product Link**.
+- Amazon Integration: **MUST** use PA-API to search, retrieve data, and generate the **affiliate link** (retailer_url).
+- Images (Optional): **MUST** enforce the generation of two sizes upon upload: **150x150** (thumbnail) and **900x900** (main).
 
-\f0\b \cf2 C. Navigation Structure\
-\pard\tx220\tx720\pardeftab720\li720\fi-720\sa240\partightenfactor0
-\ls3\ilvl0
-\f1\b0 \cf2 \up0 \nosupersub \ulnone {\listtext	\uc0\u8226 	}\up0 \nosupersub \ulnone Top Bar: Title, Search/My listIcon, User Profile Picture (Taps to open Drawer).\
-\ls3\ilvl0\up0 \nosupersub \ulnone {\listtext	\uc0\u8226 	}\up0 \nosupersub \ulnone Bottom Tab Bar (5 Tabs): My Lists, 
-\f0\b Invite
-\f1\b0 , Contacts, Messages, Share.\
-\ls3\ilvl0\up0 \nosupersub \ulnone {\listtext	\uc0\u8226 	}\up0 \nosupersub \ulnone Floating Action Button (FAB): Opens the "Add Item" Modal.\
-\ls3\ilvl0\up0 \nosupersub \ulnone {\listtext	\uc0\u8226 	}\up0 \nosupersub \ulnone Side Drawer Menu: Contains Profile, Settings, and Log Out options.\
-\pard\pardeftab720\partightenfactor0
-\cf4 \
-\pard\pardeftab720\sa280\partightenfactor0
+### C. Gifting & Claiming
+- Sharing: Generates a unique URL (list.uid). Links can be set to **Private** or **Public**.
+- Claiming: Status is **hidden from the List Creator**.
+- Claim Expiration: Gifters can add an **optional expires_at date**. Claim is removed upon expiration.
 
-\f0\b\fs28 \cf2 III. Minimum Viable Product (MVP) Feature Set\
-\pard\pardeftab720\sa319\partightenfactor0
+### D. Group Messaging
+- Conversations: Simple chat feature tied to a shared list.
+- Message Scopes: All Gifters (not Creator), Everyone (inc. Creator), Creator only, Selected Gifters.
 
-\fs24 \cf2 A. User & List Management\
-\pard\tx220\tx720\pardeftab720\li720\fi-720\sa240\partightenfactor0
-\ls4\ilvl0
-\f1\b0 \cf2 \up0 \nosupersub \ulnone {\listtext	\uc0\u8226 	}\up0 \nosupersub \ulnone Authentication: Email/Password via Supabase Auth.\
-\ls4\ilvl0\up0 \nosupersub \ulnone {\listtext	\uc0\u8226 	}\up0 \nosupersub \ulnone Lists: Users can create 
-\f0\b multiple lists
-\f1\b0 .\
-\ls4\ilvl0\up0 \nosupersub \ulnone {\listtext	\uc0\u8226 	}\up0 \nosupersub \ulnone Categories: 
-\f0\b Stuff, Events, Trips, Crafted, Meals, Other.
-\f1\b0 \
-\pard\pardeftab720\sa319\partightenfactor0
+---
 
-\f0\b \cf2 B. Item Creation & Data\
-\pard\tx220\tx720\pardeftab720\li720\fi-720\sa240\partightenfactor0
-\ls5\ilvl0
-\f1\b0 \cf2 \up0 \nosupersub \ulnone {\listtext	\uc0\u8226 	}\up0 \nosupersub \ulnone Add Item Entry Points: 
-\f0\b 1. Quick Add
-\f1\b0 , 
-\f0\b 2. Search on Amazon
-\f1\b0  (via PA-API), 
-\f0\b 3. Paste Product Link
-\f1\b0 .\
-\ls5\ilvl0\up0 \nosupersub \ulnone {\listtext	\uc0\u8226 	}\up0 \nosupersub \ulnone Amazon Integration: 
-\f0\b MUST
-\f1\b0  use PA-API to search, retrieve data, and generate the 
-\f0\b affiliate link
-\f1\b0  (retailer_url).\
-\ls5\ilvl0\up0 \nosupersub \ulnone {\listtext	\uc0\u8226 	}\up0 \nosupersub \ulnone Images (Optional): 
-\f0\b MUST
-\f1\b0  enforce the generation of two sizes upon upload: 
-\f0\b 150x150
-\f1\b0  (thumbnail) and 
-\f0\b 900x900
-\f1\b0  (main).\
-\pard\pardeftab720\sa319\partightenfactor0
+## IV. Technical Architecture (Supabase & Postgres)
 
-\f0\b \cf2 C. Gifting & Claiming\
-\pard\tx220\tx720\pardeftab720\li720\fi-720\sa240\partightenfactor0
-\ls6\ilvl0
-\f1\b0 \cf2 \up0 \nosupersub \ulnone {\listtext	\uc0\u8226 	}\up0 \nosupersub \ulnone Sharing: Generates a unique URL (list.uid). Links can be set to 
-\f0\b Private
-\f1\b0  or 
-\f0\b Public
-\f1\b0 .\
-\ls6\ilvl0\up0 \nosupersub \ulnone {\listtext	\uc0\u8226 	}\up0 \nosupersub \ulnone Claiming: Status is 
-\f0\b hidden from the List Creator
-\f1\b0 .\
-\ls6\ilvl0\up0 \nosupersub \ulnone {\listtext	\uc0\u8226 	}\up0 \nosupersub \ulnone Claim Expiration: Gifters can add an 
-\f0\b optional expires_at date
-\f1\b0 . Claim is removed upon expiration.\
-\pard\pardeftab720\sa319\partightenfactor0
+### A. Data Structure Constraints
+- ID Strategy: All primary tables **MUST** use both a standard id (BIGINT) and a public-facing uid (UUID).
+- Security: **Row Level Security (RLS)** must be enabled and rigorously enforced on all tables.
 
-\f0\b \cf2 D. Group Messaging\
-\pard\tx220\tx720\pardeftab720\li720\fi-720\sa240\partightenfactor0
-\ls7\ilvl0
-\f1\b0 \cf2 \up0 \nosupersub \ulnone {\listtext	\uc0\u8226 	}\up0 \nosupersub \ulnone Conversations: Simple chat feature tied to a shared list.\
-\ls7\ilvl0\up0 \nosupersub \ulnone {\listtext	\uc0\u8226 	}\up0 \nosupersub \ulnone Message Scopes: All Gifters (not Creator), Everyone (inc. Creator), Creator only, Selected Gifters.\
-\pard\pardeftab720\partightenfactor0
-\cf4 \
-\pard\pardeftab720\sa280\partightenfactor0
+### B. Essential Supabase Functions & Views
+- claims_expire_and_notify (Edge Function/Cron Job): Runs daily to check and remove expired claims.
+- public_list_items (Postgres View): Provides a restricted, read-only view for public sharing.
+- claim_item (Postgres Function): A single transactional function for safely inserting a claim.
 
-\f0\b\fs28 \cf2 IV. Technical Architecture (Supabase & Postgres)\
-\pard\pardeftab720\sa319\partightenfactor0
+---
 
-\fs24 \cf2 A. Data Structure Constraints\
-\pard\tx220\tx720\pardeftab720\li720\fi-720\sa240\partightenfactor0
-\ls8\ilvl0
-\f1\b0 \cf2 \up0 \nosupersub \ulnone {\listtext	\uc0\u8226 	}\up0 \nosupersub \ulnone ID Strategy: All primary tables 
-\f0\b MUST
-\f1\b0  use both a standard id (BIGINT) and a public-facing uid (UUID).\
-\ls8\ilvl0\up0 \nosupersub \ulnone {\listtext	\uc0\u8226 	}\up0 \nosupersub \ulnone Security: 
-\f0\b Row Level Security (RLS)
-\f1\b0  must be enabled and rigorously enforced on all tables.\
-\pard\pardeftab720\sa319\partightenfactor0
+## V. Key UI Screens
 
-\f0\b \cf2 B. Essential Supabase Functions & Views\
-\pard\tx220\tx720\pardeftab720\li720\fi-720\sa240\partightenfactor0
-\ls9\ilvl0
-\f1\b0 \cf2 \up0 \nosupersub \ulnone {\listtext	\uc0\u8226 	}\up0 \nosupersub \ulnone claims_expire_and_notify (Edge Function/Cron Job): Runs daily to check and remove expired claims.\
-\ls9\ilvl0\up0 \nosupersub \ulnone {\listtext	\uc0\u8226 	}\up0 \nosupersub \ulnone public_list_items (Postgres View): Provides a restricted, read-only view for public sharing.\
-\ls9\ilvl0\up0 \nosupersub \ulnone {\listtext	\uc0\u8226 	}\up0 \nosupersub \ulnone claim_item (Postgres Function): A single transactional function for safely inserting a claim.\
-\pard\pardeftab720\partightenfactor0
+### 1. Main List View (My Lists)
+This is the primary home screen, designed for easy navigation and quick viewing of wish list items.
 
-\f2\fs22 \cf2 \
-\
-\pard\pardeftab720\sa298\partightenfactor0
+| UI Element | Description |
+|------------|-------------|
+| Top Navigation | Contains the list Title, a Search/Filter Icon, and the **User Profile Picture** (avatar) on the right, which opens the Side Drawer. |
+| List Content | A vertically scrolling **Stacked Layout** (or List View) showing list items. Each item is a **Card** displaying: Item Image (150x150 thumbnail), Item Name (Montserrat, bold), Price, and a small tag for the **Category** (Stuff, Events, etc.). |
+| Claim Status | Item cards must hide the "Claimed" status from the List Creator. Gifters see a prominent **Teal** badge or text showing CLAIMED if someone else has claimed it. |
+| Bottom Tab Bar | Fixed at the bottom with 5 icons: **My Lists, Invite, Contacts, Messages, Share**. The active tab uses the **ShizList Teal** color. |
+| Floating Action Button (FAB) | A large circular button in the bottom right corner, using **ShizList Teal**, with a + icon. This is the main entry point for adding items. |
 
-\f3\fs36 \cf2 \uc0\u55356 \u57256 
-\f0\b  ShizList Key UI Screens\
-\pard\pardeftab720\sa280\partightenfactor0
-My list
-\fs28 \cf2 1. Main List View (My Lists)\
-\pard\pardeftab720\sa240\partightenfactor0
+### 2. Add Item Modal (Quick Add)
+This screen is a modal launched by the FAB, focusing on the simple manual entry of a new wish list item.
 
-\f1\b0\fs24 \cf2 This is the primary home screen, designed for easy navigation and quick viewing of wish list items.\
-
-\itap1\trowd \taflags1 \trgaph108\trleft-108 \trbrdrt\brdrnil \trbrdrl\brdrnil \trbrdrr\brdrnil 
-\clvertalc \clshdrawnil \clwWidth1020\clftsWidth3 \clheight820 \clbrdrt\brdrs\brdrw20\brdrcf2 \clbrdrl\brdrs\brdrw20\brdrcf2 \clbrdrb\brdrs\brdrw20\brdrcf2 \clbrdrr\brdrs\brdrw20\brdrcf2 \clpadt20 \clpadl20 \clpadb20 \clpadr20 \gaph\cellx2880
-\clvertalc \clshdrawnil \clwWidth7600\clftsWidth3 \clheight820 \clbrdrt\brdrs\brdrw20\brdrcf2 \clbrdrl\brdrs\brdrw20\brdrcf2 \clbrdrb\brdrs\brdrw20\brdrcf2 \clbrdrr\brdrs\brdrw20\brdrcf2 \clpadt20 \clpadl20 \clpadb20 \clpadr20 \gaph\cellx5760
-\clvertalc \clshdrawnil \clwWidth840\clftsWidth3 \clheight820 \clbrdrt\brdrs\brdrw20\brdrcf2 \clbrdrl\brdrs\brdrw20\brdrcf2 \clbrdrb\brdrs\brdrw20\brdrcf2 \clbrdrr\brdrs\brdrw20\brdrcf2 \clpadt20 \clpadl20 \clpadb20 \clpadr20 \gaph\cellx8640
-\pard\intbl\itap1\pardeftab720\partightenfactor0
-
-\f0\b \cf2 UI Element
-\f1\b0 \cf0 \up0 \nosupersub \ulnone \cell 
-\pard\intbl\itap1\pardeftab720\partightenfactor0
-
-\f0\b \cf2 \up0 \nosupersub \ulnone Description
-\f1\b0 \cf0 \up0 \nosupersub \ulnone \cell 
-\pard\intbl\itap1\pardeftab720\partightenfactor0
-
-\f0\b \cf2 \up0 \nosupersub \ulnone Visual Reference Query
-\f1\b0 \cf0 \up0 \nosupersub \ulnone \cell \row
-
-\itap1\trowd \taflags1 \trgaph108\trleft-108 \trbrdrl\brdrnil \trbrdrr\brdrnil 
-\clvertalc \clcbpat3 \clwWidth1020\clftsWidth3 \clheight560 \clbrdrt\brdrs\brdrw20\brdrcf2 \clbrdrl\brdrs\brdrw20\brdrcf2 \clbrdrb\brdrs\brdrw20\brdrcf2 \clbrdrr\brdrs\brdrw20\brdrcf2 \clpadt20 \clpadl20 \clpadb20 \clpadr20 \gaph\cellx2880
-\clvertalc \clcbpat3 \clwWidth7600\clftsWidth3 \clheight560 \clbrdrt\brdrs\brdrw20\brdrcf2 \clbrdrl\brdrs\brdrw20\brdrcf2 \clbrdrb\brdrs\brdrw20\brdrcf2 \clbrdrr\brdrs\brdrw20\brdrcf2 \clpadt20 \clpadl20 \clpadb20 \clpadr20 \gaph\cellx5760
-\clvertalc \clcbpat3 \clwWidth840\clftsWidth3 \clheight560 \clbrdrt\brdrs\brdrw20\brdrcf2 \clbrdrl\brdrs\brdrw20\brdrcf2 \clbrdrb\brdrs\brdrw20\brdrcf2 \clbrdrr\brdrs\brdrw20\brdrcf2 \clpadt20 \clpadl20 \clpadb20 \clpadr20 \gaph\cellx8640
-\pard\intbl\itap1\pardeftab720\partightenfactor0
-
-\f0\b \cf2 \up0 \nosupersub \ulnone Top Navigation
-\f1\b0 \cf0 \up0 \nosupersub \ulnone \cell 
-\pard\intbl\itap1\pardeftab720\partightenfactor0
-\cf2 \up0 \nosupersub \ulnone Contains the list Title (e.g., "Sam's ShizList"), a Search/Filter Icon, and the 
-\f0\b User Profile Picture
-\f1\b0  (avatar) on the right, which opens the Side Drawer.\cf0 \up0 \nosupersub \ulnone \cell 
-\pard\intbl\itap1\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
-\cf0 \cell \row
-
-\itap1\trowd \taflags1 \trgaph108\trleft-108 \trbrdrl\brdrnil \trbrdrr\brdrnil 
-\clvertalc \clshdrawnil \clwWidth1020\clftsWidth3 \clheight540 \clbrdrt\brdrs\brdrw20\brdrcf2 \clbrdrl\brdrs\brdrw20\brdrcf2 \clbrdrb\brdrs\brdrw20\brdrcf2 \clbrdrr\brdrs\brdrw20\brdrcf2 \clpadt20 \clpadl20 \clpadb20 \clpadr20 \gaph\cellx2880
-\clvertalc \clshdrawnil \clwWidth7600\clftsWidth3 \clheight540 \clbrdrt\brdrs\brdrw20\brdrcf2 \clbrdrl\brdrs\brdrw20\brdrcf2 \clbrdrb\brdrs\brdrw20\brdrcf2 \clbrdrr\brdrs\brdrw20\brdrcf2 \clpadt20 \clpadl20 \clpadb20 \clpadr20 \gaph\cellx5760
-\clvertalc \clshdrawnil \clwWidth840\clftsWidth3 \clheight540 \clbrdrt\brdrs\brdrw20\brdrcf2 \clbrdrl\brdrs\brdrw20\brdrcf2 \clbrdrb\brdrs\brdrw20\brdrcf2 \clbrdrr\brdrs\brdrw20\brdrcf2 \clpadt20 \clpadl20 \clpadb20 \clpadr20 \gaph\cellx8640
-\pard\intbl\itap1\pardeftab720\partightenfactor0
-
-\f0\b \cf2 \up0 \nosupersub \ulnone List Content
-\f1\b0 \cf0 \up0 \nosupersub \ulnone \cell 
-\pard\intbl\itap1\pardeftab720\partightenfactor0
-\cf2 \up0 \nosupersub \ulnone A vertically scrolling 
-\f0\b Stacked Layout
-\f1\b0  (or List View) showing list items. Each item is a 
-\f0\b Card
-\f1\b0  displaying: Item Image (150x150 thumbnail), Item Name (Montserrat, bold), Price, and a small tag for the 
-\f0\b Category
-\f1\b0  (Stuff, Events, etc.).\cf0 \up0 \nosupersub \ulnone \cell 
-\pard\intbl\itap1\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
-\cf0 \cell \row
-
-\itap1\trowd \taflags1 \trgaph108\trleft-108 \trbrdrl\brdrnil \trbrdrr\brdrnil 
-\clvertalc \clcbpat3 \clwWidth1020\clftsWidth3 \clheight540 \clbrdrt\brdrs\brdrw20\brdrcf2 \clbrdrl\brdrs\brdrw20\brdrcf2 \clbrdrb\brdrs\brdrw20\brdrcf2 \clbrdrr\brdrs\brdrw20\brdrcf2 \clpadt20 \clpadl20 \clpadb20 \clpadr20 \gaph\cellx2880
-\clvertalc \clcbpat3 \clwWidth7600\clftsWidth3 \clheight540 \clbrdrt\brdrs\brdrw20\brdrcf2 \clbrdrl\brdrs\brdrw20\brdrcf2 \clbrdrb\brdrs\brdrw20\brdrcf2 \clbrdrr\brdrs\brdrw20\brdrcf2 \clpadt20 \clpadl20 \clpadb20 \clpadr20 \gaph\cellx5760
-\clvertalc \clcbpat3 \clwWidth840\clftsWidth3 \clheight540 \clbrdrt\brdrs\brdrw20\brdrcf2 \clbrdrl\brdrs\brdrw20\brdrcf2 \clbrdrb\brdrs\brdrw20\brdrcf2 \clbrdrr\brdrs\brdrw20\brdrcf2 \clpadt20 \clpadl20 \clpadb20 \clpadr20 \gaph\cellx8640
-\pard\intbl\itap1\pardeftab720\partightenfactor0
-
-\f0\b \cf2 \up0 \nosupersub \ulnone Claim Status
-\f1\b0 \cf0 \up0 \nosupersub \ulnone \cell 
-\pard\intbl\itap1\pardeftab720\partightenfactor0
-\cf2 \up0 \nosupersub \ulnone Item cards must hide the "Claimed" status from the List Creator. Gifters see a prominent 
-\f0\b Teal
-\f1\b0  badge or text showing CLAIMED if someone else has claimed it.\cf0 \up0 \nosupersub \ulnone \cell 
-\pard\intbl\itap1\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
-\cf0 \cell \row
-
-\itap1\trowd \taflags1 \trgaph108\trleft-108 \trbrdrl\brdrnil \trbrdrr\brdrnil 
-\clvertalc \clshdrawnil \clwWidth1020\clftsWidth3 \clheight560 \clbrdrt\brdrs\brdrw20\brdrcf2 \clbrdrl\brdrs\brdrw20\brdrcf2 \clbrdrb\brdrs\brdrw20\brdrcf2 \clbrdrr\brdrs\brdrw20\brdrcf2 \clpadt20 \clpadl20 \clpadb20 \clpadr20 \gaph\cellx2880
-\clvertalc \clshdrawnil \clwWidth7600\clftsWidth3 \clheight560 \clbrdrt\brdrs\brdrw20\brdrcf2 \clbrdrl\brdrs\brdrw20\brdrcf2 \clbrdrb\brdrs\brdrw20\brdrcf2 \clbrdrr\brdrs\brdrw20\brdrcf2 \clpadt20 \clpadl20 \clpadb20 \clpadr20 \gaph\cellx5760
-\clvertalc \clshdrawnil \clwWidth840\clftsWidth3 \clheight560 \clbrdrt\brdrs\brdrw20\brdrcf2 \clbrdrl\brdrs\brdrw20\brdrcf2 \clbrdrb\brdrs\brdrw20\brdrcf2 \clbrdrr\brdrs\brdrw20\brdrcf2 \clpadt20 \clpadl20 \clpadb20 \clpadr20 \gaph\cellx8640
-\pard\intbl\itap1\pardeftab720\partightenfactor0
-
-\f0\b \cf2 \up0 \nosupersub \ulnone Bottom Tab Bar
-\f1\b0 \cf0 \up0 \nosupersub \ulnone \cell 
-\pard\intbl\itap1\pardeftab720\partightenfactor0
-\cf2 \My listsupersub \ulnone Fixed at the bottom with 5 icons: 
-\f0\b My Lists, Invite, Contacts, Messages, Share
-\f1\b0 . The active tab uses the 
-\f0\b ShizList Teal
-\f1\b0  color.\cf0 \up0 \nosupersub \ulnone \cell 
-\pard\intbl\itap1\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
-\cf0 \cell \row
-
-\itap1\trowd \taflags1 \trgaph108\trleft-108 \trbrdrl\brdrnil \trbrdrt\brdrnil \trbrdrr\brdrnil 
-\clvertalc \clcbpat3 \clwWidth1020\clftsWidth3 \clheight820 \clbrdrt\brdrs\brdrw20\brdrcf2 \clbrdrl\brdrs\brdrw20\brdrcf2 \clbrdrb\brdrs\brdrw20\brdrcf2 \clbrdrr\brdrs\brdrw20\brdrcf2 \clpadt20 \clpadl20 \clpadb20 \clpadr20 \gaph\cellx2880
-\clvertalc \clcbpat3 \clwWidth7600\clftsWidth3 \clheight820 \clbrdrt\brdrs\brdrw20\brdrcf2 \clbrdrl\brdrs\brdrw20\brdrcf2 \clbrdrb\brdrs\brdrw20\brdrcf2 \clbrdrr\brdrs\brdrw20\brdrcf2 \clpadt20 \clpadl20 \clpadb20 \clpadr20 \gaph\cellx5760
-\clvertalc \clcbpat3 \clwWidth840\clftsWidth3 \clheight820 \clbrdrt\brdrs\brdrw20\brdrcf2 \clbrdrl\brdrs\brdrw20\brdrcf2 \clbrdrb\brdrs\brdrw20\brdrcf2 \clbrdrr\brdrs\brdrw20\brdrcf2 \clpadt20 \clpadl20 \clpadb20 \clpadr20 \gaph\cellx8640
-\pard\intbl\itap1\pardeftab720\partightenfactor0
-
-\f0\b \cf2 \up0 \nosupersub \ulnone Floating Action Button (FAB)
-\f1\b0 \cf0 \up0 \nosupersub \ulnone \cell 
-\pard\intbl\itap1\pardeftab720\partightenfactor0
-\cf2 \up0 \nosupersub \ulnone A large circular button in the bottom right corner, using 
-\f0\b ShizList Teal
-\f1\b0 , with a + icon. This is the main entry point for adding items.\cf0 \up0 \nosupersub \ulnone \cell 
-\pard\intbl\itap1\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
-\cf0 
-\cf4 \up0 \nosupersub \ulnone \cell \lastrow\row
-\pard\pardeftab720\partightenfactor0
-\cf4 \
-\pard\pardeftab720\sa280\partightenfactor0
-
-\f0\b\fs28 \cf2 2. Add Item Modal (Quick Add)\
-\pard\pardeftab720\sa240\partightenfactor0
-
-\f1\b0\fs24 \cf2 This screen is a modal launched by the FAB, focusing on the simple manual entry of a new wish list item.\
-
-\itap1\trowd \taflags1 \trgaph108\trleft-108 \trbrdrt\brdrnil \trbrdrl\brdrnil \trbrdrr\brdrnil 
-\clvertalc \clshdrawnil \clwWidth1080\clftsWidth3 \clheight540 \clbrdrt\brdrs\brdrw20\brdrcf2 \clbrdrl\brdrs\brdrw20\brdrcf2 \clbrdrb\brdrs\brdrw20\brdrcf2 \clbrdrr\brdrs\brdrw20\brdrcf2 \clpadt20 \clpadl20 \clpadb20 \clpadr20 \gaph\cellx2880
-\clvertalc \clshdrawnil \clwWidth7020\clftsWidth3 \clheight540 \clbrdrt\brdrs\brdrw20\brdrcf2 \clbrdrl\brdrs\brdrw20\brdrcf2 \clbrdrb\brdrs\brdrw20\brdrcf2 \clbrdrr\brdrs\brdrw20\brdrcf2 \clpadt20 \clpadl20 \clpadb20 \clpadr20 \gaph\cellx5760
-\clvertalc \clshdrawnil \clwWidth1360\clftsWidth3 \clheight540 \clbrdrt\brdrs\brdrw20\brdrcf2 \clbrdrl\brdrs\brdrw20\brdrcf2 \clbrdrb\brdrs\brdrw20\brdrcf2 \clbrdrr\brdrs\brdrw20\brdrcf2 \clpadt20 \clpadl20 \clpadb20 \clpadr20 \gaph\cellx8640
-\pard\intbl\itap1\pardeftab720\partightenfactor0
-
-\f0\b \cf2 UI Element
-\f1\b0 \cf0 \up0 \nosupersub \ulnone \cell 
-\pard\intbl\itap1\pardeftab720\partightenfactor0
-
-\f0\b \cf2 \up0 \nosupersub \ulnone Description
-\f1\b0 \cf0 \up0 \nosupersub \ulnone \cell 
-\pard\intbl\itap1\pardeftab720\partightenfactor0
-
-\f0\b \cf2 \up0 \nosupersub \ulnone Visual Reference Query
-\f1\b0 \cf0 \up0 \nosupersub \ulnone \cell \row
-
-\itap1\trowd \taflags1 \trgaph108\trleft-108 \trbrdrl\brdrnil \trbrdrr\brdrnil 
-\clvertalc \clcbpat3 \clwWidth1080\clftsWidth3 \clheight340 \clbrdrt\brdrs\brdrw20\brdrcf2 \clbrdrl\brdrs\brdrw20\brdrcf2 \clbrdrb\brdrs\brdrw20\brdrcf2 \clbrdrr\brdrs\brdrw20\brdrcf2 \clpadt20 \clpadl20 \clpadb20 \clpadr20 \gaph\cellx2880
-\clvertalc \clcbpat3 \clwWidth7020\clftsWidth3 \clheight340 \clbrdrt\brdrs\brdrw20\brdrcf2 \clbrdrl\brdrs\brdrw20\brdrcf2 \clbrdrb\brdrs\brdrw20\brdrcf2 \clbrdrr\brdrs\brdrw20\brdrcf2 \clpadt20 \clpadl20 \clpadb20 \clpadr20 \gaph\cellx5760
-\clvertalc \clcbpat3 \clwWidth1360\clftsWidth3 \clheight340 \clbrdrt\brdrs\brdrw20\brdrcf2 \clbrdrl\brdrs\brdrw20\brdrcf2 \clbrdrb\brdrs\brdrw20\brdrcf2 \clbrdrr\brdrs\brdrw20\brdrcf2 \clpadt20 \clpadl20 \clpadb20 \clpadr20 \gaph\cellx8640
-\pard\intbl\itap1\pardeftab720\partightenfactor0
-
-\f0\b \cf2 \up0 \nosupersub \ulnone Screen Type
-\f1\b0 \cf0 \up0 \nosupersub \ulnone \cell 
-\pard\intbl\itap1\pardeftab720\partightenfactor0
-\cf2 \up0 \nosupersub \ulnone A 
-\f0\b Modal
-\f1\b0  (or bottom sheet) that slides up over the main screen, focused on task completion.\cf0 \up0 \nosupersub \ulnone \cell 
-\pard\intbl\itap1\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
-\cf0 \cell \row
-
-\itap1\trowd \taflags1 \trgaph108\trleft-108 \trbrdrl\brdrnil \trbrdrr\brdrnil 
-\clvertalc \clshdrawnil \clwWidth1080\clftsWidth3 \clheight340 \clbrdrt\brdrs\brdrw20\brdrcf2 \clbrdrl\brdrs\brdrw20\brdrcf2 \clbrdrb\brdrs\brdrw20\brdrcf2 \clbrdrr\brdrs\brdrw20\brdrcf2 \clpadt20 \clpadl20 \clpadb20 \clpadr20 \gaph\cellx2880
-\clvertalc \clshdrawnil \clwWidth7020\clftsWidth3 \clheight340 \clbrdrt\brdrs\brdrw20\brdrcf2 \clbrdrl\brdrs\brdrw20\brdrcf2 \clbrdrb\brdrs\brdrw20\brdrcf2 \clbrdrr\brdrs\brdrw20\brdrcf2 \clpadt20 \clpadl20 \clpadb20 \clpadr20 \gaph\cellx5760
-\clvertalc \clshdrawnil \clwWidth1360\clftsWidth3 \clheight340 \clbrdrt\brdrs\brdrw20\brdrcf2 \clbrdrl\brdrs\brdrw20\brdrcf2 \clbrdrb\brdrs\brdrw20\brdrcf2 \clbrdrr\brdrs\brdrw20\brdrcf2 \clpadt20 \clpadl20 \clpadb20 \clpadr20 \gaph\cellx8640
-\pard\intbl\itap1\pardeftab720\partightenfactor0
-
-\f0\b \cf2 \up0 \nosupersub \ulnone Input Fields
-\f1\b0 \cf0 \up0 \nosupersub \ulnone \cell 
-\pard\intbl\itap1\pardeftab720\partightenfactor0
-\cf2 \up0 \nosupersub \ulnone Simple form fields in a stacked layout for: 
-\f0\b Name, Description, Price, Retailer URL
-\f1\b0  (optional).\cf0 \up0 \nosupersub \ulnone \cell 
-\pard\intbl\itap1\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
-\cf0 \cell \row
-
-\itap1\trowd \taflags1 \trgaph108\trleft-108 \trbrdrl\brdrnil \trbrdrr\brdrnil 
-\clvertalc \clcbpat3 \clwWidth1080\clftsWidth3 \clheight560 \clbrdrt\brdrs\brdrw20\brdrcf2 \clbrdrl\brdrs\brdrw20\brdrcf2 \clbrdrb\brdrs\brdrw20\brdrcf2 \clbrdrr\brdrs\brdrw20\brdrcf2 \clpadt20 \clpadl20 \clpadb20 \clpadr20 \gaph\cellx2880
-\clvertalc \clcbpat3 \clwWidth7020\clftsWidth3 \clheight560 \clbrdrt\brdrs\brdrw20\brdrcf2 \clbrdrl\brdrs\brdrw20\brdrcf2 \clbrdrb\brdrs\brdrw20\brdrcf2 \clbrdrr\brdrs\brdrw20\brdrcf2 \clpadt20 \clpadl20 \clpadb20 \clpadr20 \gaph\cellx5760
-\clvertalc \clcbpat3 \clwWidth1360\clftsWidth3 \clheight560 \clbrdrt\brdrs\brdrw20\brdrcf2 \clbrdrl\brdrs\brdrw20\brdrcf2 \clbrdrb\brdrs\brdrw20\brdrcf2 \clbrdrr\brdrs\brdrw20\brdrcf2 \clpadt20 \clpadl20 \clpadb20 \clpadr20 \gaph\cellx8640
-\pard\intbl\itap1\pardeftab720\partightenfactor0
-
-\f0\b \cf2 \up0 \nosupersub \ulnone Category Selection
-\f1\b0 \cf0 \up0 \nosupersub \ulnone \cell 
-\pard\intbl\itap1\pardeftab720\partightenfactor0
-\cf2 \up0 \nosupersub \ulnone A dedicated section with the 6 required categories (
-\f0\b Stuff, Events, Trips, etc.
-\f1\b0 ) presented as large, tappable buttons or a dropdown.\cf0 \up0 \nosupersub \ulnone \cell 
-\pard\intbl\itap1\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
-\cf0 \cell \row
-
-\itap1\trowd \taflags1 \trgaph108\trleft-108 \trbrdrl\brdrnil \trbrdrt\brdrnil \trbrdrr\brdrnil 
-\clvertalc \clshdrawnil \clwWidth1080\clftsWidth3 \clheight540 \clbrdrt\brdrs\brdrw20\brdrcf2 \clbrdrl\brdrs\brdrw20\brdrcf2 \clbrdrb\brdrs\brdrw20\brdrcf2 \clbrdrr\brdrs\brdrw20\brdrcf2 \clpadt20 \clpadl20 \clpadb20 \clpadr20 \gaph\cellx2880
-\clvertalc \clshdrawnil \clwWidth7020\clftsWidth3 \clheight540 \clbrdrt\brdrs\brdrw20\brdrcf2 \clbrdrl\brdrs\brdrw20\brdrcf2 \clbrdrb\brdrs\brdrw20\brdrcf2 \clbrdrr\brdrs\brdrw20\brdrcf2 \clpadt20 \clpadl20 \clpadb20 \clpadr20 \gaph\cellx5760
-\clvertalt \clshdrawnil \clwWidth1240\clftsWidth3 \clheight420 \clbrdrt\brdrs\brdrw20\brdrcf2 \clbrdrl\brdrs\brdrw20\brdrcf2 \clbrdrb\brdrs\brdrw20\brdrcf2 \clbrdrr\brdrs\brdrw20\brdrcf2 \clpadt80 \clpadl80 \clpadb80 \clpadr80 \gaph\cellx8640
-\pard\intbl\itap1\pardeftab720\partightenfactor0
-
-\f0\b \cf2 \up0 \nosupersub \ulnone Action Buttons
-\f1\b0 \cf0 \up0 \nosupersub \ulnone \cell 
-\pard\intbl\itap1\pardeftab720\partightenfactor0
-\cf2 \up0 \nosupersub \ulnone A primary "Save Item" button using 
-\f0\b ShizList Teal
-\f1\b0 . Below the form, a secondary option: "Or, Search on Amazon."\cf0 \up0 \nosupersub \ulnone \cell 
-\pard\intbl\itap1\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
-\cf0 
-\cf2 \up0 \nosupersub \ulnone \cell \lastrow\row
-}
+| UI Element | Description |
+|------------|-------------|
+| Screen Type | A **Modal** (or bottom sheet) that slides up over the main screen, focused on task completion. |
+| Input Fields | Simple form fields in a stacked layout for: **Name, Description, Price, Retailer URL** (optional). |
+| Category Selection | A dedicated section with the 6 required categories (**Stuff, Events, Trips, etc.**) presented as large, tappable buttons or a dropdown. |
+| Action Buttons | A primary "Save Item" button using **ShizList Teal**. Below the form, a secondary option: "Or, Search on Amazon." |

@@ -32,7 +32,7 @@ class _AcceptInviteScreenState extends State<AcceptInviteScreen> {
   Future<void> _processInvite() async {
     try {
       final result = await _inviteService.acceptInvite(widget.inviteCode);
-      
+
       if (mounted) {
         if (result['success'] == true) {
           setState(() {
@@ -41,12 +41,15 @@ class _AcceptInviteScreenState extends State<AcceptInviteScreen> {
             _ownerName = result['ownerName'] as String?;
             _listTitle = result['listTitle'] as String?;
           });
-          
+
           // Show success and navigate after a brief delay
           await Future.delayed(const Duration(milliseconds: 1500));
           if (mounted) {
             context.go(AppRoutes.contacts);
-            AppNotification.success(context, _successMessage ?? 'Invite accepted!');
+            AppNotification.success(
+              context,
+              _successMessage ?? 'Invite accepted!',
+            );
           }
         } else {
           setState(() {
@@ -56,10 +59,11 @@ class _AcceptInviteScreenState extends State<AcceptInviteScreen> {
         }
       }
     } catch (e) {
+      debugPrint('Error processing invite: $e');
       if (mounted) {
         setState(() {
           _isProcessing = false;
-          _errorMessage = 'Failed to process invite. Please try again.';
+          _errorMessage = 'Failed to process invite: ${e.toString()}';
         });
       }
     }
@@ -85,59 +89,60 @@ class _AcceptInviteScreenState extends State<AcceptInviteScreen> {
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
-                    _isProcessing 
+                    _isProcessing
                         ? Icons.hourglass_empty
-                        : _errorMessage != null 
-                            ? Icons.error_outline
-                            : Icons.check_circle_outline,
+                        : _errorMessage != null
+                        ? Icons.error_outline
+                        : Icons.check_circle_outline,
                     size: 50,
-                    color: _errorMessage != null 
-                        ? AppColors.error 
-                        : AppColors.primary,
+                    color:
+                        _errorMessage != null
+                            ? AppColors.error
+                            : AppColors.primary,
                   ),
                 ),
                 const SizedBox(height: 32),
-                
+
                 // Status text
                 Text(
-                  _isProcessing 
+                  _isProcessing
                       ? 'Processing invite...'
                       : _errorMessage ?? _successMessage ?? 'Success!',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: _errorMessage != null 
-                        ? AppColors.error 
-                        : AppColors.textPrimary,
+                    color:
+                        _errorMessage != null
+                            ? AppColors.error
+                            : AppColors.textPrimary,
                   ),
                   textAlign: TextAlign.center,
                 ),
-                
+
                 if (_ownerName != null && _errorMessage == null) ...[
                   const SizedBox(height: 8),
                   Text(
-                    _listTitle != null 
-                        ? 'List: $_listTitle'
-                        : '',
+                    _listTitle != null ? 'List: $_listTitle' : '',
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                       color: AppColors.textSecondary,
                     ),
                     textAlign: TextAlign.center,
                   ),
                 ],
-                
+
                 const SizedBox(height: 32),
-                
+
                 if (_isProcessing)
-                  const CircularProgressIndicator(
-                    color: AppColors.primary,
-                  )
+                  const CircularProgressIndicator(color: AppColors.primary)
                 else if (_errorMessage != null) ...[
                   ElevatedButton(
                     onPressed: () => context.go(AppRoutes.lists),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 32,
+                        vertical: 16,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(28),
                       ),
@@ -160,4 +165,3 @@ class _AcceptInviteScreenState extends State<AcceptInviteScreen> {
     );
   }
 }
-

@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'supabase_service.dart';
 import '../models/invite_link.dart';
@@ -22,18 +23,15 @@ class InviteService {
     if (userId == null) throw Exception('User not authenticated');
 
     final code = _generateCode();
-    
+
     final data = {
       'owner_id': userId,
       'code': code,
       if (listId != null) 'list_id': listId,
     };
 
-    final response = await _client
-        .from(_tableName)
-        .insert(data)
-        .select()
-        .single();
+    final response =
+        await _client.from(_tableName).insert(data).select().single();
 
     return InviteLink.fromJson(response);
   }
@@ -55,14 +53,32 @@ class InviteService {
 
   /// Get invite link by code (public - for accepting invites)
   Future<InviteLink?> getInviteLinkByCode(String code) async {
-    final response = await _client
-        .from(_tableName)
-        .select('*, lists(title), users!owner_id(display_name, avatar_url)')
-        .eq('code', code.toUpperCase())
-        .eq('is_active', true)
-        .maybeSingle();
+    // Get the invite link first
+    final response =
+        await _client
+            .from(_tableName)
+            .select('*, lists(title)')
+            .eq('code', code.toUpperCase())
+            .eq('is_active', true)
+            .maybeSingle();
 
     if (response == null) return null;
+
+    // Fetch owner info separately (no FK relationship)
+    final ownerId = response['owner_id'] as String?;
+    if (ownerId != null) {
+      final ownerResponse =
+          await _client
+              .from('users')
+              .select('display_name, avatar_url')
+              .eq('uid', ownerId)
+              .maybeSingle();
+
+      if (ownerResponse != null) {
+        response['users'] = ownerResponse;
+      }
+    }
+
     return InviteLink.fromJson(response);
   }
 
@@ -105,13 +121,19 @@ class InviteService {
   Future<Map<String, dynamic>> acceptInvite(String code) async {
     final userId = SupabaseService.currentUserId;
     if (userId == null) {
-      return {'success': false, 'message': 'Please sign in to accept this invite'};
+      return {
+        'success': false,
+        'message': 'Please sign in to accept this invite',
+      };
     }
 
     // Get the invite
     final invite = await getInviteLinkByCode(code);
     if (invite == null) {
-      return {'success': false, 'message': 'This invite link is invalid or has expired'};
+      return {
+        'success': false,
+        'message': 'This invite link is invalid or has expired',
+      };
     }
 
     // Can't accept your own invite
@@ -120,11 +142,14 @@ class InviteService {
     }
 
     // Check if already friends
-    final existingFriend = await _client
-        .from('friends')
-        .select('id')
-        .or('and(user_id.eq.$userId,friend_user_id.eq.${invite.ownerId}),and(user_id.eq.${invite.ownerId},friend_user_id.eq.$userId)')
-        .maybeSingle();
+    final existingFriend =
+        await _client
+            .from('friends')
+            .select('id')
+            .or(
+              'and(user_id.eq.$userId,friend_user_id.eq.${invite.ownerId}),and(user_id.eq.${invite.ownerId},friend_user_id.eq.$userId)',
+            )
+            .maybeSingle();
 
     if (existingFriend == null) {
       // Create friendship
@@ -134,35 +159,44 @@ class InviteService {
       });
     }
 
-    // If invite has a list, share it with the accepting user
+    // If invite has a list, try to share it with the accepting user
+    // This may fail due to RLS policies - the friendship is the priority
     if (invite.listId != null) {
-      final listId = invite.listId!;
-      
-      // Get the list UID first
-      final listData = await _client
-          .from('lists')
-          .select('uid')
-          .eq('id', listId)
-          .maybeSingle();
+      try {
+        final listId = invite.listId!;
 
-      if (listData != null) {
-        final listUid = listData['uid'] as String;
-        
-        // Check if list is already shared
-        final existingShare = await _client
-            .from('list_shares')
-            .select('id')
-            .eq('list_uid', listUid)
-            .eq('shared_with_user_id', userId)
-            .maybeSingle();
+        // Get the list UID first
+        final listData =
+            await _client
+                .from('lists')
+                .select('uid')
+                .eq('id', listId)
+                .maybeSingle();
 
-        if (existingShare == null) {
-          await _client.from('list_shares').insert({
-            'list_uid': listUid,
-            'shared_with_user_id': userId,
-            'can_edit': false,
-          });
+        if (listData != null) {
+          final listUid = listData['uid'] as String;
+
+          // Check if list is already shared
+          final existingShare =
+              await _client
+                  .from('list_shares')
+                  .select('id')
+                  .eq('list_uid', listUid)
+                  .eq('shared_with_user_id', userId)
+                  .maybeSingle();
+
+          if (existingShare == null) {
+            await _client.from('list_shares').insert({
+              'list_uid': listUid,
+              'shared_with_user_id': userId,
+              'can_edit': false,
+            });
+          }
         }
+      } catch (e) {
+        // List sharing failed due to RLS policy - friendship is still created
+        // The list owner can share manually later
+        debugPrint('List sharing failed (RLS): $e');
       }
     }
 
@@ -175,13 +209,13 @@ class InviteService {
 
     return {
       'success': true,
-      'message': existingFriend != null 
-          ? 'You\'re already connected with ${invite.ownerName ?? 'this user'}'
-          : 'You\'re now connected with ${invite.ownerName ?? 'your new friend'}!',
+      'message':
+          existingFriend != null
+              ? 'You\'re already connected with ${invite.ownerName ?? 'this user'}'
+              : 'You\'re now connected with ${invite.ownerName ?? 'your new friend'}!',
       'ownerName': invite.ownerName,
       'listTitle': invite.listTitle,
       'alreadyFriends': existingFriend != null,
     };
   }
 }
-

@@ -90,8 +90,13 @@ class AppRouter {
           state.matchedLocation.startsWith('/invite/') &&
           state.matchedLocation != '/invite';
 
+      // Check if this is a deep link invite code (/:code pattern - 8 uppercase alphanumeric)
+      final isDeepLinkInvite =
+          state.pathParameters['code'] != null &&
+          RegExp(r'^[A-Z0-9]{8}$').hasMatch(state.pathParameters['code']!);
+
       // Allow accept invite route - it will handle auth check internally
-      if (isAcceptInviteRoute) {
+      if (isAcceptInviteRoute || isDeepLinkInvite) {
         // If not authenticated, redirect to signup with the invite code saved
         if (!isAuthenticated) {
           // Store the invite code in query params for after signup
@@ -162,9 +167,8 @@ class AppRouter {
             path: AppRoutes.invite,
             name: 'invite',
             pageBuilder:
-                (context, state) => const NoTransitionPage(
-                  child: InviteScreen(),
-                ),
+                (context, state) =>
+                    const NoTransitionPage(child: InviteScreen()),
           ),
 
           // Contacts tab
@@ -263,6 +267,27 @@ class AppRouter {
         path: '/invite/:code',
         name: 'acceptInvite',
         builder: (context, state) {
+          final code = state.pathParameters['code']!;
+          return AcceptInviteScreen(inviteCode: code);
+        },
+      ),
+
+      // Deep link fallback - handles co.shizlist.app://invite/CODE where 'invite' becomes host
+      // and CODE becomes the path /:code
+      GoRoute(
+        path: '/:code',
+        name: 'acceptInviteDeepLink',
+        redirect: (context, state) {
+          final code = state.pathParameters['code'];
+          // Check if it looks like an invite code (8 uppercase alphanumeric chars)
+          if (code != null && RegExp(r'^[A-Z0-9]{8}$').hasMatch(code)) {
+            return '/invite/$code';
+          }
+          // Not an invite code, let it fall through to error
+          return null;
+        },
+        builder: (context, state) {
+          // This shouldn't be reached for valid invite codes due to redirect
           final code = state.pathParameters['code']!;
           return AcceptInviteScreen(inviteCode: code);
         },
