@@ -10,7 +10,7 @@ enum ClaimStatus {
   String get displayName {
     switch (this) {
       case ClaimStatus.active:
-        return 'Claimed';
+        return 'Committed';
       case ClaimStatus.expired:
         return 'Expired';
       case ClaimStatus.purchased:

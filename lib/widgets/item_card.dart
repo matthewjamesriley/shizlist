@@ -13,7 +13,7 @@ class ItemCard extends StatelessWidget {
   final ListItem item;
   final bool isOwner;
   final VoidCallback? onTap;
-  final VoidCallback? onClaimTap;
+  final VoidCallback? onCommitTap;
   final VoidCallback? onLinkTap;
   final ItemPosition position;
 
@@ -22,7 +22,7 @@ class ItemCard extends StatelessWidget {
     required this.item,
     this.isOwner = false,
     this.onTap,
-    this.onClaimTap,
+    this.onCommitTap,
     this.onLinkTap,
     this.position = ItemPosition.only,
   });
@@ -64,76 +64,76 @@ class ItemCard extends StatelessWidget {
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.all(12),
-            child: Row(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Thumbnail image
-                _buildThumbnail(),
-                const SizedBox(width: 12),
+                // Top row: Category, link, priority, price (spans full width)
+                Row(
+                  children: [
+                    _buildCategoryBadge(),
+                    if (item.retailerUrl != null &&
+                        item.retailerUrl!.isNotEmpty) ...[
+                      const SizedBox(width: 6),
+                      _buildLinkButton(),
+                    ],
+                    const Spacer(),
+                    // Priority and price on right
+                    if (item.price != null) ...[
+                      Text(item.formattedPrice, style: AppTypography.priceText),
+                      const SizedBox(width: 6),
+                    ],
+                    _buildPriorityBadge(),
+                  ],
+                ),
+                const SizedBox(height: 8),
 
-                // Item details - left side
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Category badge and link icon row
-                      Row(
+                // Bottom section: Thumbnail, details, and commit button
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // Thumbnail image
+                    _buildThumbnail(),
+                    const SizedBox(width: 12),
+
+                    // Item details
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildCategoryBadge(),
-                          if (item.retailerUrl != null &&
-                              item.retailerUrl!.isNotEmpty) ...[
-                            const SizedBox(width: 6),
-                            _buildLinkButton(),
+                          // Item name
+                          Text(
+                            item.name,
+                            style: AppTypography.titleMedium,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+
+                          if (item.description != null) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              item.description!,
+                              style: AppTypography.bodySmall,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+
+                          // Committed status row (only if committed)
+                          if (!isOwner && item.isClaimed) ...[
+                            const SizedBox(height: 8),
+                            _buildCommittedBadge(),
                           ],
                         ],
                       ),
-                      const SizedBox(height: 6),
+                    ),
 
-                      // Item name
-                      Text(
-                        item.name,
-                        style: AppTypography.titleMedium,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-
-                      if (item.description != null) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          item.description!,
-                          style: AppTypography.bodySmall,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-
-                      // Claim status row (only if claimed)
-                      if (!isOwner && item.isClaimed) ...[
-                        const SizedBox(height: 8),
-                        _buildClaimedBadge(),
-                      ],
-                    ],
-                  ),
-                ),
-
-                // Priority and price - right side
-                const SizedBox(width: 8),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    _buildPriorityBadge(),
-                    if (item.price != null) ...[
-                      const SizedBox(height: 8),
-                      Text(item.formattedPrice, style: AppTypography.priceText),
+                    // Commit button for gifters
+                    if (!isOwner && !item.isClaimed) ...[
+                      const SizedBox(width: 8),
+                      _buildCommitButton(),
                     ],
                   ],
                 ),
-
-                // Claim button for gifters
-                if (!isOwner && !item.isClaimed) ...[
-                  const SizedBox(width: 8),
-                  _buildClaimButton(),
-                ],
               ],
             ),
           ),
@@ -193,7 +193,7 @@ class ItemCard extends StatelessWidget {
     );
   }
 
-  Widget _buildClaimedBadge() {
+  Widget _buildCommittedBadge() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
@@ -205,21 +205,21 @@ class ItemCard extends StatelessWidget {
         children: [
           const Icon(Icons.check_circle, size: 14, color: AppColors.primary),
           const SizedBox(width: 4),
-          Text('CLAIMED', style: AppTypography.claimedBadge),
+          Text('COMMITTED', style: AppTypography.claimedBadge),
         ],
       ),
     );
   }
 
-  Widget _buildClaimButton() {
+  Widget _buildCommitButton() {
     return SizedBox(
       width: 48,
       height: 48,
       child: IconButton.filled(
-        onPressed: onClaimTap,
+        onPressed: onCommitTap,
         icon: const Icon(Icons.card_giftcard),
         style: IconButton.styleFrom(
-          backgroundColor: AppColors.primary,
+          backgroundColor: AppColors.accent,
           foregroundColor: AppColors.textOnPrimary,
         ),
       ),

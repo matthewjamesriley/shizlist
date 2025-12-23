@@ -12,6 +12,7 @@ class ListCard extends StatefulWidget {
   final Function(bool isPublic)? onVisibilityChanged;
   final VoidCallback? onFriendsTap;
   final int friendsCount;
+  final bool isCompact;
 
   const ListCard({
     super.key,
@@ -20,6 +21,7 @@ class ListCard extends StatefulWidget {
     this.onVisibilityChanged,
     this.onFriendsTap,
     this.friendsCount = 0,
+    this.isCompact = false,
   });
 
   @override
@@ -95,6 +97,204 @@ class _ListCardState extends State<ListCard> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.isCompact) {
+      return _buildCompactCard();
+    }
+    return _buildFullCard();
+  }
+
+  Widget _buildCompactCard() {
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      child: InkWell(
+        onTap: widget.onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(
+            children: [
+              // Left: Gradient bar or thumbnail
+              Container(
+                width: 4,
+                height: 48,
+                decoration: BoxDecoration(
+                  gradient: AppColors.primaryGradient,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 12),
+              // Middle: Title and stats
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            widget.list.title,
+                            style: AppTypography.titleMedium,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        // Visibility icon
+                        GestureDetector(
+                          onTap: _showVisibilityDialog,
+                          child: PhosphorIcon(
+                            widget.list.isPublic
+                                ? PhosphorIcons.usersThree()
+                                : PhosphorIcons.lock(),
+                            size: 16,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        // Event date
+                        if (widget.list.hasEventDate) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: widget.list.isUpcoming
+                                  ? AppColors.primary.withValues(alpha: 0.15)
+                                  : Colors.grey.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                PhosphorIcon(
+                                  PhosphorIcons.calendarDots(),
+                                  size: 12,
+                                  color: widget.list.isUpcoming
+                                      ? AppColors.primary
+                                      : AppColors.textSecondary,
+                                ),
+                                const SizedBox(width: 3),
+                                Text(
+                                  _getEventDateLabel(),
+                                  style: AppTypography.labelSmall.copyWith(
+                                    color: widget.list.isUpcoming
+                                        ? AppColors.primary
+                                        : AppColors.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Text(
+                          '${widget.list.itemCount} ${widget.list.itemCount == 1 ? 'item' : 'items'}',
+                          style: AppTypography.bodySmall.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        Text(
+                          '  •  ',
+                          style: AppTypography.bodySmall.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        Text(
+                          '${widget.list.claimedCount} claimed',
+                          style: AppTypography.bodySmall.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        if (widget.list.itemCount > 0) ...[
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(2),
+                              child: LinearProgressIndicator(
+                                value: widget.list.progressPercentage,
+                                backgroundColor: AppColors.divider,
+                                valueColor: const AlwaysStoppedAnimation(
+                                  AppColors.primary,
+                                ),
+                                minHeight: 3,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              // Right: Friends badge
+              GestureDetector(
+                onTap: widget.onFriendsTap,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: AppColors.border,
+                          width: 1,
+                        ),
+                      ),
+                      child: Center(
+                        child: PhosphorIcon(
+                          PhosphorIcons.users(),
+                          size: 14,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                    if (widget.friendsCount > 0)
+                      Positioned(
+                        right: -6,
+                        top: -6,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: AppColors.accent,
+                            shape: BoxShape.circle,
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 18,
+                            minHeight: 18,
+                          ),
+                          child: Center(
+                            child: Text(
+                              widget.friendsCount > 99
+                                  ? '99+'
+                                  : '${widget.friendsCount}',
+                              style: AppTypography.labelSmall.copyWith(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFullCard() {
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(

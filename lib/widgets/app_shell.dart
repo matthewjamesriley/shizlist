@@ -11,6 +11,8 @@ import '../services/auth_service.dart';
 import '../services/list_service.dart';
 import '../services/lists_notifier.dart';
 import '../services/user_settings_service.dart';
+import '../services/page_load_notifier.dart';
+import '../services/view_mode_notifier.dart';
 import 'add_item_sheet.dart';
 import 'app_drawer.dart';
 import 'app_notification.dart';
@@ -33,10 +35,13 @@ class _AppShellState extends State<AppShell>
   final _authService = AuthService();
   final _listService = ListService();
   final _listsNotifier = ListsNotifier();
+  final _viewModeNotifier = ViewModeNotifier();
+  final _pageLoadNotifier = PageLoadNotifier();
   bool _showButtons = false;
   bool _hasLists = false;
   bool _hasItems = false;
   UserProfile? _userProfile;
+  int _lastIndex = 0;
 
   // Bouncing arrow animation
   late AnimationController _arrowController;
@@ -51,12 +56,8 @@ class _AppShellState extends State<AppShell>
     UserSettingsService().addListener(_onSettingsChanged);
     // Listen for list changes
     _listsNotifier.addListener(_onListsChanged);
-    // Delay showing buttons to avoid spin animation
-    Future.delayed(const Duration(milliseconds: 100), () {
-      if (mounted) {
-        setState(() => _showButtons = true);
-      }
-    });
+    // Listen for page load to show buttons
+    _pageLoadNotifier.addListener(_onPageLoaded);
 
     // Setup bouncing arrow animation
     _arrowController = AnimationController(
@@ -69,11 +70,23 @@ class _AppShellState extends State<AppShell>
     );
   }
 
+  void _onPageLoaded() {
+    if (_pageLoadNotifier.listsPageLoaded && mounted) {
+      // Small delay for smooth entrance after content renders
+      Future.delayed(const Duration(milliseconds: 50), () {
+        if (mounted) {
+          setState(() => _showButtons = true);
+        }
+      });
+    }
+  }
+
   @override
   void dispose() {
     _arrowController.dispose();
     UserSettingsService().removeListener(_onSettingsChanged);
     _listsNotifier.removeListener(_onListsChanged);
+    _pageLoadNotifier.removeListener(_onPageLoaded);
     super.dispose();
   }
 
@@ -147,6 +160,13 @@ class _AppShellState extends State<AppShell>
   @override
   Widget build(BuildContext context) {
     final currentIndex = _getCurrentIndex(context);
+
+    // Reset button state when navigating away from lists page
+    if (currentIndex != 0 && _lastIndex == 0) {
+      _showButtons = false;
+      _pageLoadNotifier.resetListsPageLoaded();
+    }
+    _lastIndex = currentIndex;
 
     return Scaffold(
       key: _scaffoldKey,
@@ -253,111 +273,22 @@ class _AppShellState extends State<AppShell>
           ),
         ],
       ),
-      floatingActionButton: AnimatedSlide(
-        duration: const Duration(milliseconds: 200),
-        offset:
-            (_showButtons && currentIndex == 0)
-                ? Offset.zero
-                : const Offset(0, 0.3),
-        child: AnimatedOpacity(
-          duration: const Duration(milliseconds: 200),
-          opacity: (_showButtons && currentIndex == 0) ? 1.0 : 0.0,
-          child: IgnorePointer(
-            ignoring: !_showButtons || currentIndex != 0,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // Add List button (left)
-                Padding(
-                  padding: const EdgeInsets.only(left: 32),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(32),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 6.5, sigmaY: 6.5),
-                      child: Material(
-                        color: Colors.white.withValues(alpha: 0.92),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(32),
-                          side: BorderSide(
-                            color: Colors.black.withValues(alpha: 0.2),
-                            width: 1,
-                          ),
-                        ),
-                        child: InkWell(
-                          onTap: _showCreateListDialog,
-                          borderRadius: BorderRadius.circular(32),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 28,
-                              vertical: 16,
-                            ),
-                            child: Text(
-                              'Add list',
-                              style: AppTypography.titleMedium.copyWith(
-                                color: Colors.black,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
+      floatingActionButton:
+          currentIndex == 0
+              ? AnimatedSlide(
+                duration: const Duration(milliseconds: 200),
+                offset: _showButtons ? Offset.zero : const Offset(0, 0.3),
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 200),
+                  opacity: _showButtons ? 1.0 : 0.0,
+                  child: IgnorePointer(
+                    ignoring: !_showButtons,
+                    child: _buildListsPageButtons(context),
                   ),
                 ),
-                // Add Item button (right) - Orange (disabled if no lists)
-                // With bouncing arrow when lists exist but no items
-                Stack(
-                  clipBehavior: Clip.none,
-                  alignment: Alignment.center,
-                  children: [
-                    // Bouncing arrow (positioned above the button)
-                    if (_hasLists && !_hasItems)
-                      Positioned(
-                        top: -46,
-                        child: AnimatedBuilder(
-                          animation: _arrowAnimation,
-                          builder: (context, child) {
-                            return Transform.translate(
-                              offset: Offset(0, _arrowAnimation.value),
-                              child: PhosphorIcon(
-                                PhosphorIcons.arrowDown(
-                                  PhosphorIconsStyle.bold,
-                                ),
-                                size: 36,
-                                color: Colors.black,
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    Material(
-                      color:
-                          _hasLists ? AppColors.accent : Colors.grey.shade400,
-                      shape: const CircleBorder(),
-                      elevation: _hasLists ? 6 : 2,
-                      shadowColor: Colors.black.withValues(alpha: 0.3),
-                      child: InkWell(
-                        onTap:
-                            _hasLists ? () => _showAddItemSheet(context) : null,
-                        customBorder: const CircleBorder(),
-                        child: SizedBox(
-                          width: 56,
-                          height: 56,
-                          child: PhosphorIcon(
-                            PhosphorIcons.plus(),
-                            size: 28,
-                            color: _hasLists ? Colors.white : Colors.white70,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+              )
+              : const SizedBox.shrink(),
+      floatingActionButtonAnimator: const NoFabAnimator(),
     );
   }
 
@@ -391,5 +322,164 @@ class _AppShellState extends State<AppShell>
 
   void _openSearch(BuildContext context) {
     showSearch(context: context, delegate: ItemSearchDelegate());
+  }
+
+  Widget _buildListsPageButtons(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        // Add List button and View toggle (left)
+        Padding(
+          padding: const EdgeInsets.only(left: 32),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Add List button
+              ClipRRect(
+                borderRadius: BorderRadius.circular(32),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 6.5, sigmaY: 6.5),
+                  child: Material(
+                    color: Colors.white.withValues(alpha: 0.92),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(32),
+                      side: BorderSide(
+                        color: Colors.black.withValues(alpha: 0.2),
+                        width: 1,
+                      ),
+                    ),
+                    child: InkWell(
+                      onTap: _showCreateListDialog,
+                      borderRadius: BorderRadius.circular(32),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 28,
+                          vertical: 16,
+                        ),
+                        child: Text(
+                          'Add list',
+                          style: AppTypography.titleMedium.copyWith(
+                            color: Colors.black,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              // View toggle button
+              ClipRRect(
+                borderRadius: BorderRadius.circular(32),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 6.5, sigmaY: 6.5),
+                  child: Material(
+                    color: Colors.white.withValues(alpha: 0.92),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(32),
+                      side: BorderSide(
+                        color: Colors.black.withValues(alpha: 0.2),
+                        width: 1,
+                      ),
+                    ),
+                    child: InkWell(
+                      onTap: () {
+                        setState(() {
+                          _viewModeNotifier.toggle();
+                        });
+                      },
+                      borderRadius: BorderRadius.circular(32),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 10,
+                        ),
+                        child: PhosphorIcon(
+                          _viewModeNotifier.isCompactView
+                              ? PhosphorIcons.rows()
+                              : PhosphorIcons.squaresFour(),
+                          size: 22,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        // Add Item button (right) - Orange (disabled if no lists)
+        // With bouncing arrow when lists exist but no items
+        Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.center,
+          children: [
+            // Bouncing arrow (positioned above the button)
+            if (_hasLists && !_hasItems)
+              Positioned(
+                top: -46,
+                child: AnimatedBuilder(
+                  animation: _arrowAnimation,
+                  builder: (context, child) {
+                    return Transform.translate(
+                      offset: Offset(0, _arrowAnimation.value),
+                      child: PhosphorIcon(
+                        PhosphorIcons.arrowDown(PhosphorIconsStyle.bold),
+                        size: 36,
+                        color: Colors.black,
+                      ),
+                    );
+                  },
+                ),
+              ),
+            Material(
+              color: _hasLists ? AppColors.accent : Colors.grey.shade400,
+              shape: const CircleBorder(),
+              elevation: _hasLists ? 6 : 2,
+              shadowColor: Colors.black.withValues(alpha: 0.3),
+              child: InkWell(
+                onTap: _hasLists ? () => _showAddItemSheet(context) : null,
+                customBorder: const CircleBorder(),
+                child: SizedBox(
+                  width: 56,
+                  height: 56,
+                  child: PhosphorIcon(
+                    PhosphorIcons.plus(),
+                    size: 28,
+                    color: _hasLists ? Colors.white : Colors.white70,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// Custom FAB animator that does no animation (instant show/hide)
+class NoFabAnimator extends FloatingActionButtonAnimator {
+  const NoFabAnimator();
+
+  @override
+  Offset getOffset({
+    required Offset begin,
+    required Offset end,
+    required double progress,
+  }) {
+    return end;
+  }
+
+  @override
+  Animation<double> getRotationAnimation({required Animation<double> parent}) {
+    return const AlwaysStoppedAnimation(1.0);
+  }
+
+  @override
+  Animation<double> getScaleAnimation({required Animation<double> parent}) {
+    return const AlwaysStoppedAnimation(1.0);
   }
 }

@@ -11,7 +11,6 @@ import '../../../routing/app_router.dart';
 import '../../../services/friend_service.dart';
 import '../../../services/list_service.dart';
 import '../../../services/list_share_service.dart';
-import '../../../widgets/app_bottom_sheet.dart';
 import '../../../widgets/app_button.dart';
 import '../../../widgets/app_dialog.dart';
 import '../../../widgets/app_notification.dart';
@@ -32,7 +31,10 @@ class _ContactsScreenState extends State<ContactsScreen> {
 
   List<Friend> _friends = [];
   List<Friend> _filteredFriends = [];
-  Map<String, List<String>> _friendSharedListNames = {};
+  Map<String, List<String>> _friendSharedListNames =
+      {}; // Lists user shared WITH friend
+  Map<String, List<WishList>> _friendsListsSharedWithMe =
+      {}; // Lists friend shared WITH user
   bool _isLoading = true;
   String? _error;
 
@@ -71,7 +73,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
         listTitleMap[list.uid] = list.title;
       }
 
-      // For each friend, get the lists they can see
+      // For each friend, get the lists they can see (user's lists shared with friend)
       final friendListNames = <String, List<String>>{};
       for (final friend in friends) {
         final sharedListUids = await _listShareService.getListsSharedWithUser(
@@ -85,12 +87,51 @@ class _ContactsScreenState extends State<ContactsScreen> {
         friendListNames[friend.friendUserId] = listNames;
       }
 
+      // Get lists shared WITH the current user (friend's lists)
+      // This is optional - don't fail the whole page if it errors
+      var friendsListsWithMe = <String, List<WishList>>{};
+      try {
+        final sharedWithMe = await _listService.getSharedLists();
+        debugPrint('Loaded ${sharedWithMe.length} shared lists with me');
+        for (final list in sharedWithMe) {
+          debugPrint('  - List "${list.title}" owned by ${list.ownerId}');
+        }
+
+        // Group shared lists by friend (owner)
+        for (final friend in friends) {
+          debugPrint(
+            'Checking friend ${friend.displayName} (${friend.friendUserId})',
+          );
+          final listsFromFriend =
+              sharedWithMe
+                  .where((list) => list.ownerId == friend.friendUserId)
+                  .toList();
+          debugPrint(
+            '  Found ${listsFromFriend.length} lists from this friend',
+          );
+          if (listsFromFriend.isNotEmpty) {
+            friendsListsWithMe[friend.friendUserId] = listsFromFriend;
+          }
+        }
+      } catch (e) {
+        debugPrint('Error loading shared lists: $e');
+        // Continue without friend's lists - not critical
+      }
+
       if (mounted) {
         setState(() {
           _friends = friends;
           _filteredFriends = friends;
           _friendSharedListNames = friendListNames;
+          _friendsListsSharedWithMe = friendsListsWithMe;
           _isLoading = false;
+          _showButtons = false; // Start hidden for animation
+        });
+        // Trigger entrance animation
+        Future.delayed(const Duration(milliseconds: 100), () {
+          if (mounted) {
+            setState(() => _showButtons = true);
+          }
         });
       }
     } catch (e) {
@@ -462,36 +503,109 @@ class _ContactsScreenState extends State<ContactsScreen> {
 
   Widget _buildFriendTile(Friend friend) {
     final sharedListNames = _friendSharedListNames[friend.friendUserId] ?? [];
-    final subtitleText =
-        sharedListNames.isEmpty
-            ? 'Can\'t see any lists'
-            : sharedListNames.join(', ');
+    final friendsLists = _friendsListsSharedWithMe[friend.friendUserId] ?? [];
 
-    return ListTile(
+    return InkWell(
       onTap: () => _showFriendListAccessSheet(friend),
-      leading: _buildAvatar(friend),
-      title: Text(
-        friend.displayName,
-        style: AppTypography.titleMedium.copyWith(color: AppColors.textPrimary),
-      ),
-      subtitle: Text(
-        subtitleText,
-        style: AppTypography.bodyMedium.copyWith(
-          color: AppColors.textSecondary,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            _buildAvatar(friend),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Text(
+                friend.displayName,
+                style: AppTypography.titleMedium.copyWith(
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ),
+            // Circle button: My lists they can see
+            _buildCircleButton(
+              icon: PhosphorIcons.star(),
+              count: sharedListNames.length,
+              isActive: sharedListNames.isNotEmpty,
+              tooltip: 'Your lists',
+              onTap: () => _showFriendListAccessSheet(friend, initialTab: 0),
+            ),
+            const SizedBox(width: 10),
+            // Circle button: Their lists I can view
+            _buildCircleButton(
+              icon: PhosphorIcons.list(),
+              count: friendsLists.length,
+              isActive: friendsLists.isNotEmpty,
+              tooltip: 'Their lists',
+              onTap: () => _showFriendListAccessSheet(friend, initialTab: 1),
+            ),
+          ],
         ),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      trailing: PhosphorIcon(
-        PhosphorIcons.caretRight(),
-        color: AppColors.primary,
-        size: 24,
       ),
     );
   }
 
-  void _showFriendListAccessSheet(Friend friend) async {
+  Widget _buildCircleButton({
+    required IconData icon,
+    required int count,
+    required bool isActive,
+    required String tooltip,
+    required VoidCallback? onTap,
+  }) {
+    final color = isActive ? AppColors.primary : AppColors.textSecondary;
+
+    return Tooltip(
+      message: '$tooltip ($count)',
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white,
+                border: Border.all(color: Colors.black, width: 1),
+              ),
+              child: Center(child: PhosphorIcon(icon, size: 18, color: color)),
+            ),
+            if (count > 0)
+              Positioned(
+                right: -8,
+                top: -8,
+                child: Container(
+                  padding: const EdgeInsets.all(5),
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.accent,
+                  ),
+                  constraints: const BoxConstraints(
+                    minWidth: 22,
+                    minHeight: 22,
+                  ),
+                  child: Center(
+                    child: Text(
+                      count > 99 ? '99+' : count.toString(),
+                      style: AppTypography.labelSmall.copyWith(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showFriendListAccessSheet(Friend friend, {int initialTab = 0}) async {
     final lists = await _listService.getUserLists();
+    final friendsLists = _friendsListsSharedWithMe[friend.friendUserId] ?? [];
 
     if (!mounted) return;
 
@@ -503,9 +617,11 @@ class _ContactsScreenState extends State<ContactsScreen> {
       builder:
           (context) => _ManageListsSheet(
             lists: lists,
+            friendsLists: friendsLists,
             selectedFriendIds: [friend.friendUserId],
             listShareService: _listShareService,
             friendName: friend.displayName,
+            initialTab: initialTab,
             onComplete: () {
               _loadFriends();
             },
@@ -593,11 +709,11 @@ class _ContactsScreenState extends State<ContactsScreen> {
                     Text(
                       (_friendSharedListNames[friend.friendUserId]?.isEmpty ??
                               true)
-                          ? 'Can\'t see any lists'
+                          ? 'Can\'t see any of your lists'
                           : _friendSharedListNames[friend.friendUserId]!.join(
                             ', ',
                           ),
-                      style: AppTypography.bodyMedium.copyWith(
+                      style: AppTypography.bodySmall.copyWith(
                         color: AppColors.textSecondary,
                       ),
                       maxLines: 1,
@@ -689,6 +805,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
       builder:
           (context) => _ManageListsSheet(
             lists: lists,
+            friendsLists: const [],
             selectedFriendIds: _selectedFriendIds.toList(),
             listShareService: _listShareService,
             onComplete: () {
@@ -703,32 +820,49 @@ class _ContactsScreenState extends State<ContactsScreen> {
 /// Sheet for managing which lists are shared with selected friends
 class _ManageListsSheet extends StatefulWidget {
   final List<WishList> lists;
+  final List<WishList> friendsLists;
   final List<String> selectedFriendIds;
   final ListShareService listShareService;
   final VoidCallback onComplete;
   final String? friendName;
+  final int initialTab;
 
   const _ManageListsSheet({
     required this.lists,
+    required this.friendsLists,
     required this.selectedFriendIds,
     required this.listShareService,
     required this.onComplete,
     this.friendName,
+    this.initialTab = 0,
   });
 
   @override
   State<_ManageListsSheet> createState() => _ManageListsSheetState();
 }
 
-class _ManageListsSheetState extends State<_ManageListsSheet> {
+class _ManageListsSheetState extends State<_ManageListsSheet>
+    with SingleTickerProviderStateMixin {
   final Map<String, bool> _listShareStatus = {};
   bool _isLoading = true;
   bool _isSaving = false;
+  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(
+      length: 2,
+      vsync: this,
+      initialIndex: widget.initialTab,
+    );
     _loadCurrentShares();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadCurrentShares() async {
@@ -785,71 +919,240 @@ class _ManageListsSheetState extends State<_ManageListsSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final friendCount = widget.selectedFriendIds.length;
-    final description =
-        widget.friendName != null
-            ? 'Select which lists ${widget.friendName} can see:'
-            : 'Select which lists ${friendCount == 1 ? "this friend" : "these friends"} can see:';
+    final firstName = widget.friendName?.split(' ').first ?? 'Friend';
 
-    return AppBottomSheet(
-      title: 'List access',
-      confirmText: 'Save',
-      onCancel: () => Navigator.pop(context),
-      onConfirm: _isSaving || widget.lists.isEmpty ? null : _saveChanges,
-      isLoading: _isSaving,
+    return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.85,
+      ),
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Description
-          Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: Text(
-              description,
-              style: AppTypography.bodyMedium.copyWith(
-                color: AppColors.textPrimary,
-              ),
+          // Header with black background (matching add_item_sheet)
+          Container(
+            decoration: const BoxDecoration(
+              color: Colors.black,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: Column(
+              children: [
+                // Title row
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Title - centered
+                      Text(
+                        'Lists',
+                        style: AppTypography.titleLarge.copyWith(
+                          color: Colors.white,
+                        ),
+                      ),
+                      // Buttons row
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          // Close button
+                          GestureDetector(
+                            onTap: () => Navigator.pop(context),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 12,
+                              ),
+                              child: Text(
+                                'Close',
+                                style: AppTypography.titleMedium.copyWith(
+                                  color: Colors.white70,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ),
+                          ),
+                          // Save button - only show on Your lists tab
+                          AnimatedBuilder(
+                            animation: _tabController,
+                            builder: (context, child) {
+                              if (_tabController.index != 0) {
+                                return const SizedBox(width: 60);
+                              }
+                              return GestureDetector(
+                                onTap:
+                                    _isSaving || widget.lists.isEmpty
+                                        ? null
+                                        : _saveChanges,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 18,
+                                    vertical: 12,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.accent,
+                                    borderRadius: BorderRadius.circular(24),
+                                  ),
+                                  child:
+                                      _isSaving
+                                          ? const SizedBox(
+                                            height: 20,
+                                            width: 20,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Colors.white,
+                                            ),
+                                          )
+                                          : Text(
+                                            'Save',
+                                            style: AppTypography.titleMedium
+                                                .copyWith(
+                                                  color: Colors.white,
+                                                  fontSize: 16,
+                                                ),
+                                          ),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+                // Tab bar
+                TabBar(
+                  controller: _tabController,
+                  labelColor: Colors.white,
+                  unselectedLabelColor: Colors.white54,
+                  indicatorColor: AppColors.primary,
+                  indicatorWeight: 3,
+                  labelStyle: AppTypography.labelLarge.copyWith(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 17,
+                  ),
+                  unselectedLabelStyle: AppTypography.labelLarge.copyWith(
+                    fontSize: 17,
+                  ),
+                  tabs: [
+                    const Tab(text: 'Your lists'),
+                    Tab(text: '$firstName\'s lists'),
+                  ],
+                ),
+              ],
             ),
           ),
-
-          // Lists
-          if (_isLoading)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.all(32),
-                child: CircularProgressIndicator(),
-              ),
-            )
-          else if (widget.lists.isEmpty)
-            Padding(
-              padding: const EdgeInsets.all(32),
-              child: Text(
-                'You don\'t have any lists yet.',
-                style: AppTypography.bodyLarge.copyWith(
-                  color: AppColors.textPrimary,
-                ),
-              ),
-            )
-          else
-            ...widget.lists.map((list) {
-              final isShared = _listShareStatus[list.uid] ?? false;
-              return _buildListTile(list, isShared);
-            }),
-
-          const SizedBox(height: 24),
+          // Tab content
+          Flexible(
+            child: TabBarView(
+              controller: _tabController,
+              children: [_buildYourListsTab(), _buildTheirListsTab(firstName)],
+            ),
+          ),
+          SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
         ],
       ),
     );
   }
 
-  Widget _buildListTile(WishList list, bool isShared) {
+  Widget _buildYourListsTab() {
+    if (_isLoading) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(32),
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    if (widget.lists.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.all(32),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              PhosphorIcon(
+                PhosphorIcons.listPlus(),
+                size: 48,
+                color: AppColors.textSecondary,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'You don\'t have any lists yet',
+                style: AppTypography.bodyLarge.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+      shrinkWrap: true,
+      itemCount: widget.lists.length,
+      itemBuilder: (context, index) {
+        final list = widget.lists[index];
+        final isShared = _listShareStatus[list.uid] ?? false;
+        return _buildShareableListTile(list, isShared);
+      },
+    );
+  }
+
+  Widget _buildTheirListsTab(String firstName) {
+    if (widget.friendsLists.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.all(32),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              PhosphorIcon(
+                PhosphorIcons.eyeSlash(),
+                size: 48,
+                color: AppColors.textSecondary,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                '$firstName hasn\'t shared any lists with you',
+                style: AppTypography.bodyLarge.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+      shrinkWrap: true,
+      itemCount: widget.friendsLists.length,
+      itemBuilder: (context, index) {
+        final list = widget.friendsLists[index];
+        return _buildViewableListTile(list);
+      },
+    );
+  }
+
+  Widget _buildShareableListTile(WishList list, bool isShared) {
     return InkWell(
       onTap: () {
         setState(() {
           _listShareStatus[list.uid] = !isShared;
         });
       },
+      borderRadius: BorderRadius.circular(8),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: const EdgeInsets.symmetric(vertical: 10),
         child: Row(
           children: [
             // Checkbox
@@ -874,39 +1177,67 @@ class _ManageListsSheetState extends State<_ManageListsSheet> {
                       : null,
             ),
             const SizedBox(width: 12),
-            // List icon
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Center(
-                child: Text(
-                  list.title.isNotEmpty ? list.title[0].toUpperCase() : '?',
-                  style: AppTypography.titleMedium.copyWith(
-                    color: AppColors.primary,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
             // List info
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(list.title, style: AppTypography.titleMedium),
-                  const SizedBox(height: 2),
+                  Text(
+                    list.title,
+                    style: AppTypography.titleMedium.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                   Text(
                     '${list.itemCount} items',
-                    style: AppTypography.bodySmall.copyWith(
+                    style: AppTypography.bodyMedium.copyWith(
                       color: AppColors.textSecondary,
                     ),
                   ),
                 ],
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildViewableListTile(WishList list) {
+    return InkWell(
+      onTap: () {
+        Navigator.pop(context);
+        context.push('/lists/${list.uid}');
+      },
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Row(
+          children: [
+            // List info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    list.title,
+                    style: AppTypography.titleMedium.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    '${list.itemCount} items',
+                    style: AppTypography.bodyMedium.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            PhosphorIcon(
+              PhosphorIcons.arrowRight(),
+              size: 20,
+              color: AppColors.textSecondary,
             ),
           ],
         ),

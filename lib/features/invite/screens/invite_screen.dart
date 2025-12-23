@@ -9,6 +9,7 @@ import '../../../models/invite_link.dart';
 import '../../../models/wish_list.dart';
 import '../../../services/invite_service.dart';
 import '../../../services/list_service.dart';
+import '../../../widgets/app_button.dart';
 import '../../../widgets/app_notification.dart';
 
 /// Invite screen for inviting friends to ShizList
@@ -39,9 +40,13 @@ class _InviteScreenState extends State<InviteScreen> {
     setState(() => _isLoading = true);
     try {
       final lists = await _listService.getUserLists();
+      // Sort alphabetically by title
+      lists.sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
       if (mounted) {
         setState(() {
           _lists = lists;
+          // Select first list by default
+          _selectedList = lists.isNotEmpty ? lists.first : null;
           _isLoading = false;
         });
       }
@@ -110,7 +115,7 @@ class _InviteScreenState extends State<InviteScreen> {
           // List selector (optional)
           Text(
             'Share a list (optional)',
-            style: AppTypography.titleMedium.copyWith(
+            style: AppTypography.titleLarge.copyWith(
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -131,13 +136,13 @@ class _InviteScreenState extends State<InviteScreen> {
                   children: [
                     PhosphorIcon(
                       PhosphorIcons.listBullets(),
-                      size: 20,
+                      size: 22,
                       color: AppColors.textHint,
                     ),
                     const SizedBox(width: 12),
                     Text(
                       'No list selected (app invite only)',
-                      style: AppTypography.bodyMedium.copyWith(
+                      style: AppTypography.bodyLarge.copyWith(
                         color: AppColors.textHint,
                       ),
                     ),
@@ -151,13 +156,13 @@ class _InviteScreenState extends State<InviteScreen> {
                       children: [
                         PhosphorIcon(
                           PhosphorIcons.prohibit(),
-                          size: 20,
+                          size: 22,
                           color: AppColors.textPrimary,
                         ),
                         const SizedBox(width: 12),
                         Text(
                           'No list (app invite only)',
-                          style: AppTypography.bodyMedium,
+                          style: AppTypography.bodyLarge,
                         ),
                       ],
                     ),
@@ -172,7 +177,7 @@ class _InviteScreenState extends State<InviteScreen> {
                             list.isPublic
                                 ? PhosphorIcons.usersThree()
                                 : PhosphorIcons.lock(),
-                            size: 20,
+                            size: 22,
                             color: AppColors.textPrimary,
                           ),
                           const SizedBox(width: 12),
@@ -180,7 +185,7 @@ class _InviteScreenState extends State<InviteScreen> {
                             child: Text(
                               list.title,
                               overflow: TextOverflow.ellipsis,
-                              style: AppTypography.bodyMedium,
+                              style: AppTypography.bodyLarge,
                             ),
                           ),
                         ],
@@ -202,42 +207,11 @@ class _InviteScreenState extends State<InviteScreen> {
 
           // Generate button
           if (_currentInvite == null) ...[
-            SizedBox(
-              height: 52,
-              child: ElevatedButton(
-                onPressed: _isGenerating ? null : _generateInviteLink,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(26),
-                  ),
-                ),
-                child:
-                    _isGenerating
-                        ? const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                        : Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            PhosphorIcon(PhosphorIcons.link(), size: 22),
-                            const SizedBox(width: 10),
-                            Text(
-                              'Generate invite link',
-                              style: AppTypography.titleMedium.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-              ),
+            AppButton.primary(
+              label: 'Generate invite link',
+              icon: PhosphorIcons.link(),
+              onPressed: _isGenerating ? null : _generateInviteLink,
+              isLoading: _isGenerating,
             ),
           ] else ...[
             // Invite link generated - show share options

@@ -19,6 +19,7 @@ import '../../../widgets/app_notification.dart';
 import '../../../widgets/bottom_sheet_header.dart';
 import '../../../widgets/edit_item_sheet.dart';
 import '../../../widgets/item_card.dart';
+import '../../../services/supabase_service.dart';
 
 /// List detail screen showing items in a wish list
 class ListDetailScreen extends StatefulWidget {
@@ -35,9 +36,14 @@ class _ListDetailScreenState extends State<ListDetailScreen>
   late WishList _list;
   List<ListItem> _items = [];
   bool _isLoading = true;
-  final bool _isOwner = true; // TODO: Determine from auth
   String _sortOption = 'newest';
   ItemCategory? _selectedCategoryFilter; // null = All
+
+  // Owner info for friend's lists
+  UserProfile? _ownerProfile;
+
+  // Check if current user is the list owner
+  bool get _isOwner => _list.ownerId == SupabaseService.currentUserId;
 
   // Multi-select mode
   bool _isMultiSelectMode = false;
@@ -154,21 +160,42 @@ class _ListDetailScreenState extends State<ListDetailScreen>
       // Load items for this list
       final items = await ItemService().getListItems(list.id);
 
+      // If viewing a friend's list, fetch their profile
+      UserProfile? ownerProfile;
+      if (list.ownerId != SupabaseService.currentUserId) {
+        try {
+          final profileData =
+              await SupabaseService.client
+                  .from('users')
+                  .select()
+                  .eq('uid', list.ownerId)
+                  .maybeSingle();
+          if (profileData != null) {
+            ownerProfile = UserProfile.fromJson(profileData);
+          }
+        } catch (e) {
+          debugPrint('Error fetching owner profile: $e');
+        }
+      }
+
       setState(() {
         _list = list;
         _items = items;
+        _ownerProfile = ownerProfile;
         _isLoading = false;
       });
 
       // Start fade-in animation after content loads
       _fadeController.forward();
 
-      // Show buttons after a brief delay to avoid spin animation
-      Future.delayed(const Duration(milliseconds: 100), () {
-        if (mounted) {
-          setState(() => _showButtons = true);
-        }
-      });
+      // Show buttons after a brief delay to avoid spin animation (only for owner)
+      if (list.ownerId == SupabaseService.currentUserId) {
+        Future.delayed(const Duration(milliseconds: 100), () {
+          if (mounted) {
+            setState(() => _showButtons = true);
+          }
+        });
+      }
     } catch (e) {
       debugPrint('Error loading list: $e');
       if (mounted) {
@@ -266,65 +293,102 @@ class _ListDetailScreenState extends State<ListDetailScreen>
           ],
         ),
         actions: [
-          PopupMenuButton<String>(
-            iconColor: Colors.white,
-            onSelected: _handleMenuAction,
-            offset: const Offset(0, 50),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            itemBuilder:
-                (context) => [
-                  PopupMenuItem(
-                    value: 'edit',
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 4,
-                    ),
-                    child: Row(
-                      children: [
-                        PhosphorIcon(
-                          PhosphorIcons.pencilSimple(),
-                          size: 20,
-                          color: AppColors.textPrimary,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Edit list',
-                          style: AppTypography.titleMedium.copyWith(
-                            fontSize: 15,
+          if (_isOwner)
+            PopupMenuButton<String>(
+              iconColor: Colors.white,
+              onSelected: _handleMenuAction,
+              offset: const Offset(0, 50),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              itemBuilder:
+                  (context) => [
+                    PopupMenuItem(
+                      value: 'edit',
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
+                      child: Row(
+                        children: [
+                          PhosphorIcon(
+                            PhosphorIcons.pencilSimple(),
+                            size: 20,
+                            color: AppColors.textPrimary,
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 8),
+                          Text(
+                            'Edit list',
+                            style: AppTypography.titleMedium.copyWith(
+                              fontSize: 15,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const PopupMenuDivider(),
-                  PopupMenuItem(
-                    value: 'delete',
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 4,
-                    ),
-                    child: Row(
-                      children: [
-                        PhosphorIcon(
-                          PhosphorIcons.trash(),
-                          size: 20,
-                          color: AppColors.error,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Delete list',
-                          style: AppTypography.titleMedium.copyWith(
-                            fontSize: 15,
+                    const PopupMenuDivider(),
+                    PopupMenuItem(
+                      value: 'delete',
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
+                      child: Row(
+                        children: [
+                          PhosphorIcon(
+                            PhosphorIcons.trash(),
+                            size: 20,
                             color: AppColors.error,
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 8),
+                          Text(
+                            'Delete list',
+                            style: AppTypography.titleMedium.copyWith(
+                              fontSize: 15,
+                              color: AppColors.error,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+            )
+          else if (_ownerProfile != null)
+            // Show owner info for friend's lists
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _ownerProfile!.nameOrEmail.split(' ').first,
+                    style: AppTypography.titleSmall.copyWith(
+                      color: Colors.white,
                     ),
                   ),
+                  const SizedBox(width: 8),
+                  if (_ownerProfile!.avatarUrl != null)
+                    CircleAvatar(
+                      radius: 16,
+                      backgroundImage: NetworkImage(_ownerProfile!.avatarUrl!),
+                      backgroundColor: Colors.white24,
+                    )
+                  else
+                    CircleAvatar(
+                      radius: 16,
+                      backgroundColor: Colors.white24,
+                      child: Text(
+                        _ownerProfile!.initials,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
                 ],
-          ),
+              ),
+            ),
         ],
       ),
       body: Stack(
@@ -607,10 +671,13 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                                   item: item,
                                   isOwner: _isOwner,
                                   onTap: () => _openItemDetail(item),
-                                  onClaimTap: () => _claimItem(item),
-                                  onLinkTap: item.retailerUrl != null
-                                      ? () => _openProductLink(item.retailerUrl!)
-                                      : null,
+                                  onCommitTap: () => _commitItem(item),
+                                  onLinkTap:
+                                      item.retailerUrl != null
+                                          ? () => _openProductLink(
+                                            item.retailerUrl!,
+                                          )
+                                          : null,
                                   position: position,
                                 );
                               },
@@ -1937,31 +2004,34 @@ class _ListDetailScreenState extends State<ListDetailScreen>
     }
   }
 
-  void _claimItem(ListItem item) {
-    showDialog(
+  void _commitItem(ListItem item) async {
+    final ownerName = _ownerProfile?.nameOrEmail ?? 'list owner';
+
+    final result = await showModalBottomSheet<Map<String, dynamic>?>(
       context: context,
+      isScrollControlled: true,
+      showDragHandle: false,
+      backgroundColor: Colors.transparent,
       builder:
-          (context) => AlertDialog(
-            title: const Text('Claim Item'),
-            content: Text('Do you want to claim "${item.name}"?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  // TODO: Claim item
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Claimed "${item.name}"')),
-                  );
-                },
-                child: const Text('Claim'),
-              ),
-            ],
+          (context) => _CommitSheet(
+            itemName: item.name,
+            ownerName: ownerName,
+            thumbnailUrl: item.thumbnailUrl,
           ),
     );
+
+    if (result != null && mounted) {
+      final action = result['action'] as String;
+      if (action == 'commit') {
+        final notifyFriends = result['notifyFriends'] as bool;
+        final notifyOwner = result['notifyOwner'] as bool;
+        // TODO: Commit item with notification preferences
+        AppNotification.success(context, 'Committed to "${item.name}"');
+      } else if (action == 'purchased') {
+        // TODO: Mark item as purchased
+        AppNotification.success(context, 'Marked "${item.name}" as purchased');
+      }
+    }
   }
 
   void _addItem() async {
@@ -2255,7 +2325,8 @@ class _ListDetailScreenState extends State<ListDetailScreen>
     final confirmed = await AppDialog.show(
       context,
       title: 'Delete $count ${count == 1 ? 'item' : 'items'}?',
-      content: 'Are you sure you want to delete ${count == 1 ? 'this item' : 'these items'}?',
+      content:
+          'Are you sure you want to delete ${count == 1 ? 'this item' : 'these items'}?',
       confirmText: 'Delete',
       isDestructive: true,
     );
@@ -2278,5 +2349,352 @@ class _ListDetailScreenState extends State<ListDetailScreen>
         AppNotification.error(context, 'Failed to delete items: $e');
       }
     }
+  }
+}
+
+/// Sheet for committing to or marking an item as purchased
+class _CommitSheet extends StatefulWidget {
+  final String itemName;
+  final String ownerName;
+  final String? thumbnailUrl;
+
+  const _CommitSheet({
+    required this.itemName,
+    required this.ownerName,
+    this.thumbnailUrl,
+  });
+
+  @override
+  State<_CommitSheet> createState() => _CommitSheetState();
+}
+
+class _CommitSheetState extends State<_CommitSheet>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  bool _notifyFriends = true;
+  bool _notifyOwner = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.85,
+      ),
+      margin: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Header
+          Container(
+            decoration: const BoxDecoration(
+              color: Colors.black,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: Column(
+              children: [
+                // Title row with thumbnail
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (widget.thumbnailUrl != null) ...[
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.network(
+                                widget.thumbnailUrl!,
+                                width: 48,
+                                height: 48,
+                                fit: BoxFit.cover,
+                                errorBuilder:
+                                    (context, error, stackTrace) =>
+                                        const SizedBox.shrink(),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                          ],
+                          Flexible(
+                            child: Text(
+                              widget.itemName,
+                              style: AppTypography.titleLarge.copyWith(
+                                color: Colors.white,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Positioned(
+                        left: 0,
+                        child: GestureDetector(
+                          onTap: () => Navigator.pop(context),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 12,
+                            ),
+                            child: Text(
+                              'Cancel',
+                              style: AppTypography.titleMedium.copyWith(
+                                color: Colors.white70,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+                // Tab bar
+                TabBar(
+                  controller: _tabController,
+                  labelColor: Colors.white,
+                  unselectedLabelColor: Colors.white60,
+                  indicatorColor: AppColors.primary,
+                  indicatorWeight: 3,
+                  labelStyle: AppTypography.titleMedium.copyWith(fontSize: 16),
+                  tabs: const [Tab(text: 'Commit'), Tab(text: 'Purchased')],
+                ),
+              ],
+            ),
+          ),
+
+          // Tab content
+          Flexible(
+            child: TabBarView(
+              controller: _tabController,
+              children: [_buildCommitTab(), _buildPurchasedTab()],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCommitTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          // Body text
+          Text(
+            'Confirm commitment to purchasing this item?',
+            style: AppTypography.bodyLarge.copyWith(
+              color: Colors.black87,
+              fontSize: 16,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 20),
+
+          // Notify friends checkbox
+          InkWell(
+            onTap: () => setState(() => _notifyFriends = !_notifyFriends),
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Row(
+                children: [
+                  Transform.scale(
+                    scale: 1.3,
+                    child: Checkbox(
+                      value: _notifyFriends,
+                      onChanged:
+                          (value) =>
+                              setState(() => _notifyFriends = value ?? false),
+                      activeColor: AppColors.accent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Let connected friends know',
+                      style: AppTypography.titleMedium.copyWith(
+                        color: Colors.black,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 17,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Notify owner checkbox
+          InkWell(
+            onTap: () => setState(() => _notifyOwner = !_notifyOwner),
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Row(
+                children: [
+                  Transform.scale(
+                    scale: 1.3,
+                    child: Checkbox(
+                      value: _notifyOwner,
+                      onChanged:
+                          (value) =>
+                              setState(() => _notifyOwner = value ?? false),
+                      activeColor: AppColors.accent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Let ${widget.ownerName} know',
+                      style: AppTypography.titleMedium.copyWith(
+                        color: Colors.black,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 17,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // Commit button
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed:
+                  () => Navigator.pop(context, {
+                    'action': 'commit',
+                    'notifyFriends': _notifyFriends,
+                    'notifyOwner': _notifyOwner,
+                  }),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.accent,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.check, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Commit',
+                    style: AppTypography.titleMedium.copyWith(
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPurchasedTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          // Icon
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.shopping_bag_outlined,
+              size: 40,
+              color: AppColors.primary,
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Body text
+          Text(
+            'Have you purchased this item?',
+            style: AppTypography.titleLarge.copyWith(
+              color: Colors.black,
+              fontWeight: FontWeight.w600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Mark this item as purchased to let others know it\'s been taken care of.',
+            style: AppTypography.bodyLarge.copyWith(
+              color: Colors.black54,
+              fontSize: 16,
+            ),
+            textAlign: TextAlign.center,
+          ),
+
+          const SizedBox(height: 32),
+
+          // Purchased button
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () => Navigator.pop(context, {'action': 'purchased'}),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.check_circle_outline, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Mark as Purchased',
+                    style: AppTypography.titleMedium.copyWith(
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

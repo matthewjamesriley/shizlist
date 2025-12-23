@@ -9,6 +9,8 @@ import '../../../services/friend_service.dart';
 import '../../../services/list_service.dart';
 import '../../../services/list_share_service.dart';
 import '../../../services/lists_notifier.dart';
+import '../../../services/page_load_notifier.dart';
+import '../../../services/view_mode_notifier.dart';
 import '../../../widgets/app_bottom_sheet.dart';
 import '../../../widgets/app_dialog.dart';
 import '../../../widgets/app_notification.dart';
@@ -23,28 +25,52 @@ class ListsScreen extends StatefulWidget {
   State<ListsScreen> createState() => _ListsScreenState();
 }
 
-class _ListsScreenState extends State<ListsScreen> {
+class _ListsScreenState extends State<ListsScreen>
+    with SingleTickerProviderStateMixin {
   final ListsNotifier _listsNotifier = ListsNotifier();
   final ListService _listService = ListService();
   final ListShareService _listShareService = ListShareService();
   final FriendService _friendService = FriendService();
+  final ViewModeNotifier _viewModeNotifier = ViewModeNotifier();
 
   List<WishList> _lists = [];
   Map<String, int> _listFriendsCount = {};
   bool _isLoading = true;
   String? _error;
 
+  late AnimationController _fadeController;
+  late Animation<double> _fadeAnimation;
+
   @override
   void initState() {
     super.initState();
     _listsNotifier.addListener(_onListsChanged);
+    _viewModeNotifier.addListener(_onViewModeChanged);
+    
+    // Entrance fade animation
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+    );
+    _fadeAnimation = CurvedAnimation(
+      parent: _fadeController,
+      curve: Curves.easeOut,
+    );
+    _fadeController.forward();
+    
     _loadLists();
   }
 
   @override
   void dispose() {
+    _fadeController.dispose();
     _listsNotifier.removeListener(_onListsChanged);
+    _viewModeNotifier.removeListener(_onViewModeChanged);
     super.dispose();
+  }
+
+  void _onViewModeChanged() {
+    setState(() {});
   }
 
   void _onListsChanged() {
@@ -114,11 +140,16 @@ class _ListsScreenState extends State<ListsScreen> {
         _listFriendsCount = friendsCount;
         _isLoading = false;
       });
+      
+      // Notify that page has loaded (for button animation)
+      PageLoadNotifier().notifyListsPageLoaded();
     } catch (e) {
       setState(() {
         _error = e.toString();
         _isLoading = false;
       });
+      // Still notify even on error so buttons appear
+      PageLoadNotifier().notifyListsPageLoaded();
     }
   }
 
@@ -144,6 +175,13 @@ class _ListsScreenState extends State<ListsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _fadeAnimation,
+      child: _buildContent(),
+    );
+  }
+
+  Widget _buildContent() {
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -170,6 +208,7 @@ class _ListsScreenState extends State<ListsScreen> {
                 (isPublic) => _updateListVisibility(list, isPublic),
             friendsCount: _listFriendsCount[list.uid] ?? 0,
             onFriendsTap: () => _showManageFriendsSheet(list),
+            isCompact: _viewModeNotifier.isCompactView,
           );
         },
       ),

@@ -274,7 +274,7 @@ class EventSuggestions {
     ),
     EventSuggestion(
       name: 'Eid al-Adha',
-      description: 'Festival of Sacrifice',
+      description: 'Festival of sacrifice',
       category: EventCategory.star,
       isRecurringByDefault: true,
       keywords: ['eid', 'adha', 'qurbani', 'islamic', 'muslim', 'hajj'],
@@ -290,14 +290,14 @@ class EventSuggestions {
     // Hindu Holidays (lunar calendar - dates vary)
     EventSuggestion(
       name: 'Diwali',
-      description: 'Festival of Lights',
+      description: 'Festival of lights',
       category: EventCategory.star,
       isRecurringByDefault: true,
       keywords: ['deepavali', 'hindu', 'lights', 'indian'],
     ),
     EventSuggestion(
       name: 'Holi',
-      description: 'Festival of Colors',
+      description: 'Festival of colors',
       category: EventCategory.party,
       isRecurringByDefault: true,
       keywords: ['colors', 'colours', 'hindu', 'indian', 'spring'],

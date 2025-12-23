@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'supabase_service.dart';
@@ -171,12 +172,21 @@ class ListService {
 
     final response = await _client
         .from(SupabaseConfig.listSharesTable)
-        .select('list_id, ${SupabaseConfig.listsTable}(*)')
+        .select('list_uid, ${SupabaseConfig.listsTable}!inner(*)')
         .eq('shared_with_user_id', userId);
 
-    return (response as List)
-        .map((json) => WishList.fromJson(json[SupabaseConfig.listsTable]))
-        .toList();
+    final results = <WishList>[];
+    for (final json in (response as List)) {
+      final listData = json[SupabaseConfig.listsTable];
+      if (listData != null) {
+        try {
+          results.add(WishList.fromJson(listData));
+        } catch (e) {
+          debugPrint('Error parsing shared list: $e');
+        }
+      }
+    }
+    return results;
   }
 
   /// Share a list with a user
