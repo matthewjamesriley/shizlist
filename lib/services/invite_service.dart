@@ -99,5 +99,89 @@ class InviteService {
   static String getInviteUrl(String code) {
     return '$_baseUrl$code';
   }
+
+  /// Accept an invite - adds friend and optionally shares list
+  /// Returns a map with 'success', 'message', and optionally 'ownerName', 'listTitle'
+  Future<Map<String, dynamic>> acceptInvite(String code) async {
+    final userId = SupabaseService.currentUserId;
+    if (userId == null) {
+      return {'success': false, 'message': 'Please sign in to accept this invite'};
+    }
+
+    // Get the invite
+    final invite = await getInviteLinkByCode(code);
+    if (invite == null) {
+      return {'success': false, 'message': 'This invite link is invalid or has expired'};
+    }
+
+    // Can't accept your own invite
+    if (invite.ownerId == userId) {
+      return {'success': false, 'message': 'You cannot accept your own invite'};
+    }
+
+    // Check if already friends
+    final existingFriend = await _client
+        .from('friends')
+        .select('id')
+        .or('and(user_id.eq.$userId,friend_user_id.eq.${invite.ownerId}),and(user_id.eq.${invite.ownerId},friend_user_id.eq.$userId)')
+        .maybeSingle();
+
+    if (existingFriend == null) {
+      // Create friendship
+      await _client.from('friends').insert({
+        'user_id': userId,
+        'friend_user_id': invite.ownerId,
+      });
+    }
+
+    // If invite has a list, share it with the accepting user
+    if (invite.listId != null) {
+      final listId = invite.listId!;
+      
+      // Get the list UID first
+      final listData = await _client
+          .from('lists')
+          .select('uid')
+          .eq('id', listId)
+          .maybeSingle();
+
+      if (listData != null) {
+        final listUid = listData['uid'] as String;
+        
+        // Check if list is already shared
+        final existingShare = await _client
+            .from('list_shares')
+            .select('id')
+            .eq('list_uid', listUid)
+            .eq('shared_with_user_id', userId)
+            .maybeSingle();
+
+        if (existingShare == null) {
+          await _client.from('list_shares').insert({
+            'list_uid': listUid,
+            'shared_with_user_id': userId,
+            'can_edit': false,
+          });
+        }
+      }
+    }
+
+    // Increment uses count
+    try {
+      await incrementUsesCount(code);
+    } catch (e) {
+      // Non-critical error, continue
+    }
+
+    return {
+      'success': true,
+      'message': existingFriend != null 
+          ? 'You\'re already connected with ${invite.ownerName ?? 'this user'}'
+          : 'You\'re now connected with ${invite.ownerName ?? 'your new friend'}!',
+      'ownerName': invite.ownerName,
+      'listTitle': invite.listTitle,
+      'alreadyFriends': existingFriend != null,
+    };
+  }
 }
 

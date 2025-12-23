@@ -12,6 +12,7 @@ import '../features/contacts/screens/contacts_screen.dart';
 import '../features/messages/screens/messages_screen.dart';
 import '../features/share/screens/share_screen.dart';
 import '../features/invite/screens/invite_screen.dart';
+import '../features/invite/screens/accept_invite_screen.dart';
 import '../features/settings/screens/settings_screen.dart';
 import '../widgets/app_shell.dart';
 import '../services/supabase_service.dart';
@@ -28,6 +29,7 @@ class AppRoutes {
   static const String listDetail = '/lists/:uid';
   static const String addItem = '/lists/:listId/add-item';
   static const String invite = '/invite';
+  static const String acceptInvite = '/invite/:code';
   static const String contacts = '/contacts';
   static const String messages = '/messages';
   static const String share = '/share';
@@ -84,6 +86,20 @@ class AppRouter {
           state.matchedLocation == AppRoutes.signup;
       final isOnboardingRoute =
           state.matchedLocation == AppRoutes.selectCountry;
+      final isAcceptInviteRoute =
+          state.matchedLocation.startsWith('/invite/') &&
+          state.matchedLocation != '/invite';
+
+      // Allow accept invite route - it will handle auth check internally
+      if (isAcceptInviteRoute) {
+        // If not authenticated, redirect to signup with the invite code saved
+        if (!isAuthenticated) {
+          // Store the invite code in query params for after signup
+          final code = state.pathParameters['code'];
+          return '${AppRoutes.signup}?invite=$code';
+        }
+        return null;
+      }
 
       // Redirect to signup if not authenticated and not on auth/onboarding route
       if (!isAuthenticated && !isAuthRoute && !isOnboardingRoute) {
@@ -113,12 +129,18 @@ class AppRouter {
       GoRoute(
         path: AppRoutes.signup,
         name: 'signup',
-        builder: (context, state) => const SignupScreen(),
+        builder: (context, state) {
+          final inviteCode = state.uri.queryParameters['invite'];
+          return SignupScreen(inviteCode: inviteCode);
+        },
       ),
       GoRoute(
         path: AppRoutes.selectCountry,
         name: 'selectCountry',
-        builder: (context, state) => const CountrySelectionScreen(),
+        builder: (context, state) {
+          final inviteCode = state.uri.queryParameters['invite'];
+          return CountrySelectionScreen(inviteCode: inviteCode);
+        },
       ),
 
       // Main app shell with bottom navigation
@@ -233,6 +255,16 @@ class AppRouter {
             },
             transitionDuration: const Duration(milliseconds: 200),
           );
+        },
+      ),
+
+      // Accept invite deep link (outside shell - handles invite codes)
+      GoRoute(
+        path: '/invite/:code',
+        name: 'acceptInvite',
+        builder: (context, state) {
+          final code = state.pathParameters['code']!;
+          return AcceptInviteScreen(inviteCode: code);
         },
       ),
     ],

@@ -12,7 +12,9 @@ import '../../../widgets/otp_input.dart';
 
 /// Sign up screen - the first page users see
 class SignupScreen extends StatefulWidget {
-  const SignupScreen({super.key});
+  final String? inviteCode;
+  
+  const SignupScreen({super.key, this.inviteCode});
 
   @override
   State<SignupScreen> createState() => _SignupScreenState();
@@ -117,8 +119,14 @@ class _SignupScreenState extends State<SignupScreen> {
       await _authService.verifyOtp(email: _pendingEmail!, token: otpCode);
 
       if (mounted) {
-        // Go to country selection as part of onboarding
-        context.go(AppRoutes.selectCountry);
+        // If there's a pending invite, process it after country selection
+        if (widget.inviteCode != null) {
+          // Store invite code for after onboarding, then go to country selection
+          context.go('${AppRoutes.selectCountry}?invite=${widget.inviteCode}');
+        } else {
+          // Go to country selection as part of onboarding
+          context.go(AppRoutes.selectCountry);
+        }
       }
     } catch (e) {
       setState(() {

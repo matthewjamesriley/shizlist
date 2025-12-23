@@ -11,7 +11,9 @@ import '../../../widgets/app_notification.dart';
 
 /// Country/Currency selection screen shown during onboarding
 class CountrySelectionScreen extends StatefulWidget {
-  const CountrySelectionScreen({super.key});
+  final String? inviteCode;
+  
+  const CountrySelectionScreen({super.key, this.inviteCode});
 
   @override
   State<CountrySelectionScreen> createState() => _CountrySelectionScreenState();
@@ -57,7 +59,12 @@ class _CountrySelectionScreenState extends State<CountrySelectionScreen> {
     try {
       await _authService.updateUserCurrency(_selectedCurrency.code);
       if (mounted) {
-        context.go('/lists');
+        // If there's a pending invite, process it
+        if (widget.inviteCode != null) {
+          context.go('/invite/${widget.inviteCode}');
+        } else {
+          context.go('/lists');
+        }
       }
     } catch (e) {
       setState(() => _isLoading = false);
