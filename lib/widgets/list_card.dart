@@ -322,17 +322,17 @@ class _ListCardState extends State<ListCard> {
                             // Badge
                             if (widget.friendsCount > 0)
                               Positioned(
-                                right: -6,
-                                top: -6,
+                                right: -8,
+                                top: -8,
                                 child: Container(
-                                  padding: const EdgeInsets.all(4),
+                                  padding: const EdgeInsets.all(5),
                                   decoration: const BoxDecoration(
-                                    color: AppColors.error,
+                                    color: AppColors.accent,
                                     shape: BoxShape.circle,
                                   ),
                                   constraints: const BoxConstraints(
-                                    minWidth: 18,
-                                    minHeight: 18,
+                                    minWidth: 22,
+                                    minHeight: 22,
                                   ),
                                   child: Center(
                                     child: Text(
@@ -341,7 +341,7 @@ class _ListCardState extends State<ListCard> {
                                           : '${widget.friendsCount}',
                                       style: AppTypography.labelSmall.copyWith(
                                         color: Colors.white,
-                                        fontSize: 10,
+                                        fontSize: 12,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
