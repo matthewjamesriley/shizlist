@@ -1957,7 +1957,35 @@ class _ListDetailScreenState extends State<ListDetailScreen>
   }
 
   void _openItemDetail(ListItem item) {
-    _showEditItemSheet(item);
+    if (_isOwner) {
+      _showEditItemSheet(item);
+    } else {
+      // For friend's lists, open the commit sheet on the Item details tab
+      _showItemDetailsSheet(item);
+    }
+  }
+
+  void _showItemDetailsSheet(ListItem item) async {
+    final ownerName = _ownerProfile?.nameOrEmail ?? 'list owner';
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: false,
+      backgroundColor: Colors.transparent,
+      builder:
+          (context) => _CommitSheet(
+            itemName: item.name,
+            ownerName: ownerName,
+            thumbnailUrl: item.thumbnailUrl,
+            description: item.description,
+            price: item.formattedPrice,
+            retailerUrl: item.retailerUrl,
+            category: item.category.displayName,
+            priority: item.priority.displayName,
+            initialTab: 2, // Item details tab
+          ),
+    );
   }
 
   void _openProductLink(String url) async {
@@ -2017,6 +2045,11 @@ class _ListDetailScreenState extends State<ListDetailScreen>
             itemName: item.name,
             ownerName: ownerName,
             thumbnailUrl: item.thumbnailUrl,
+            description: item.description,
+            price: item.formattedPrice,
+            retailerUrl: item.retailerUrl,
+            category: item.category.displayName,
+            priority: item.priority.displayName,
           ),
     );
 
@@ -2357,11 +2390,23 @@ class _CommitSheet extends StatefulWidget {
   final String itemName;
   final String ownerName;
   final String? thumbnailUrl;
+  final String? description;
+  final String? price;
+  final String? retailerUrl;
+  final String? category;
+  final String? priority;
+  final int initialTab;
 
   const _CommitSheet({
     required this.itemName,
     required this.ownerName,
     this.thumbnailUrl,
+    this.description,
+    this.price,
+    this.retailerUrl,
+    this.category,
+    this.priority,
+    this.initialTab = 0,
   });
 
   @override
@@ -2377,13 +2422,23 @@ class _CommitSheetState extends State<_CommitSheet>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(
+      length: 3,
+      vsync: this,
+      initialIndex: widget.initialTab,
+    );
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+
+  String _truncateToWords(String text, int maxWords) {
+    final words = text.split(' ');
+    if (words.length <= maxWords) return text;
+    return '${words.take(maxWords).join(' ')}...';
   }
 
   @override
@@ -2408,41 +2463,23 @@ class _CommitSheetState extends State<_CommitSheet>
             ),
             child: Column(
               children: [
-                // Title row with thumbnail
+                // Title row
                 Padding(
                   padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          if (widget.thumbnailUrl != null) ...[
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.network(
-                                widget.thumbnailUrl!,
-                                width: 48,
-                                height: 48,
-                                fit: BoxFit.cover,
-                                errorBuilder:
-                                    (context, error, stackTrace) =>
-                                        const SizedBox.shrink(),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                          ],
-                          Flexible(
-                            child: Text(
-                              widget.itemName,
-                              style: AppTypography.titleLarge.copyWith(
-                                color: Colors.white,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 70),
+                        child: Text(
+                          _truncateToWords(widget.itemName, 3),
+                          style: AppTypography.titleLarge.copyWith(
+                            color: Colors.white,
                           ),
-                        ],
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                        ),
                       ),
                       Positioned(
                         left: 0,
@@ -2475,7 +2512,11 @@ class _CommitSheetState extends State<_CommitSheet>
                   indicatorColor: AppColors.primary,
                   indicatorWeight: 3,
                   labelStyle: AppTypography.titleMedium.copyWith(fontSize: 16),
-                  tabs: const [Tab(text: 'Commit'), Tab(text: 'Purchased')],
+                  tabs: const [
+                    Tab(text: 'Commit'),
+                    Tab(text: 'Purchased'),
+                    Tab(text: 'Item details'),
+                  ],
                 ),
               ],
             ),
@@ -2485,7 +2526,11 @@ class _CommitSheetState extends State<_CommitSheet>
           Flexible(
             child: TabBarView(
               controller: _tabController,
-              children: [_buildCommitTab(), _buildPurchasedTab()],
+              children: [
+                _buildCommitTab(),
+                _buildPurchasedTab(),
+                _buildDetailsTab(),
+              ],
             ),
           ),
         ],
@@ -2498,41 +2543,102 @@ class _CommitSheetState extends State<_CommitSheet>
       padding: const EdgeInsets.all(24),
       child: Column(
         children: [
-          // Body text
+          // Thumbnail or fallback icon
+          if (widget.thumbnailUrl != null)
+            Container(
+              width: 82,
+              height: 82,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.grey.shade300, width: 1),
+              ),
+              child: ClipOval(
+                child: Image.network(
+                  widget.thumbnailUrl!,
+                  width: 80,
+                  height: 80,
+                  fit: BoxFit.cover,
+                  errorBuilder:
+                      (context, error, stackTrace) => Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          color: AppColors.accent.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.card_giftcard,
+                          size: 40,
+                          color: AppColors.accent,
+                        ),
+                      ),
+                ),
+              ),
+            )
+          else
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: AppColors.accent.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.grey.shade300, width: 1),
+              ),
+              child: Icon(
+                Icons.card_giftcard,
+                size: 40,
+                color: AppColors.accent,
+              ),
+            ),
+          const SizedBox(height: 20),
+
+          // Title text
           Text(
-            'Confirm commitment to purchasing this item?',
+            'Commit to this item?',
+            style: AppTypography.titleLarge.copyWith(
+              color: Colors.black,
+              fontWeight: FontWeight.w600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Let others know you\'re planning to get this item.',
             style: AppTypography.bodyLarge.copyWith(
               color: Colors.black87,
               fontSize: 16,
             ),
             textAlign: TextAlign.center,
           ),
+
           const SizedBox(height: 20),
 
           // Notify friends checkbox
-          InkWell(
-            onTap: () => setState(() => _notifyFriends = !_notifyFriends),
-            borderRadius: BorderRadius.circular(8),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              child: Row(
-                children: [
-                  Transform.scale(
-                    scale: 1.3,
-                    child: Checkbox(
-                      value: _notifyFriends,
-                      onChanged:
-                          (value) =>
-                              setState(() => _notifyFriends = value ?? false),
-                      activeColor: AppColors.accent,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(4),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: InkWell(
+              onTap: () => setState(() => _notifyFriends = !_notifyFriends),
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Transform.scale(
+                      scale: 1.3,
+                      child: Checkbox(
+                        value: _notifyFriends,
+                        onChanged:
+                            (value) =>
+                                setState(() => _notifyFriends = value ?? false),
+                        activeColor: AppColors.accent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
+                    const SizedBox(width: 8),
+                    Text(
                       'Let connected friends know',
                       style: AppTypography.titleMedium.copyWith(
                         color: Colors.black,
@@ -2540,36 +2646,38 @@ class _CommitSheetState extends State<_CommitSheet>
                         fontSize: 17,
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
 
           // Notify owner checkbox
-          InkWell(
-            onTap: () => setState(() => _notifyOwner = !_notifyOwner),
-            borderRadius: BorderRadius.circular(8),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              child: Row(
-                children: [
-                  Transform.scale(
-                    scale: 1.3,
-                    child: Checkbox(
-                      value: _notifyOwner,
-                      onChanged:
-                          (value) =>
-                              setState(() => _notifyOwner = value ?? false),
-                      activeColor: AppColors.accent,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(4),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: InkWell(
+              onTap: () => setState(() => _notifyOwner = !_notifyOwner),
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Transform.scale(
+                      scale: 1.3,
+                      child: Checkbox(
+                        value: _notifyOwner,
+                        onChanged:
+                            (value) =>
+                                setState(() => _notifyOwner = value ?? false),
+                        activeColor: AppColors.accent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
+                    const SizedBox(width: 8),
+                    Text(
                       'Let ${widget.ownerName} know',
                       style: AppTypography.titleMedium.copyWith(
                         color: Colors.black,
@@ -2577,8 +2685,8 @@ class _CommitSheetState extends State<_CommitSheet>
                         fontSize: 17,
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -2600,21 +2708,38 @@ class _CommitSheetState extends State<_CommitSheet>
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(50),
                 ),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.check, size: 20),
+                  const Icon(Icons.check, size: 22),
                   const SizedBox(width: 8),
                   Text(
-                    'Commit',
-                    style: AppTypography.titleMedium.copyWith(
+                    'Commit to item',
+                    style: AppTypography.titleLarge.copyWith(
                       color: Colors.white,
+                      fontSize: 18,
+                      letterSpacing: 0,
                     ),
                   ),
                 ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Link to purchased tab
+          TextButton(
+            onPressed: () => _tabController.animateTo(1),
+            child: Text(
+              'Bought this item? Mark as purchased',
+              style: AppTypography.titleMedium.copyWith(
+                color: AppColors.textSecondary,
+                decoration: TextDecoration.underline,
+                fontSize: 16,
               ),
             ),
           ),
@@ -2628,20 +2753,53 @@ class _CommitSheetState extends State<_CommitSheet>
       padding: const EdgeInsets.all(24),
       child: Column(
         children: [
-          // Icon
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
+          // Thumbnail or fallback icon
+          if (widget.thumbnailUrl != null)
+            Container(
+              width: 82,
+              height: 82,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.grey.shade300, width: 1),
+              ),
+              child: ClipOval(
+                child: Image.network(
+                  widget.thumbnailUrl!,
+                  width: 80,
+                  height: 80,
+                  fit: BoxFit.cover,
+                  errorBuilder:
+                      (context, error, stackTrace) => Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.shopping_bag_outlined,
+                          size: 40,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                ),
+              ),
+            )
+          else
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.grey.shade300, width: 1),
+              ),
+              child: Icon(
+                Icons.shopping_bag_outlined,
+                size: 40,
+                color: AppColors.primary,
+              ),
             ),
-            child: Icon(
-              Icons.shopping_bag_outlined,
-              size: 40,
-              color: AppColors.primary,
-            ),
-          ),
           const SizedBox(height: 20),
 
           // Body text
@@ -2657,42 +2815,287 @@ class _CommitSheetState extends State<_CommitSheet>
           Text(
             'Mark this item as purchased to let others know it\'s been taken care of.',
             style: AppTypography.bodyLarge.copyWith(
-              color: Colors.black54,
+              color: Colors.black87,
               fontSize: 16,
             ),
             textAlign: TextAlign.center,
           ),
 
-          const SizedBox(height: 32),
+          const SizedBox(height: 20),
+
+          // Notify friends checkbox
+          Align(
+            alignment: Alignment.centerLeft,
+            child: InkWell(
+              onTap: () => setState(() => _notifyFriends = !_notifyFriends),
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Transform.scale(
+                      scale: 1.3,
+                      child: Checkbox(
+                        value: _notifyFriends,
+                        onChanged:
+                            (value) =>
+                                setState(() => _notifyFriends = value ?? false),
+                        activeColor: AppColors.accent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Let connected friends know',
+                      style: AppTypography.titleMedium.copyWith(
+                        color: Colors.black,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 17,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // Notify owner checkbox
+          Align(
+            alignment: Alignment.centerLeft,
+            child: InkWell(
+              onTap: () => setState(() => _notifyOwner = !_notifyOwner),
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Transform.scale(
+                      scale: 1.3,
+                      child: Checkbox(
+                        value: _notifyOwner,
+                        onChanged:
+                            (value) =>
+                                setState(() => _notifyOwner = value ?? false),
+                        activeColor: AppColors.accent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Let ${widget.ownerName} know',
+                      style: AppTypography.titleMedium.copyWith(
+                        color: Colors.black,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 17,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 24),
 
           // Purchased button
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () => Navigator.pop(context, {'action': 'purchased'}),
+              onPressed:
+                  () => Navigator.pop(context, {
+                    'action': 'purchased',
+                    'notifyFriends': _notifyFriends,
+                    'notifyOwner': _notifyOwner,
+                  }),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
+                backgroundColor: AppColors.accent,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(50),
                 ),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.check_circle_outline, size: 20),
+                  const Icon(Icons.check_circle_outline, size: 22),
                   const SizedBox(width: 8),
                   Text(
-                    'Mark as Purchased',
-                    style: AppTypography.titleMedium.copyWith(
+                    'Mark as purchased',
+                    style: AppTypography.titleLarge.copyWith(
                       color: Colors.white,
+                      fontSize: 18,
+                      letterSpacing: 0,
                     ),
                   ),
                 ],
               ),
             ),
           ),
+
+          const SizedBox(height: 16),
+
+          // Link to commit tab
+          TextButton(
+            onPressed: () => _tabController.animateTo(0),
+            child: Text(
+              'Commit to this item only',
+              style: AppTypography.titleMedium.copyWith(
+                color: AppColors.textSecondary,
+                decoration: TextDecoration.underline,
+                fontSize: 16,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailsTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          // Thumbnail or fallback icon (same style as other tabs)
+          if (widget.thumbnailUrl != null)
+            Container(
+              width: 82,
+              height: 82,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.grey.shade300, width: 1),
+              ),
+              child: ClipOval(
+                child: Image.network(
+                  widget.thumbnailUrl!,
+                  width: 80,
+                  height: 80,
+                  fit: BoxFit.cover,
+                  errorBuilder:
+                      (context, error, stackTrace) => Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.info_outline,
+                          size: 40,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                ),
+              ),
+            )
+          else
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.grey.shade300, width: 1),
+              ),
+              child: Icon(
+                Icons.info_outline,
+                size: 40,
+                color: AppColors.primary,
+              ),
+            ),
+          const SizedBox(height: 20),
+
+          // Item name (no label)
+          Text(
+            widget.itemName,
+            style: AppTypography.titleLarge.copyWith(
+              color: Colors.black,
+              fontWeight: FontWeight.w600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+
+          // Price (no label)
+          if (widget.price != null && widget.price!.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              widget.price!,
+              style: AppTypography.titleLarge.copyWith(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w600,
+                fontSize: 20,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+
+          // Priority (no label)
+          if (widget.priority != null && widget.priority != 'No priority') ...[
+            const SizedBox(height: 8),
+            Text(
+              'Priority: ${widget.priority}',
+              style: AppTypography.bodyLarge.copyWith(
+                color: AppColors.textSecondary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+
+          // Description
+          if (widget.description != null && widget.description!.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Text(
+              widget.description!,
+              style: AppTypography.bodyLarge.copyWith(color: Colors.black87),
+              textAlign: TextAlign.center,
+            ),
+          ],
+
+          // Link button
+          if (widget.retailerUrl != null && widget.retailerUrl!.isNotEmpty) ...[
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () async {
+                  final uri = Uri.parse(widget.retailerUrl!);
+                  if (await canLaunchUrl(uri)) {
+                    await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.accent,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(50),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.open_in_new, size: 22),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Go to link',
+                      style: AppTypography.titleLarge.copyWith(
+                        color: Colors.white,
+                        fontSize: 18,
+                        letterSpacing: 0,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

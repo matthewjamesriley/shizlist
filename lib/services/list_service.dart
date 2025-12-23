@@ -172,7 +172,7 @@ class ListService {
 
     final response = await _client
         .from(SupabaseConfig.listSharesTable)
-        .select('list_uid, ${SupabaseConfig.listsTable}!inner(*)')
+        .select('list_uid, ${SupabaseConfig.listsTable}!inner(*, list_items(count))')
         .eq('shared_with_user_id', userId);
 
     final results = <WishList>[];
@@ -180,7 +180,11 @@ class ListService {
       final listData = json[SupabaseConfig.listsTable];
       if (listData != null) {
         try {
-          results.add(WishList.fromJson(listData));
+          // Extract item count from the nested list_items count
+          final itemCount = listData['list_items']?[0]?['count'] as int? ?? 0;
+          final listJson = Map<String, dynamic>.from(listData);
+          listJson['item_count'] = itemCount;
+          results.add(WishList.fromJson(listJson));
         } catch (e) {
           debugPrint('Error parsing shared list: $e');
         }
