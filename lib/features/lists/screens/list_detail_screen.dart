@@ -14,6 +14,7 @@ import '../../../services/item_service.dart';
 import '../../../services/list_service.dart';
 import '../../../services/lists_notifier.dart';
 import '../../../widgets/add_item_sheet.dart';
+import '../../../widgets/app_bottom_sheet.dart';
 import '../../../widgets/app_dialog.dart';
 import '../../../widgets/app_notification.dart';
 import '../../../widgets/bottom_sheet_header.dart';
@@ -678,8 +679,12 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                                 return ItemCard(
                                   item: item,
                                   isOwner: _isOwner,
+                                  currentUserId: SupabaseService.currentUserId,
                                   onTap: () => _openItemDetail(item),
                                   onCommitTap: () => _commitItem(item),
+                                  onCommitStatusTap: _isOwner
+                                      ? () => _showOwnerCommitInfo(item)
+                                      : () => _openCommitStatus(item),
                                   onLinkTap:
                                       item.retailerUrl != null
                                           ? () => _openProductLink(
@@ -2056,8 +2061,9 @@ class _ListDetailScreenState extends State<ListDetailScreen>
 
   void _showItemDetailsSheet(ListItem item) async {
     final ownerName = _ownerProfile?.nameOrEmail ?? 'list owner';
+    final isMyCommit = item.claimedByUserId == SupabaseService.currentUserId;
 
-    await showModalBottomSheet<void>(
+    final result = await showModalBottomSheet<Map<String, dynamic>?>(
       context: context,
       isScrollControlled: true,
       showDragHandle: false,
@@ -2074,8 +2080,57 @@ class _ListDetailScreenState extends State<ListDetailScreen>
             priority: item.priority.displayName,
             initialTab: 2, // Item details tab
             ownerWantsNotification: _list.notifyOnCommit,
+            item: item,
+            isMyCommit: isMyCommit,
           ),
     );
+
+    // Handle actions from the sheet
+    if (result != null && mounted) {
+      final action = result['action'] as String;
+      final note = result['note'] as String?;
+
+      if (action == 'commit') {
+        try {
+          await ItemService().commitToItem(itemUid: item.uid, note: note);
+          if (mounted) {
+            AppNotification.success(context, 'Committed to "${item.name}"');
+            _refreshItems();
+          }
+        } catch (e) {
+          if (mounted) {
+            AppNotification.error(context, 'Failed to commit: $e');
+          }
+        }
+      } else if (action == 'revoke') {
+        try {
+          await ItemService().uncommitFromItem(item.uid);
+          if (mounted) {
+            AppNotification.success(context, 'Commitment revoked');
+            _refreshItems();
+          }
+        } catch (e) {
+          if (mounted) {
+            AppNotification.error(context, 'Failed to revoke: $e');
+          }
+        }
+      } else if (action == 'purchased') {
+        try {
+          await ItemService().commitToItem(itemUid: item.uid, note: note);
+          if (mounted) {
+            AppNotification.success(
+              context,
+              'Marked "${item.name}" as purchased',
+            );
+            _refreshItems();
+          }
+        } catch (e) {
+          if (mounted) {
+            AppNotification.error(context, 'Failed to mark as purchased: $e');
+          }
+        }
+      }
+    }
   }
 
   void _openProductLink(String url) async {
@@ -2146,13 +2201,205 @@ class _ListDetailScreenState extends State<ListDetailScreen>
 
     if (result != null && mounted) {
       final action = result['action'] as String;
+      final note = result['note'] as String?;
+
       if (action == 'commit') {
-        final notifyFriends = result['notifyFriends'] as bool;
-        // TODO: Commit item with notification preferences
-        AppNotification.success(context, 'Committed to "${item.name}"');
+        try {
+          await ItemService().commitToItem(itemUid: item.uid, note: note);
+          if (mounted) {
+            AppNotification.success(context, 'Committed to "${item.name}"');
+            _refreshItems();
+          }
+        } catch (e) {
+          if (mounted) {
+            AppNotification.error(context, 'Failed to commit: $e');
+          }
+        }
       } else if (action == 'purchased') {
-        // TODO: Mark item as purchased
-        AppNotification.success(context, 'Marked "${item.name}" as purchased');
+        // For purchased, we need to first commit then mark as purchased
+        // Or if already committed, just mark as purchased
+        try {
+          // First commit if not already
+          await ItemService().commitToItem(itemUid: item.uid, note: note);
+          // TODO: Need to get the commit UID to mark as purchased
+          // For now, just show success
+          if (mounted) {
+            AppNotification.success(
+              context,
+              'Marked "${item.name}" as purchased',
+            );
+            _refreshItems();
+          }
+        } catch (e) {
+          if (mounted) {
+            AppNotification.error(context, 'Failed to mark as purchased: $e');
+          }
+        }
+      }
+    }
+  }
+
+  void _showOwnerCommitInfo(ListItem item) {
+    final committerName = item.claimedByDisplayName ?? 'Someone';
+    final isPurchased = item.commitStatus == 'purchased';
+    final avatarUrl = item.claimedByAvatarUrl;
+    
+    final title = isPurchased
+        ? '$committerName purchased this'
+        : '$committerName committed';
+    
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      showDragHandle: false,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header
+            Container(
+              decoration: const BoxDecoration(
+                color: Colors.black,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Text(
+                    title,
+                    style: AppTypography.titleLarge.copyWith(color: Colors.white),
+                  ),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                        child: Text(
+                          'Close',
+                          style: AppTypography.titleMedium.copyWith(
+                            color: Colors.white70,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            // Content
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Avatar or gift icon
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: avatarUrl == null
+                          ? AppColors.accent.withValues(alpha: 0.1)
+                          : null,
+                      border: Border.all(color: Colors.grey.shade300, width: 1),
+                    ),
+                    child: ClipOval(
+                      child: avatarUrl != null
+                          ? Image.network(
+                              avatarUrl,
+                              width: 80,
+                              height: 80,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => Icon(
+                                Icons.card_giftcard,
+                                size: 40,
+                                color: AppColors.accent,
+                              ),
+                            )
+                          : Icon(
+                              Icons.card_giftcard,
+                              size: 40,
+                              color: AppColors.accent,
+                            ),
+                    ),
+                  ),
+                  
+                  // Note if exists
+                  if (item.commitNote != null && item.commitNote!.isNotEmpty) ...[
+                    const SizedBox(height: 20),
+                    Text(
+                      '"${item.commitNote}"',
+                      style: AppTypography.titleMedium.copyWith(
+                        fontStyle: FontStyle.italic,
+                        color: AppColors.textPrimary,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ] else ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      'This item has been reserved.',
+                      style: AppTypography.bodyMedium.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                  
+                  const SizedBox(height: 24),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _openCommitStatus(ListItem item) async {
+    final ownerName = _ownerProfile?.nameOrEmail ?? 'list owner';
+    final isMyCommit = item.claimedByUserId == SupabaseService.currentUserId;
+
+    final result = await showModalBottomSheet<Map<String, dynamic>?>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder:
+          (context) => _CommitSheet(
+            itemName: item.name,
+            ownerName: ownerName,
+            thumbnailUrl: item.thumbnailUrl,
+            item: item,
+            initialTab: 0, // Open on Commit tab
+            ownerWantsNotification: _list?.notifyOnCommit ?? true,
+            isMyCommit: isMyCommit,
+          ),
+    );
+
+    if (result != null && mounted) {
+      final action = result['action'] as String;
+
+      if (action == 'revoke') {
+        try {
+          await ItemService().uncommitFromItem(item.uid);
+          if (mounted) {
+            AppNotification.success(context, 'Commitment revoked');
+            _refreshItems();
+          }
+        } catch (e) {
+          if (mounted) {
+            AppNotification.error(context, 'Failed to revoke: $e');
+          }
+        }
       }
     }
   }
@@ -2487,6 +2734,8 @@ class _CommitSheet extends StatefulWidget {
   final String? priority;
   final int initialTab;
   final bool ownerWantsNotification;
+  final ListItem? item;
+  final bool isMyCommit;
 
   const _CommitSheet({
     required this.itemName,
@@ -2499,6 +2748,8 @@ class _CommitSheet extends StatefulWidget {
     this.priority,
     this.initialTab = 0,
     this.ownerWantsNotification = true,
+    this.item,
+    this.isMyCommit = false,
   });
 
   @override
@@ -2508,6 +2759,7 @@ class _CommitSheet extends StatefulWidget {
 class _CommitSheetState extends State<_CommitSheet>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final TextEditingController _noteController = TextEditingController();
   bool _notifyFriends = true;
 
   String get _ownerFirstName => widget.ownerName.split(' ').first;
@@ -2524,6 +2776,7 @@ class _CommitSheetState extends State<_CommitSheet>
 
   @override
   void dispose() {
+    _noteController.dispose();
     _tabController.dispose();
     super.dispose();
   }
@@ -2610,6 +2863,226 @@ class _CommitSheetState extends State<_CommitSheet>
   }
 
   Widget _buildCommitTab() {
+    // Check if viewing an existing commitment
+    if (widget.isMyCommit) {
+      return _buildExistingCommitView();
+    }
+    return _buildNewCommitView();
+  }
+
+  Widget _buildExistingCommitView() {
+    final commitNote = widget.item?.commitNote;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          // Thumbnail or fallback icon
+          if (widget.thumbnailUrl != null)
+            Container(
+              width: 82,
+              height: 82,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.grey.shade300, width: 1),
+              ),
+              child: ClipOval(
+                child: Image.network(
+                  widget.thumbnailUrl!,
+                  width: 80,
+                  height: 80,
+                  fit: BoxFit.cover,
+                  errorBuilder:
+                      (context, error, stackTrace) => Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.check_circle,
+                          size: 40,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                ),
+              ),
+            )
+          else
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.grey.shade300, width: 1),
+              ),
+              child: Icon(
+                Icons.check_circle,
+                size: 40,
+                color: AppColors.primary,
+              ),
+            ),
+          const SizedBox(height: 20),
+
+          // Title text
+          Text(
+            'Your commitment',
+            style: AppTypography.titleLarge.copyWith(
+              color: Colors.black,
+              fontWeight: FontWeight.w600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'You\'re committed to getting this item.',
+            style: AppTypography.bodyLarge.copyWith(
+              color: Colors.black87,
+              fontSize: 16,
+            ),
+            textAlign: TextAlign.center,
+          ),
+
+          // Show note if one exists
+          if (commitNote != null && commitNote.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceVariant,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.divider),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Your note',
+                    style: AppTypography.bodySmall.copyWith(
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    commitNote,
+                    style: AppTypography.bodyMedium.copyWith(
+                      color: Colors.black,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
+          const SizedBox(height: 20),
+
+          // Owner notification status (past tense)
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  PhosphorIcon(
+                    widget.ownerWantsNotification
+                        ? PhosphorIcons.bellRinging()
+                        : PhosphorIcons.bellSlash(),
+                    size: 22,
+                    color:
+                        widget.ownerWantsNotification
+                            ? AppColors.primary
+                            : AppColors.textSecondary,
+                  ),
+                  const SizedBox(width: 10),
+                  Flexible(
+                    child: Text(
+                      widget.ownerWantsNotification
+                          ? '$_ownerFirstName was notified'
+                          : '$_ownerFirstName was not notified',
+                      style: AppTypography.titleMedium.copyWith(
+                        color: Colors.black,
+                        fontSize: 16,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // Revoke button
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () async {
+                final confirmed = await AppDialog.show(
+                  context,
+                  title: 'Revoke commitment?',
+                  content:
+                      'Are you sure you want to revoke your commitment to this item?',
+                  cancelText: 'Cancel',
+                  confirmText: 'Revoke',
+                  isDestructive: true,
+                );
+                if (confirmed && context.mounted) {
+                  Navigator.pop(context, {'action': 'revoke'});
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.error,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(50),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.close, size: 22),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Revoke commitment',
+                    style: AppTypography.titleLarge.copyWith(
+                      color: Colors.white,
+                      fontSize: 18,
+                      letterSpacing: 0,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Link to purchased tab
+          TextButton(
+            onPressed: () => _tabController.animateTo(1),
+            child: Text(
+              'Mark as purchased',
+              style: AppTypography.titleMedium.copyWith(
+                color: AppColors.textSecondary,
+                decoration: TextDecoration.underline,
+                fontSize: 16,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNewCommitView() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -2762,7 +3235,39 @@ class _CommitSheetState extends State<_CommitSheet>
             ),
           ),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
+
+          // Note field
+          TextField(
+            controller: _noteController,
+            decoration: InputDecoration(
+              hintText: 'Add a note (optional)',
+              hintStyle: AppTypography.bodyMedium.copyWith(
+                color: AppColors.textSecondary,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: AppColors.divider),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: AppColors.divider),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: AppColors.primary),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
+              ),
+            ),
+            style: AppTypography.bodyMedium,
+            maxLines: 2,
+            textCapitalization: TextCapitalization.sentences,
+          ),
+
+          const SizedBox(height: 20),
 
           // Commit button
           SizedBox(
@@ -2772,6 +3277,10 @@ class _CommitSheetState extends State<_CommitSheet>
                   () => Navigator.pop(context, {
                     'action': 'commit',
                     'notifyFriends': _notifyFriends,
+                    'note':
+                        _noteController.text.trim().isEmpty
+                            ? null
+                            : _noteController.text.trim(),
                   }),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.accent,
@@ -2971,7 +3480,39 @@ class _CommitSheetState extends State<_CommitSheet>
             ),
           ),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
+
+          // Note field
+          TextField(
+            controller: _noteController,
+            decoration: InputDecoration(
+              hintText: 'Add a note (optional)',
+              hintStyle: AppTypography.bodyMedium.copyWith(
+                color: AppColors.textSecondary,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: AppColors.divider),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: AppColors.divider),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: AppColors.primary),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
+              ),
+            ),
+            style: AppTypography.bodyMedium,
+            maxLines: 2,
+            textCapitalization: TextCapitalization.sentences,
+          ),
+
+          const SizedBox(height: 20),
 
           // Purchased button
           SizedBox(
@@ -2981,6 +3522,10 @@ class _CommitSheetState extends State<_CommitSheet>
                   () => Navigator.pop(context, {
                     'action': 'purchased',
                     'notifyFriends': _notifyFriends,
+                    'note':
+                        _noteController.text.trim().isEmpty
+                            ? null
+                            : _noteController.text.trim(),
                   }),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.accent,

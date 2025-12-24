@@ -12,8 +12,10 @@ enum ItemPosition { first, middle, last, only }
 class ItemCard extends StatelessWidget {
   final ListItem item;
   final bool isOwner;
+  final String? currentUserId;
   final VoidCallback? onTap;
   final VoidCallback? onCommitTap;
+  final VoidCallback? onCommitStatusTap;
   final VoidCallback? onLinkTap;
   final ItemPosition position;
 
@@ -21,11 +23,18 @@ class ItemCard extends StatelessWidget {
     super.key,
     required this.item,
     this.isOwner = false,
+    this.currentUserId,
     this.onTap,
     this.onCommitTap,
+    this.onCommitStatusTap,
     this.onLinkTap,
     this.position = ItemPosition.only,
   });
+
+  bool get _isCommittedByMe =>
+      item.isClaimed && item.claimedByUserId == currentUserId;
+
+  bool get _isPurchased => item.commitStatus == 'purchased';
 
   BorderRadius get _borderRadius {
     const radius = Radius.circular(12);
@@ -118,22 +127,23 @@ class ItemCard extends StatelessWidget {
                             ),
                           ],
 
-                          // Committed status row (only if committed)
-                          if (!isOwner && item.isClaimed) ...[
-                            const SizedBox(height: 8),
-                            _buildCommittedBadge(),
-                          ],
                         ],
                       ),
                     ),
 
-                    // Commit button for gifters
+                    // Commit button for gifters (only if not committed)
                     if (!isOwner && !item.isClaimed) ...[
                       const SizedBox(width: 8),
                       _buildCommitButton(),
                     ],
                   ],
                 ),
+
+                // Commit status row at bottom (for anyone if item is committed)
+                if (item.isClaimed) ...[
+                  const SizedBox(height: 10),
+                  _buildCommitStatusRow(),
+                ],
               ],
             ),
           ),
@@ -193,20 +203,57 @@ class ItemCard extends StatelessWidget {
     );
   }
 
-  Widget _buildCommittedBadge() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: AppColors.claimedBackground,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.check_circle, size: 14, color: AppColors.primary),
-          const SizedBox(width: 4),
-          Text('COMMITTED', style: AppTypography.claimedBadge),
-        ],
+  Widget _buildCommitStatusRow() {
+    final isPurchased = _isPurchased;
+    final isMyCommit = _isCommittedByMe;
+    final committerName = item.claimedByDisplayName?.split(' ').first ?? 'Someone';
+
+    // Determine status text and icon
+    String statusText;
+    IconData statusIcon;
+    Color statusColor;
+
+    if (isPurchased) {
+      statusText = isMyCommit ? 'You purchased this' : '$committerName purchased this';
+      statusIcon = Icons.shopping_bag;
+      statusColor = AppColors.primary;
+    } else {
+      statusText = isMyCommit ? 'You committed to this' : '$committerName committed';
+      statusIcon = Icons.check_circle;
+      statusColor = AppColors.primary;
+    }
+
+    return GestureDetector(
+      onTap: onCommitStatusTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: isMyCommit
+              ? AppColors.primary.withValues(alpha: 0.08)
+              : AppColors.claimedBackground,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            Icon(statusIcon, size: 18, color: statusColor),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                statusText,
+                style: AppTypography.bodyMedium.copyWith(
+                  color: isMyCommit ? AppColors.primary : AppColors.textPrimary,
+                  fontWeight: isMyCommit ? FontWeight.w600 : FontWeight.normal,
+                ),
+              ),
+            ),
+            // Arrow indicator to show it's tappable
+            Icon(
+              Icons.chevron_right,
+              size: 20,
+              color: isMyCommit ? AppColors.primary : AppColors.textSecondary,
+            ),
+          ],
+        ),
       ),
     );
   }

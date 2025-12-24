@@ -148,8 +148,14 @@ class ListItem {
   final int quantity;
   final bool isClaimed;
   final String? claimedByUserId;
+  final String? claimedByDisplayName;
+  final String? claimedByAvatarUrl;
+  final String? commitStatus; // 'active', 'purchased', 'expired', 'cancelled'
+  final String? commitNote;
+  final String? commitUid;
   final DateTime? claimedAt;
   final DateTime? claimExpiresAt;
+  final DateTime? purchasedAt;
   final DateTime createdAt;
   final DateTime? updatedAt;
 
@@ -170,8 +176,14 @@ class ListItem {
     this.quantity = 1,
     this.isClaimed = false,
     this.claimedByUserId,
+    this.claimedByDisplayName,
+    this.claimedByAvatarUrl,
+    this.commitStatus,
+    this.commitNote,
+    this.commitUid,
     this.claimedAt,
     this.claimExpiresAt,
+    this.purchasedAt,
     required this.createdAt,
     this.updatedAt,
   });
@@ -196,6 +208,11 @@ class ListItem {
       quantity: json['quantity'] as int? ?? 1,
       isClaimed: json['is_claimed'] as bool? ?? false,
       claimedByUserId: json['claimed_by_user_id'] as String?,
+      claimedByDisplayName: json['claimed_by_display_name'] as String?,
+      claimedByAvatarUrl: json['claimed_by_avatar_url'] as String?,
+      commitStatus: json['commit_status'] as String?,
+      commitNote: json['commit_note'] as String?,
+      commitUid: json['commit_uid'] as String?,
       claimedAt:
           json['claimed_at'] != null
               ? DateTime.parse(json['claimed_at'] as String)
@@ -203,6 +220,10 @@ class ListItem {
       claimExpiresAt:
           json['claim_expires_at'] != null
               ? DateTime.parse(json['claim_expires_at'] as String)
+              : null,
+      purchasedAt:
+          json['purchased_at'] != null
+              ? DateTime.parse(json['purchased_at'] as String)
               : null,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt:
@@ -230,8 +251,14 @@ class ListItem {
       'quantity': quantity,
       'is_claimed': isClaimed,
       'claimed_by_user_id': claimedByUserId,
+      'claimed_by_display_name': claimedByDisplayName,
+      'claimed_by_avatar_url': claimedByAvatarUrl,
+      'commit_status': commitStatus,
+      'commit_note': commitNote,
+      'commit_uid': commitUid,
       'claimed_at': claimedAt?.toIso8601String(),
       'claim_expires_at': claimExpiresAt?.toIso8601String(),
+      'purchased_at': purchasedAt?.toIso8601String(),
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
     };
@@ -273,8 +300,14 @@ class ListItem {
     int? quantity,
     bool? isClaimed,
     String? claimedByUserId,
+    String? claimedByDisplayName,
+    String? claimedByAvatarUrl,
+    String? commitStatus,
+    String? commitNote,
+    String? commitUid,
     DateTime? claimedAt,
     DateTime? claimExpiresAt,
+    DateTime? purchasedAt,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -295,8 +328,14 @@ class ListItem {
       quantity: quantity ?? this.quantity,
       isClaimed: isClaimed ?? this.isClaimed,
       claimedByUserId: claimedByUserId ?? this.claimedByUserId,
+      claimedByDisplayName: claimedByDisplayName ?? this.claimedByDisplayName,
+      claimedByAvatarUrl: claimedByAvatarUrl ?? this.claimedByAvatarUrl,
+      commitStatus: commitStatus ?? this.commitStatus,
+      commitNote: commitNote ?? this.commitNote,
+      commitUid: commitUid ?? this.commitUid,
       claimedAt: claimedAt ?? this.claimedAt,
       claimExpiresAt: claimExpiresAt ?? this.claimExpiresAt,
+      purchasedAt: purchasedAt ?? this.purchasedAt,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

@@ -30,7 +30,7 @@ class AppShell extends StatefulWidget {
 }
 
 class _AppShellState extends State<AppShell>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final _authService = AuthService();
   final _listService = ListService();
@@ -40,12 +40,17 @@ class _AppShellState extends State<AppShell>
   bool _showButtons = false;
   bool _hasLists = false;
   bool _hasItems = false;
+  bool _isFabMenuOpen = false;
   UserProfile? _userProfile;
   int _lastIndex = 0;
 
   // Bouncing arrow animation
   late AnimationController _arrowController;
   late Animation<double> _arrowAnimation;
+  
+  // FAB menu animation
+  late AnimationController _fabMenuController;
+  late Animation<double> _fabMenuAnimation;
 
   @override
   void initState() {
@@ -68,6 +73,16 @@ class _AppShellState extends State<AppShell>
     _arrowAnimation = Tween<double>(begin: 0, end: 10).animate(
       CurvedAnimation(parent: _arrowController, curve: Curves.easeInOut),
     );
+    
+    // Setup FAB menu animation
+    _fabMenuController = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+    );
+    _fabMenuAnimation = CurvedAnimation(
+      parent: _fabMenuController,
+      curve: Curves.easeOut,
+    );
   }
 
   void _onPageLoaded() {
@@ -84,10 +99,31 @@ class _AppShellState extends State<AppShell>
   @override
   void dispose() {
     _arrowController.dispose();
+    _fabMenuController.dispose();
     UserSettingsService().removeListener(_onSettingsChanged);
     _listsNotifier.removeListener(_onListsChanged);
     _pageLoadNotifier.removeListener(_onPageLoaded);
     super.dispose();
+  }
+  
+  void _toggleFabMenu() {
+    setState(() {
+      _isFabMenuOpen = !_isFabMenuOpen;
+      if (_isFabMenuOpen) {
+        _fabMenuController.forward();
+      } else {
+        _fabMenuController.reverse();
+      }
+    });
+  }
+  
+  void _closeFabMenu() {
+    if (_isFabMenuOpen) {
+      setState(() {
+        _isFabMenuOpen = false;
+        _fabMenuController.reverse();
+      });
+    }
   }
 
   void _onSettingsChanged() {
@@ -328,90 +364,152 @@ class _AppShellState extends State<AppShell>
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        // Add List button and View toggle (left)
+        // View toggle button (left)
         Padding(
           padding: const EdgeInsets.only(left: 32),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Add List button
-              ClipRRect(
-                borderRadius: BorderRadius.circular(32),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 6.5, sigmaY: 6.5),
-                  child: Material(
-                    color: Colors.white.withValues(alpha: 0.92),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(32),
-                      side: BorderSide(
-                        color: Colors.black.withValues(alpha: 0.2),
-                        width: 1,
-                      ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(32),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 6.5, sigmaY: 6.5),
+              child: Material(
+                color: Colors.white.withValues(alpha: 0.92),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(32),
+                  side: BorderSide(
+                    color: Colors.black.withValues(alpha: 0.2),
+                    width: 1,
+                  ),
+                ),
+                child: InkWell(
+                  onTap: () {
+                    setState(() {
+                      _viewModeNotifier.toggle();
+                    });
+                  },
+                  borderRadius: BorderRadius.circular(32),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 10,
                     ),
-                    child: InkWell(
-                      onTap: _showCreateListDialog,
-                      borderRadius: BorderRadius.circular(32),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 16,
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            PhosphorIcon(
-                              PhosphorIcons.listPlus(),
-                              size: 20,
-                              color: Colors.black,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Add list',
-                              style: AppTypography.titleMedium.copyWith(
-                                color: Colors.black,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                    child: PhosphorIcon(
+                      _viewModeNotifier.isCompactView
+                          ? PhosphorIcons.rows()
+                          : PhosphorIcons.squaresFour(),
+                      size: 22,
+                      color: Colors.black,
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
-              // View toggle button
-              ClipRRect(
-                borderRadius: BorderRadius.circular(32),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 6.5, sigmaY: 6.5),
-                  child: Material(
-                    color: Colors.white.withValues(alpha: 0.92),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(32),
-                      side: BorderSide(
-                        color: Colors.black.withValues(alpha: 0.2),
-                        width: 1,
+            ),
+          ),
+        ),
+        // Speed dial FAB (right)
+        SizedBox(
+          width: _isFabMenuOpen ? 300 : 56,
+          height: 56,
+          child: Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.centerRight,
+            children: [
+              // Bouncing arrow (positioned above the button)
+              if (_hasLists && !_hasItems && !_isFabMenuOpen)
+                Positioned(
+                  top: -46,
+                  right: 0,
+                  left: 0,
+                  child: AnimatedBuilder(
+                    animation: _arrowAnimation,
+                    builder: (context, child) {
+                      return Transform.translate(
+                        offset: Offset(0, _arrowAnimation.value),
+                        child: Center(
+                          child: PhosphorIcon(
+                            PhosphorIcons.arrowDown(PhosphorIconsStyle.bold),
+                            size: 36,
+                            color: Colors.black,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              // Menu items (animated) - appear to the left
+              if (_isFabMenuOpen) ...[
+                // Add List option - furthest left
+                Positioned(
+                  right: _hasLists ? 200 : 70,
+                  child: SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(1, 0),
+                      end: Offset.zero,
+                    ).animate(_fabMenuAnimation),
+                    child: FadeTransition(
+                      opacity: _fabMenuAnimation,
+                      child: _buildFabMenuItem(
+                        label: 'Add list',
+                        onTap: () {
+                          _closeFabMenu();
+                          _showCreateListDialog();
+                        },
                       ),
                     ),
-                    child: InkWell(
-                      onTap: () {
-                        setState(() {
-                          _viewModeNotifier.toggle();
-                        });
-                      },
-                      borderRadius: BorderRadius.circular(32),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 10,
+                  ),
+                ),
+                // Add Item option (only if has lists) - closer to FAB
+                if (_hasLists)
+                  Positioned(
+                    right: 70,
+                    child: SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(1, 0),
+                        end: Offset.zero,
+                      ).animate(_fabMenuAnimation),
+                      child: FadeTransition(
+                        opacity: _fabMenuAnimation,
+                        child: _buildFabMenuItem(
+                          label: 'Add item',
+                          onTap: () {
+                            _closeFabMenu();
+                            _showAddItemSheet(context);
+                          },
                         ),
-                        child: PhosphorIcon(
-                          _viewModeNotifier.isCompactView
-                              ? PhosphorIcons.rows()
-                              : PhosphorIcons.squaresFour(),
-                          size: 22,
-                          color: Colors.black,
+                      ),
+                    ),
+                  ),
+              ],
+              // Main FAB button
+              Positioned(
+                right: 0,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.5),
+                      width: 1,
+                    ),
+                  ),
+                  child: Material(
+                    color: _isFabMenuOpen ? Colors.black : AppColors.accent,
+                    shape: const CircleBorder(),
+                    elevation: 6,
+                    shadowColor: Colors.black.withValues(alpha: 0.3),
+                    child: InkWell(
+                      onTap: _toggleFabMenu,
+                      customBorder: const CircleBorder(),
+                      child: SizedBox(
+                        width: 56,
+                        height: 56,
+                        child: AnimatedRotation(
+                          turns: _isFabMenuOpen ? 0.125 : 0,
+                          duration: const Duration(milliseconds: 200),
+                          child: PhosphorIcon(
+                            PhosphorIcons.plus(),
+                            size: 28,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ),
@@ -421,52 +519,47 @@ class _AppShellState extends State<AppShell>
             ],
           ),
         ),
-        // Add Item button (right) - Orange (disabled if no lists)
-        // With bouncing arrow when lists exist but no items
-        Stack(
-          clipBehavior: Clip.none,
-          alignment: Alignment.center,
-          children: [
-            // Bouncing arrow (positioned above the button)
-            if (_hasLists && !_hasItems)
-              Positioned(
-                top: -46,
-                child: AnimatedBuilder(
-                  animation: _arrowAnimation,
-                  builder: (context, child) {
-                    return Transform.translate(
-                      offset: Offset(0, _arrowAnimation.value),
-                      child: PhosphorIcon(
-                        PhosphorIcons.arrowDown(PhosphorIconsStyle.bold),
-                        size: 36,
-                        color: Colors.black,
-                      ),
-                    );
-                  },
-                ),
-              ),
-            Material(
-              color: _hasLists ? AppColors.accent : Colors.grey.shade400,
-              shape: const CircleBorder(),
-              elevation: _hasLists ? 6 : 2,
-              shadowColor: Colors.black.withValues(alpha: 0.3),
-              child: InkWell(
-                onTap: _hasLists ? () => _showAddItemSheet(context) : null,
-                customBorder: const CircleBorder(),
-                child: SizedBox(
-                  width: 56,
-                  height: 56,
-                  child: PhosphorIcon(
-                    PhosphorIcons.plus(),
-                    size: 28,
-                    color: _hasLists ? Colors.white : Colors.white70,
-                  ),
-                ),
-              ),
+      ],
+    );
+  }
+  
+  Widget _buildFabMenuItem({
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.5),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.2),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
           ],
         ),
-      ],
+        child: Material(
+          color: AppColors.accent,
+          borderRadius: BorderRadius.circular(24),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+            child: Text(
+              label,
+              style: AppTypography.titleMedium.copyWith(
+                color: Colors.white,
+                fontSize: 15,
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

@@ -26,7 +26,7 @@ class ItemService {
   Future<List<ItemSearchResult>> searchAllItems(String query) async {
     final userId = SupabaseService.currentUserId;
     if (userId == null) throw Exception('User not authenticated');
-    
+
     if (query.trim().isEmpty) return [];
 
     // Get all items from user's lists that match the search query
@@ -43,7 +43,7 @@ class ItemService {
       final listData = json['lists'] as Map<String, dynamic>;
       final itemJson = Map<String, dynamic>.from(json);
       itemJson.remove('lists');
-      
+
       return ItemSearchResult(
         item: ListItem.fromJson(itemJson),
         listUid: listData['uid'] as String,
@@ -52,15 +52,64 @@ class ItemService {
     }).toList();
   }
 
-  /// Get all items for a list
+  /// Get all items for a list with commit data
   Future<List<ListItem>> getListItems(int listId) async {
-    final response = await _client
+    // First, get the items
+    final itemsResponse = await _client
         .from(SupabaseConfig.listItemsTable)
         .select()
         .eq('list_id', listId)
         .order('created_at', ascending: false);
 
-    return (response as List).map((json) => ListItem.fromJson(json)).toList();
+    final items = itemsResponse as List;
+    if (items.isEmpty) return [];
+
+    // Get all item UIDs
+    final itemUids = items.map((i) => i['uid'] as String).toList();
+
+    // Fetch commits separately for these items
+    final commitsResponse = await _client
+        .from(SupabaseConfig.commitsTable)
+        .select('*, users(display_name, avatar_url)')
+        .inFilter('item_uid', itemUids)
+        .inFilter('status', ['active', 'purchased']);
+
+    // Create a map of item_uid -> commit
+    final commitsMap = <String, Map<String, dynamic>>{};
+    for (final commit in (commitsResponse as List)) {
+      final itemUid = commit['item_uid'] as String;
+      // Only keep first active/purchased commit per item
+      if (!commitsMap.containsKey(itemUid)) {
+        commitsMap[itemUid] = commit as Map<String, dynamic>;
+      }
+    }
+
+    // Map items with their commits
+    return items.map((json) {
+      final itemJson = Map<String, dynamic>.from(json);
+      final itemUid = itemJson['uid'] as String;
+
+      final commit = commitsMap[itemUid];
+      if (commit != null) {
+        itemJson['is_claimed'] = true;
+        itemJson['claimed_by_user_id'] = commit['claimed_by_user_id'];
+        itemJson['commit_uid'] = commit['uid'];
+        itemJson['commit_status'] = commit['status'];
+        itemJson['commit_note'] = commit['note'];
+        itemJson['claimed_at'] = commit['created_at'];
+        itemJson['claim_expires_at'] = commit['expires_at'];
+        itemJson['purchased_at'] = commit['purchased_at'];
+
+        // Get display name and avatar from nested users
+        final userData = commit['users'] as Map<String, dynamic>?;
+        if (userData != null) {
+          itemJson['claimed_by_display_name'] = userData['display_name'];
+          itemJson['claimed_by_avatar_url'] = userData['avatar_url'];
+        }
+      }
+
+      return ListItem.fromJson(itemJson);
+    }).toList();
   }
 
   /// Get a single item by UID
@@ -213,16 +262,14 @@ class ItemService {
     final userId = SupabaseService.currentUserId;
     if (userId == null) throw Exception('User not authenticated');
 
-    // Use the commit_item database function for safe transactional commit
-    await _client.rpc(
-      SupabaseConfig.claimItemFunction,
-      params: {
-        'p_item_uid': itemUid,
-        'p_user_id': userId,
-        'p_expires_at': expiresAt?.toIso8601String(),
-        'p_note': note,
-      },
-    );
+    // Direct insert into commits table
+    await _client.from(SupabaseConfig.commitsTable).insert({
+      'claimed_by_user_id': userId,
+      'item_uid': itemUid,
+      'status': 'active',
+      if (note != null && note.isNotEmpty) 'note': note,
+      if (expiresAt != null) 'expires_at': expiresAt.toIso8601String(),
+    });
   }
 
   /// Remove commitment to an item
@@ -230,10 +277,13 @@ class ItemService {
     final userId = SupabaseService.currentUserId;
     if (userId == null) throw Exception('User not authenticated');
 
-    await _client.rpc(
-      SupabaseConfig.unclaimItemFunction,
-      params: {'p_item_uid': itemUid, 'p_user_id': userId},
-    );
+    // Delete active commit for this user and item
+    await _client
+        .from(SupabaseConfig.commitsTable)
+        .delete()
+        .eq('item_uid', itemUid)
+        .eq('claimed_by_user_id', userId)
+        .eq('status', 'active');
   }
 
   /// Mark commit as purchased

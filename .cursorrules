@@ -4,6 +4,8 @@
 
 **⚠️ GIT OPERATIONS: NEVER push changes to git without explicit user approval. Always stage and commit, then ASK before pushing.**
 
+**⚠️ DIALOGS: Always use `AppDialog.show()` from `widgets/app_dialog.dart` for confirmation dialogs. Never use raw `AlertDialog`.**
+
 ---
 
 ## I. Project Metadata & Goals
