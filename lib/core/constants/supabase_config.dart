@@ -14,7 +14,7 @@ class SupabaseConfig {
   static const String usersTable = 'users';
   static const String listsTable = 'lists';
   static const String listItemsTable = 'list_items';
-  static const String claimsTable = 'claims';
+  static const String commitsTable = 'commits';
   static const String listSharesTable = 'list_shares';
   static const String messagesTable = 'messages';
   static const String conversationsTable = 'conversations';

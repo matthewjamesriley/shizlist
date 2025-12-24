@@ -88,7 +88,7 @@
             <img src="/images/ShizList-Logo.png" alt="ShizList">
         </a>
         
-        <h1>Help & Support</h1>
+        <h1>Help & support</h1>
         
         <p>
             Need help with ShizList? We're here to assist you with any questions 

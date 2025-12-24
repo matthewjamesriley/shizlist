@@ -511,7 +511,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
           children: [
-            _buildAvatar(friend),
+            _buildAvatarWithBadge(friend, sharedListNames.length),
             const SizedBox(width: 14),
             Expanded(
               child: Text(
@@ -521,18 +521,9 @@ class _ContactsScreenState extends State<ContactsScreen> {
                 ),
               ),
             ),
-            // Circle button: My lists they can see
-            _buildCircleButton(
-              icon: PhosphorIcons.star(),
-              count: sharedListNames.length,
-              isActive: sharedListNames.isNotEmpty,
-              tooltip: 'Your lists',
-              onTap: () => _showFriendListAccessSheet(friend, initialTab: 0),
-            ),
-            const SizedBox(width: 10),
             // Circle button: Their lists I can view
             _buildCircleButton(
-              icon: PhosphorIcons.list(),
+              icon: PhosphorIcons.userList(),
               count: friendsLists.length,
               isActive: friendsLists.isNotEmpty,
               tooltip: 'Their lists',
@@ -726,6 +717,41 @@ class _ContactsScreenState extends State<ContactsScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildAvatarWithBadge(Friend friend, int count) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        _buildAvatar(friend),
+        if (count > 0)
+          Positioned(
+            right: -4,
+            top: -4,
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.accent,
+              ),
+              constraints: const BoxConstraints(
+                minWidth: 18,
+                minHeight: 18,
+              ),
+              child: Center(
+                child: Text(
+                  count > 99 ? '99+' : count.toString(),
+                  style: AppTypography.labelSmall.copyWith(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -1114,7 +1140,7 @@ class _ManageListsSheetState extends State<_ManageListsSheet>
             mainAxisSize: MainAxisSize.min,
             children: [
               PhosphorIcon(
-                PhosphorIcons.eyeSlash(),
+                PhosphorIcons.userList(),
                 size: 48,
                 color: AppColors.textSecondary,
               ),

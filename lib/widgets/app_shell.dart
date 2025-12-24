@@ -353,15 +353,26 @@ class _AppShellState extends State<AppShell>
                       borderRadius: BorderRadius.circular(32),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 28,
+                          horizontal: 20,
                           vertical: 16,
                         ),
-                        child: Text(
-                          'Add list',
-                          style: AppTypography.titleMedium.copyWith(
-                            color: Colors.black,
-                            fontSize: 16,
-                          ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            PhosphorIcon(
+                              PhosphorIcons.listPlus(),
+                              size: 20,
+                              color: Colors.black,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Add list',
+                              style: AppTypography.titleMedium.copyWith(
+                                color: Colors.black,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),

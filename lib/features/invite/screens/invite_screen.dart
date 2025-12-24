@@ -41,7 +41,9 @@ class _InviteScreenState extends State<InviteScreen> {
     try {
       final lists = await _listService.getUserLists();
       // Sort alphabetically by title
-      lists.sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+      lists.sort(
+        (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()),
+      );
       if (mounted) {
         setState(() {
           _lists = lists;
@@ -214,9 +216,9 @@ class _InviteScreenState extends State<InviteScreen> {
               isLoading: _isGenerating,
             ),
           ] else ...[
-            // Invite link generated - show share options
+            // Invite link generated - show compact QR view
             Container(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: AppColors.surface,
                 borderRadius: BorderRadius.circular(16),
@@ -224,7 +226,7 @@ class _InviteScreenState extends State<InviteScreen> {
               ),
               child: Column(
                 children: [
-                  // Share and Copy buttons
+                  // Share and Copy buttons at top
                   Row(
                     children: [
                       Expanded(
@@ -281,19 +283,19 @@ class _InviteScreenState extends State<InviteScreen> {
                     ],
                   ),
 
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
 
                   // QR Code
                   Container(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                     child: QrImageView(
                       data: _currentInvite!.inviteUrl,
                       version: QrVersions.auto,
-                      size: 200,
+                      size: 180,
                       backgroundColor: Colors.white,
                       eyeStyle: const QrEyeStyle(
                         eyeShape: QrEyeShape.square,
@@ -310,24 +312,9 @@ class _InviteScreenState extends State<InviteScreen> {
 
                   Text(
                     'Scan to join',
-                    style: AppTypography.bodyMedium.copyWith(
+                    style: AppTypography.titleLarge.copyWith(
                       color: AppColors.textPrimary,
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Generate new link button
-                  TextButton(
-                    onPressed: () {
-                      setState(() => _currentInvite = null);
-                    },
-                    child: Text(
-                      'Generate new link',
-                      style: AppTypography.bodyMedium.copyWith(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],
@@ -355,8 +342,8 @@ class _InviteScreenState extends State<InviteScreen> {
                 Expanded(
                   child: Text(
                     _selectedList != null
-                        ? 'Your friend will be added to "${_selectedList!.title}" when they accept the invite.'
-                        : 'Your friend will be invited to join ShizList. You can share lists with them later.',
+                        ? 'Your friend(s) will be added to "${_selectedList!.title}" when they accept the invite.'
+                        : 'Your friend(s) will be invited to join ShizList. You can share lists with them later.',
                     style: AppTypography.bodyMedium.copyWith(
                       color: AppColors.textPrimary,
                     ),

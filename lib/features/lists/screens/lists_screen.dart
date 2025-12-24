@@ -46,7 +46,7 @@ class _ListsScreenState extends State<ListsScreen>
     super.initState();
     _listsNotifier.addListener(_onListsChanged);
     _viewModeNotifier.addListener(_onViewModeChanged);
-    
+
     // Entrance fade animation
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 200),
@@ -57,7 +57,7 @@ class _ListsScreenState extends State<ListsScreen>
       curve: Curves.easeOut,
     );
     _fadeController.forward();
-    
+
     _loadLists();
   }
 
@@ -127,7 +127,7 @@ class _ListsScreenState extends State<ListsScreen>
       });
 
       final lists = await _listService.getUserLists();
-      
+
       // Load friends count for each list
       final friendsCount = <String, int>{};
       for (final list in lists) {
@@ -140,7 +140,7 @@ class _ListsScreenState extends State<ListsScreen>
         _listFriendsCount = friendsCount;
         _isLoading = false;
       });
-      
+
       // Notify that page has loaded (for button animation)
       PageLoadNotifier().notifyListsPageLoaded();
     } catch (e) {
@@ -175,10 +175,7 @@ class _ListsScreenState extends State<ListsScreen>
 
   @override
   Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: _fadeAnimation,
-      child: _buildContent(),
-    );
+    return FadeTransition(opacity: _fadeAnimation, child: _buildContent());
   }
 
   Widget _buildContent() {
@@ -325,7 +322,8 @@ class _ListsScreenState extends State<ListsScreen>
     final confirmed = await AppDialog.show(
       context,
       title: 'Delete "${list.title}"?',
-      content: 'Are you sure you want to delete this list? This action can be undone.',
+      content:
+          'Are you sure you want to delete this list? This action can be undone.',
       confirmText: 'Delete',
       isDestructive: true,
     );
@@ -380,14 +378,15 @@ class _ListsScreenState extends State<ListsScreen>
       backgroundColor: Colors.transparent,
       showDragHandle: false,
       useRootNavigator: true,
-      builder: (context) => _ManageFriendsSheet(
-        list: list,
-        friends: friends,
-        listShareService: _listShareService,
-        onComplete: () {
-          _silentRefresh();
-        },
-      ),
+      builder:
+          (context) => _ManageFriendsSheet(
+            list: list,
+            friends: friends,
+            listShareService: _listShareService,
+            onComplete: () {
+              _silentRefresh();
+            },
+          ),
     );
   }
 }
@@ -452,10 +451,11 @@ class _ManageFriendsSheetState extends State<_ManageFriendsSheet> {
     } else {
       final lowerQuery = query.toLowerCase();
       setState(() {
-        _filteredFriends = widget.friends.where((friend) {
-          final name = friend.displayName.toLowerCase();
-          return name.contains(lowerQuery);
-        }).toList();
+        _filteredFriends =
+            widget.friends.where((friend) {
+              final name = friend.displayName.toLowerCase();
+              return name.contains(lowerQuery);
+            }).toList();
       });
     }
   }
@@ -588,13 +588,14 @@ class _ManageFriendsSheetState extends State<_ManageFriendsSheet> {
                   width: 2,
                 ),
               ),
-              child: isShared
-                  ? PhosphorIcon(
-                      PhosphorIcons.check(PhosphorIconsStyle.bold),
-                      size: 16,
-                      color: Colors.white,
-                    )
-                  : null,
+              child:
+                  isShared
+                      ? PhosphorIcon(
+                        PhosphorIcons.check(PhosphorIconsStyle.bold),
+                        size: 16,
+                        color: Colors.white,
+                      )
+                      : null,
             ),
             const SizedBox(width: 12),
             // Avatar
@@ -602,10 +603,7 @@ class _ManageFriendsSheetState extends State<_ManageFriendsSheet> {
             const SizedBox(width: 12),
             // Name
             Expanded(
-              child: Text(
-                friend.displayName,
-                style: AppTypography.titleMedium,
-              ),
+              child: Text(friend.displayName, style: AppTypography.titleMedium),
             ),
           ],
         ),

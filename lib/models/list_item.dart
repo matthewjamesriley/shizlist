@@ -87,11 +87,11 @@ enum ItemPriority {
       case ItemPriority.none:
         return 'No priority';
       case ItemPriority.low:
-        return 'Good';
+        return 'Into it';
       case ItemPriority.medium:
-        return 'Into';
+        return 'Love it';
       case ItemPriority.high:
-        return 'Love';
+        return 'Must have';
     }
   }
 
@@ -102,9 +102,9 @@ enum ItemPriority {
       case ItemPriority.low:
         return const Color(0xFF2196F3); // Blue
       case ItemPriority.medium:
-        return const Color(0xFFFFA000); // Amber
-      case ItemPriority.high:
         return const Color(0xFFE53935); // Red
+      case ItemPriority.high:
+        return const Color.fromARGB(255, 239, 153, 16); // Red
     }
   }
 
@@ -115,9 +115,9 @@ enum ItemPriority {
       case ItemPriority.low:
         return PhosphorIcons.thumbsUp(PhosphorIconsStyle.fill);
       case ItemPriority.medium:
-        return PhosphorIcons.smiley(PhosphorIconsStyle.fill);
-      case ItemPriority.high:
         return PhosphorIcons.heartStraight(PhosphorIconsStyle.fill);
+      case ItemPriority.high:
+        return PhosphorIcons.star(PhosphorIconsStyle.fill);
     }
   }
 

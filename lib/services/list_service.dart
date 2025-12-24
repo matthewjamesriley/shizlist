@@ -5,6 +5,17 @@ import 'supabase_service.dart';
 import '../models/models.dart';
 import '../core/constants/supabase_config.dart';
 
+String _visibilityToString(ListVisibility visibility) {
+  switch (visibility) {
+    case ListVisibility.public:
+      return 'public';
+    case ListVisibility.friends:
+      return 'friends';
+    case ListVisibility.private:
+      return 'private';
+  }
+}
+
 /// Service for managing wish lists
 class ListService {
   final SupabaseClient _client = SupabaseService.client;
@@ -55,18 +66,24 @@ class ListService {
     ListVisibility visibility = ListVisibility.private,
     DateTime? eventDate,
     bool isRecurring = false,
+    bool notifyOnCommit = true,
+    bool notifyOnPurchase = true,
   }) async {
     final userId = SupabaseService.currentUserId;
     if (userId == null) throw Exception('User not authenticated');
 
     final uid = _uuid.v4();
+    final visibilityStr = _visibilityToString(visibility);
+    debugPrint('Creating list with visibility: $visibility -> $visibilityStr');
     final insertData = <String, dynamic>{
       'uid': uid,
       'owner_id': userId,
       'title': title,
       'description': description,
-      'visibility': visibility == ListVisibility.public ? 'public' : 'private',
+      'visibility': visibilityStr,
       'created_at': DateTime.now().toIso8601String(),
+      'notify_on_commit': notifyOnCommit,
+      'notify_on_purchase': notifyOnPurchase,
     };
     
     if (eventDate != null) {
@@ -97,6 +114,8 @@ class ListService {
     DateTime? eventDate,
     bool clearEventDate = false,
     bool? isRecurring,
+    bool? notifyOnCommit,
+    bool? notifyOnPurchase,
   }) async {
     final updates = <String, dynamic>{
       'updated_at': DateTime.now().toIso8601String(),
@@ -113,7 +132,7 @@ class ListService {
       updates['cover_image_url'] = null;
     }
     if (visibility != null) {
-      updates['visibility'] = visibility == ListVisibility.public ? 'public' : 'private';
+      updates['visibility'] = _visibilityToString(visibility);
     }
     if (eventDate != null) {
       updates['event_date'] = eventDate.toIso8601String().split('T').first;
@@ -123,6 +142,12 @@ class ListService {
     }
     if (isRecurring != null) {
       updates['is_recurring'] = isRecurring;
+    }
+    if (notifyOnCommit != null) {
+      updates['notify_on_commit'] = notifyOnCommit;
+    }
+    if (notifyOnPurchase != null) {
+      updates['notify_on_purchase'] = notifyOnPurchase;
     }
 
     final response = await _client

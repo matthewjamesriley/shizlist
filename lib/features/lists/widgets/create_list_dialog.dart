@@ -35,12 +35,14 @@ class _CreateListDialogState extends State<CreateListDialog> {
 
   OverlayEntry? _overlayEntry;
 
-  ListVisibility _visibility = ListVisibility.public;
+  ListVisibility _visibility = ListVisibility.friends;
   bool _isLoading = false;
   DateTime? _eventDate;
   bool _isRecurring = false;
   List<EventSuggestion> _suggestions = [];
   bool _isEventSelected = false;
+  bool _notifyOnCommit = true;
+  bool _notifyOnPurchase = true;
 
   @override
   void initState() {
@@ -174,6 +176,15 @@ class _CreateListDialogState extends State<CreateListDialog> {
               surface: AppColors.surface,
               onSurface: AppColors.textPrimary,
             ),
+            textTheme: Theme.of(context).textTheme.copyWith(
+              labelSmall: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+              headlineMedium: const TextStyle(fontSize: 28, fontWeight: FontWeight.w500),
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+              ),
+            ),
           ),
           child: child!,
         );
@@ -198,6 +209,24 @@ class _CreateListDialogState extends State<CreateListDialog> {
       'October',
       'November',
       'December',
+    ];
+    return '${date.day} ${months[date.month - 1]} ${date.year}';
+  }
+
+  String _formatEventDateShort(DateTime date) {
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     return '${date.day} ${months[date.month - 1]} ${date.year}';
   }
@@ -292,123 +321,122 @@ class _CreateListDialogState extends State<CreateListDialog> {
                     ),
                     const SizedBox(height: 20),
 
-                    // Event date
+                    // Event date & Recurring
                     Text(
                       'Event date (optional)',
                       style: AppTypography.titleMedium,
                     ),
                     const SizedBox(height: 8),
-                    GestureDetector(
-                      onTap: _showDatePicker,
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: AppColors.divider),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            PhosphorIcon(
-                              PhosphorIcons.calendarDots(),
-                              size: 24,
-                              color:
-                                  _eventDate != null
-                                      ? AppColors.primary
-                                      : AppColors.textSecondary,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                _eventDate != null
-                                    ? _formatEventDate(_eventDate!)
-                                    : 'Select a date',
-                                style: AppTypography.titleMedium.copyWith(
-                                  color:
+                    Row(
+                      children: [
+                        // Date picker
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: _showDatePicker,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 14,
+                              ),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: AppColors.divider),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                children: [
+                                  PhosphorIcon(
+                                    PhosphorIcons.calendarDots(),
+                                    size: 20,
+                                    color:
+                                        _eventDate != null
+                                            ? AppColors.primary
+                                            : AppColors.textSecondary,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
                                       _eventDate != null
-                                          ? AppColors.textPrimary
-                                          : AppColors.textSecondary,
-                                ),
+                                          ? _formatEventDateShort(_eventDate!)
+                                          : 'Select date',
+                                      style: AppTypography.titleMedium.copyWith(
+                                        color:
+                                            _eventDate != null
+                                                ? AppColors.textPrimary
+                                                : AppColors.textSecondary,
+                                      ),
+                                    ),
+                                  ),
+                                  if (_eventDate != null)
+                                    GestureDetector(
+                                      onTap:
+                                          () => setState(() {
+                                            _eventDate = null;
+                                            _isRecurring = false;
+                                          }),
+                                      child: PhosphorIcon(
+                                        PhosphorIcons.xCircle(),
+                                        size: 20,
+                                        color: AppColors.textSecondary,
+                                      ),
+                                    ),
+                                ],
                               ),
                             ),
-                            if (_eventDate != null)
-                              GestureDetector(
-                                onTap:
-                                    () => setState(() {
-                                      _eventDate = null;
-                                      _isRecurring = false;
-                                    }),
-                                child: PhosphorIcon(
-                                  PhosphorIcons.xCircle(),
-                                  size: 24,
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    // Recurring toggle (only show if date is set)
-                    if (_eventDate != null) ...[
-                      const SizedBox(height: 12),
-                      GestureDetector(
-                        onTap:
-                            () => setState(() => _isRecurring = !_isRecurring),
-                        child: Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            border: Border.all(
-                              color:
-                                  _isRecurring
-                                      ? AppColors.primary
-                                      : AppColors.divider,
-                              width: _isRecurring ? 2 : 1,
-                            ),
-                            borderRadius: BorderRadius.circular(12),
-                            color:
-                                _isRecurring
-                                    ? AppColors.primary.withOpacity(0.05)
-                                    : null,
                           ),
-                          child: Row(
-                            children: [
-                              PhosphorIcon(
-                                PhosphorIcons.arrowsClockwise(),
-                                size: 24,
+                        ),
+                        // Recurring toggle (only show if date is set)
+                        if (_eventDate != null) ...[
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap:
+                                () =>
+                                    setState(() => _isRecurring = !_isRecurring),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 14,
+                              ),
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color:
+                                      _isRecurring
+                                          ? AppColors.primary
+                                          : AppColors.divider,
+                                ),
+                                borderRadius: BorderRadius.circular(12),
                                 color:
                                     _isRecurring
-                                        ? AppColors.primary
-                                        : AppColors.textSecondary,
+                                        ? AppColors.primary.withOpacity(0.05)
+                                        : null,
                               ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  'Recurring annually',
-                                  style: AppTypography.titleMedium.copyWith(
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  PhosphorIcon(
+                                    PhosphorIcons.arrowsClockwise(),
+                                    size: 20,
                                     color:
                                         _isRecurring
                                             ? AppColors.primary
-                                            : AppColors.textPrimary,
+                                            : AppColors.textSecondary,
                                   ),
-                                ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Yearly',
+                                    style: AppTypography.titleMedium.copyWith(
+                                      color:
+                                          _isRecurring
+                                              ? AppColors.primary
+                                              : AppColors.textPrimary,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              PhosphorIcon(
-                                _isRecurring
-                                    ? PhosphorIcons.checkCircle(
-                                      PhosphorIconsStyle.fill,
-                                    )
-                                    : PhosphorIcons.circle(),
-                                size: 24,
-                                color:
-                                    _isRecurring
-                                        ? AppColors.primary
-                                        : AppColors.divider,
-                              ),
-                            ],
+                            ),
                           ),
-                        ),
-                      ),
-                    ],
+                        ],
+                      ],
+                    ),
 
                     const SizedBox(height: 20),
 
@@ -419,9 +447,9 @@ class _CreateListDialogState extends State<CreateListDialog> {
                       children: [
                         Expanded(
                           child: _VisibilityOption(
-                            icon: PhosphorIcons.usersThree(),
+                            icon: PhosphorIcons.globeSimple(),
                             title: 'Public',
-                            subtitle: 'Anyone with link',
+                            subtitle: 'Anyone',
                             isSelected: _visibility == ListVisibility.public,
                             onTap: () {
                               setState(
@@ -430,12 +458,26 @@ class _CreateListDialogState extends State<CreateListDialog> {
                             },
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _VisibilityOption(
+                            icon: PhosphorIcons.usersThree(),
+                            title: 'Friends',
+                            subtitle: 'Connected',
+                            isSelected: _visibility == ListVisibility.friends,
+                            onTap: () {
+                              setState(
+                                () => _visibility = ListVisibility.friends,
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
                         Expanded(
                           child: _VisibilityOption(
                             icon: PhosphorIcons.lock(),
                             title: 'Private',
-                            subtitle: 'Only shared users',
+                            subtitle: 'Only you',
                             isSelected: _visibility == ListVisibility.private,
                             onTap: () {
                               setState(
@@ -446,7 +488,120 @@ class _CreateListDialogState extends State<CreateListDialog> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20),
+
+                    // Notification preferences
+                    Builder(
+                      builder: (context) {
+                        final isPrivate = _visibility == ListVisibility.private;
+                        final commitChecked = !isPrivate && _notifyOnCommit;
+                        final purchaseChecked = !isPrivate && _notifyOnPurchase;
+                        
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Notify me when my friends...',
+                              style: AppTypography.titleMedium.copyWith(
+                                color: isPrivate ? AppColors.textSecondary : null,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: InkWell(
+                                    onTap: isPrivate ? null : () => setState(() => _notifyOnCommit = !_notifyOnCommit),
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(vertical: 8),
+                                      child: Row(
+                                        children: [
+                                          Container(
+                                            width: 24,
+                                            height: 24,
+                                            decoration: BoxDecoration(
+                                              color: commitChecked ? AppColors.primary : Colors.transparent,
+                                              borderRadius: BorderRadius.circular(6),
+                                              border: Border.all(
+                                                color: isPrivate 
+                                                    ? AppColors.border.withValues(alpha: 0.5)
+                                                    : (commitChecked ? AppColors.primary : AppColors.border),
+                                                width: 2,
+                                              ),
+                                            ),
+                                            child: commitChecked
+                                                ? PhosphorIcon(
+                                                    PhosphorIcons.check(PhosphorIconsStyle.bold),
+                                                    size: 16,
+                                                    color: Colors.white,
+                                                  )
+                                                : null,
+                                          ),
+                                          const SizedBox(width: 10),
+                                          Flexible(
+                                            child: Text(
+                                              'Commit to purchase',
+                                              style: AppTypography.bodyMedium.copyWith(
+                                                color: isPrivate ? AppColors.textSecondary : null,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                Expanded(
+                                  child: InkWell(
+                                    onTap: isPrivate ? null : () => setState(() => _notifyOnPurchase = !_notifyOnPurchase),
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(vertical: 8),
+                                      child: Row(
+                                        children: [
+                                          Container(
+                                            width: 24,
+                                            height: 24,
+                                            decoration: BoxDecoration(
+                                              color: purchaseChecked ? AppColors.primary : Colors.transparent,
+                                              borderRadius: BorderRadius.circular(6),
+                                              border: Border.all(
+                                                color: isPrivate 
+                                                    ? AppColors.border.withValues(alpha: 0.5)
+                                                    : (purchaseChecked ? AppColors.primary : AppColors.border),
+                                                width: 2,
+                                              ),
+                                            ),
+                                            child: purchaseChecked
+                                                ? PhosphorIcon(
+                                                    PhosphorIcons.check(PhosphorIconsStyle.bold),
+                                                    size: 16,
+                                                    color: Colors.white,
+                                                  )
+                                                : null,
+                                          ),
+                                          const SizedBox(width: 10),
+                                          Flexible(
+                                            child: Text(
+                                              'Mark as purchased',
+                                              style: AppTypography.bodyMedium.copyWith(
+                                                color: isPrivate ? AppColors.textSecondary : null,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 24),
                   ],
                 ),
               ),
@@ -480,6 +635,8 @@ class _CreateListDialogState extends State<CreateListDialog> {
         visibility: _visibility,
         eventDate: _eventDate,
         isRecurring: _isRecurring,
+        notifyOnCommit: _notifyOnCommit,
+        notifyOnPurchase: _notifyOnPurchase,
       );
 
       if (mounted) {
@@ -508,7 +665,7 @@ class _SuggestionTile extends StatelessWidget {
       case EventCategory.birthday:
         return PhosphorIcons.cake();
       case EventCategory.wedding:
-        return PhosphorIcons.heartStraight();
+        return PhosphorIcons.star();
       case EventCategory.heart:
         return PhosphorIcons.heart();
       case EventCategory.diamond:
@@ -659,11 +816,10 @@ class _VisibilityOption extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
         decoration: BoxDecoration(
           border: Border.all(
             color: isSelected ? AppColors.primary : AppColors.divider,
-            width: isSelected ? 2 : 1,
           ),
           borderRadius: BorderRadius.circular(12),
           color:
@@ -671,29 +827,26 @@ class _VisibilityOption extends StatelessWidget {
         ),
         child: Column(
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                PhosphorIcon(
-                  icon,
-                  color: isSelected ? AppColors.primary : AppColors.textPrimary,
-                  size: 24,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  title,
-                  style: AppTypography.titleMedium.copyWith(
-                    color:
-                        isSelected ? AppColors.primary : AppColors.textPrimary,
-                  ),
-                ),
-              ],
+            PhosphorIcon(
+              icon,
+              color: isSelected ? AppColors.primary : AppColors.textPrimary,
+              size: 22,
             ),
             const SizedBox(height: 4),
+            Text(
+              title,
+              style: AppTypography.titleMedium.copyWith(
+                color: isSelected ? AppColors.primary : AppColors.textPrimary,
+                fontSize: 14,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 2),
             Text(
               subtitle,
               style: AppTypography.bodyMedium.copyWith(
                 color: AppColors.textPrimary,
+                fontSize: 12,
               ),
               textAlign: TextAlign.center,
             ),

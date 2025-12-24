@@ -204,20 +204,20 @@ class ItemService {
     await _client.from(SupabaseConfig.listItemsTable).delete().eq('uid', uid);
   }
 
-  /// Claim an item (for gifters)
-  Future<void> claimItem({
-    required int itemId,
+  /// Commit to an item (for gifters)
+  Future<void> commitToItem({
+    required String itemUid,
     DateTime? expiresAt,
     String? note,
   }) async {
     final userId = SupabaseService.currentUserId;
     if (userId == null) throw Exception('User not authenticated');
 
-    // Use the claim_item database function for safe transactional claim
+    // Use the commit_item database function for safe transactional commit
     await _client.rpc(
       SupabaseConfig.claimItemFunction,
       params: {
-        'p_item_id': itemId,
+        'p_item_uid': itemUid,
         'p_user_id': userId,
         'p_expires_at': expiresAt?.toIso8601String(),
         'p_note': note,
@@ -225,26 +225,26 @@ class ItemService {
     );
   }
 
-  /// Unclaim an item
-  Future<void> unclaimItem(int itemId) async {
+  /// Remove commitment to an item
+  Future<void> uncommitFromItem(String itemUid) async {
     final userId = SupabaseService.currentUserId;
     if (userId == null) throw Exception('User not authenticated');
 
     await _client.rpc(
       SupabaseConfig.unclaimItemFunction,
-      params: {'p_item_id': itemId, 'p_user_id': userId},
+      params: {'p_item_uid': itemUid, 'p_user_id': userId},
     );
   }
 
-  /// Mark claim as purchased
-  Future<void> markAsPurchased(int claimId) async {
+  /// Mark commit as purchased
+  Future<void> markAsPurchased(String commitUid) async {
     await _client
-        .from(SupabaseConfig.claimsTable)
+        .from(SupabaseConfig.commitsTable)
         .update({
           'status': 'purchased',
           'purchased_at': DateTime.now().toIso8601String(),
         })
-        .eq('id', claimId);
+        .eq('uid', commitUid);
   }
 
   /// Get items with claim status for gifters (excluding owner view)

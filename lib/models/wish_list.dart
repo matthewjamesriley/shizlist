@@ -1,7 +1,29 @@
 import 'package:flutter/foundation.dart';
 
 /// Wish list visibility options
-enum ListVisibility { private, public }
+enum ListVisibility { private, friends, public }
+
+ListVisibility _parseVisibility(String? value) {
+  switch (value) {
+    case 'public':
+      return ListVisibility.public;
+    case 'friends':
+      return ListVisibility.friends;
+    default:
+      return ListVisibility.private;
+  }
+}
+
+String _visibilityToString(ListVisibility visibility) {
+  switch (visibility) {
+    case ListVisibility.public:
+      return 'public';
+    case ListVisibility.friends:
+      return 'friends';
+    case ListVisibility.private:
+      return 'private';
+  }
+}
 
 /// Wish list model representing a user's list
 @immutable
@@ -21,6 +43,8 @@ class WishList {
   final int claimedCount;
   final DateTime? eventDate;
   final bool isRecurring;
+  final bool notifyOnCommit;
+  final bool notifyOnPurchase;
 
   const WishList({
     required this.id,
@@ -38,6 +62,8 @@ class WishList {
     this.claimedCount = 0,
     this.eventDate,
     this.isRecurring = false,
+    this.notifyOnCommit = true,
+    this.notifyOnPurchase = true,
   });
 
   factory WishList.fromJson(Map<String, dynamic> json) {
@@ -48,10 +74,7 @@ class WishList {
       title: json['title'] as String,
       description: json['description'] as String?,
       coverImageUrl: json['cover_image_url'] as String?,
-      visibility:
-          json['visibility'] == 'public'
-              ? ListVisibility.public
-              : ListVisibility.private,
+      visibility: _parseVisibility(json['visibility'] as String?),
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt:
           json['updated_at'] != null
@@ -69,6 +92,8 @@ class WishList {
               ? DateTime.parse(json['event_date'] as String)
               : null,
       isRecurring: json['is_recurring'] as bool? ?? false,
+      notifyOnCommit: json['notify_on_commit'] as bool? ?? true,
+      notifyOnPurchase: json['notify_on_purchase'] as bool? ?? true,
     );
   }
 
@@ -80,11 +105,13 @@ class WishList {
       'title': title,
       'description': description,
       'cover_image_url': coverImageUrl,
-      'visibility': visibility == ListVisibility.public ? 'public' : 'private',
+      'visibility': _visibilityToString(visibility),
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
       'event_date': eventDate?.toIso8601String().split('T').first,
       'is_recurring': isRecurring,
+      'notify_on_commit': notifyOnCommit,
+      'notify_on_purchase': notifyOnPurchase,
     };
   }
 
@@ -96,9 +123,11 @@ class WishList {
       'title': title,
       'description': description,
       'cover_image_url': coverImageUrl,
-      'visibility': visibility == ListVisibility.public ? 'public' : 'private',
+      'visibility': _visibilityToString(visibility),
       'event_date': eventDate?.toIso8601String().split('T').first,
       'is_recurring': isRecurring,
+      'notify_on_commit': notifyOnCommit,
+      'notify_on_purchase': notifyOnPurchase,
     };
   }
 
@@ -118,6 +147,8 @@ class WishList {
     int? claimedCount,
     DateTime? eventDate,
     bool? isRecurring,
+    bool? notifyOnCommit,
+    bool? notifyOnPurchase,
   }) {
     return WishList(
       id: id ?? this.id,
@@ -135,6 +166,8 @@ class WishList {
       claimedCount: claimedCount ?? this.claimedCount,
       eventDate: eventDate ?? this.eventDate,
       isRecurring: isRecurring ?? this.isRecurring,
+      notifyOnCommit: notifyOnCommit ?? this.notifyOnCommit,
+      notifyOnPurchase: notifyOnPurchase ?? this.notifyOnPurchase,
     );
   }
 

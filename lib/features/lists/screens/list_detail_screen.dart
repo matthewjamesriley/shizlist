@@ -428,7 +428,10 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 PhosphorIcon(
-                                  _list.isPublic
+                                  _list.visibility == ListVisibility.public
+                                      ? PhosphorIcons.globeSimple()
+                                      : _list.visibility ==
+                                          ListVisibility.friends
                                       ? PhosphorIcons.usersThree()
                                       : PhosphorIcons.lock(),
                                   size: 20,
@@ -436,7 +439,12 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
-                                  _list.isPublic ? 'Public' : 'Private',
+                                  _list.visibility == ListVisibility.public
+                                      ? 'Public'
+                                      : _list.visibility ==
+                                          ListVisibility.friends
+                                      ? 'Friends'
+                                      : 'Private',
                                   style: AppTypography.bodyLarge.copyWith(
                                     color: AppColors.textPrimary,
                                     fontSize: 15,
@@ -788,6 +796,58 @@ class _ListDetailScreenState extends State<ListDetailScreen>
     );
   }
 
+  Widget _buildVisibilityOption({
+    required PhosphorIconData icon,
+    required String title,
+    required String subtitle,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: isSelected ? AppColors.primary : AppColors.divider,
+            width: 1,
+          ),
+          borderRadius: BorderRadius.circular(12),
+          color:
+              isSelected ? AppColors.claimedBackground : Colors.grey.shade100,
+        ),
+        child: Column(
+          children: [
+            PhosphorIcon(
+              icon,
+              color: isSelected ? AppColors.primary : AppColors.textPrimary,
+              size: 22,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              title,
+              style: AppTypography.titleMedium.copyWith(
+                color: isSelected ? AppColors.primary : AppColors.textPrimary,
+                fontSize: 14,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              subtitle,
+              style: AppTypography.bodyMedium.copyWith(
+                color: AppColors.textPrimary,
+                fontSize: 12,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildMultiSelectBar() {
     return ClipRect(
       child: BackdropFilter(
@@ -821,10 +881,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
               if (_selectedItemUids.isNotEmpty)
                 IconButton(
                   onPressed: _showPrioritySheet,
-                  icon: PhosphorIcon(
-                    PhosphorIcons.heartStraight(),
-                    color: Colors.white,
-                  ),
+                  icon: PhosphorIcon(PhosphorIcons.star(), color: Colors.white),
                   tooltip: 'Set Priority',
                 ),
               // Delete button
@@ -1012,6 +1069,10 @@ class _ListDetailScreenState extends State<ListDetailScreen>
     var visibility = _list.visibility;
     var isLoading = false;
 
+    // Notification preferences
+    var notifyOnCommit = _list.notifyOnCommit;
+    var notifyOnPurchase = _list.notifyOnPurchase;
+
     // Cover image state
     File? selectedImage;
     String? uploadedImageUrl = _list.coverImageUrl;
@@ -1107,6 +1168,8 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                     clearEventDate:
                         eventDate == null && _list.eventDate != null,
                     isRecurring: isRecurring,
+                    notifyOnCommit: notifyOnCommit,
+                    notifyOnPurchase: notifyOnPurchase,
                   );
 
                   setState(() {
@@ -1350,294 +1413,92 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                 );
               }
 
-              return DefaultTabController(
-                length: 2,
-                child: Container(
-                  constraints: BoxConstraints(
-                    maxHeight: MediaQuery.of(context).size.height * 0.85,
-                  ),
-                  decoration: const BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(24),
+              return Container(
+                height: MediaQuery.of(context).size.height * 0.9,
+                decoration: const BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                child: Column(
+                  children: [
+                    // Header
+                    BottomSheetHeader(
+                      title: 'Edit list',
+                      confirmText: 'Save',
+                      onCancel: () => Navigator.pop(context),
+                      onConfirm: handleSave,
+                      isLoading: isLoading,
                     ),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Shared header component
-                      BottomSheetHeader(
-                        title: 'Edit list',
-                        confirmText: 'Save',
-                        onCancel: () => Navigator.pop(context),
-                        onConfirm: handleSave,
-                        isLoading: isLoading,
-                      ),
 
-                      // Tabs
-                      Container(
-                        color: Colors.black,
-                        padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
-                        child: TabBar(
-                          labelColor: Colors.white,
-                          unselectedLabelColor: Colors.white60,
-                          labelStyle: AppTypography.titleMedium,
-                          unselectedLabelStyle: AppTypography.titleMedium,
-                          indicatorColor: AppColors.primary,
-                          indicatorWeight: 3,
-                          dividerColor: Colors.transparent,
-                          tabs: const [
-                            Tab(text: 'List details'),
-                            Tab(text: 'Set date'),
-                          ],
+                    // Content
+                    Flexible(
+                      child: SingleChildScrollView(
+                        padding: EdgeInsets.fromLTRB(
+                          24,
+                          24,
+                          24,
+                          24 + MediaQuery.of(context).viewInsets.bottom,
                         ),
-                      ),
-
-                      // Tab content
-                      Flexible(
-                        child: TabBarView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Tab 1: Details
-                            SingleChildScrollView(
-                              padding: EdgeInsets.fromLTRB(
-                                24,
-                                24,
-                                24,
-                                24 + MediaQuery.of(context).viewInsets.bottom,
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Title field
-                                  Text(
-                                    'List name',
-                                    style: AppTypography.titleMedium,
-                                  ),
-                                  const SizedBox(height: 8),
-                                  TextFormField(
-                                    controller: titleController,
-                                    style: AppTypography.titleMedium,
-                                    textCapitalization:
-                                        TextCapitalization.words,
-                                    decoration: const InputDecoration(
-                                      hintText:
-                                          'e.g. Gift ideas, Wish list, Things to do etc...',
-                                    ),
-                                  ),
-                                  const SizedBox(height: 24),
-
-                                  // Description field
-                                  Text(
-                                    'Description (optional)',
-                                    style: AppTypography.titleMedium,
-                                  ),
-                                  const SizedBox(height: 8),
-                                  TextFormField(
-                                    controller: descriptionController,
-                                    style: AppTypography.titleMedium,
-                                    textCapitalization:
-                                        TextCapitalization.sentences,
-                                    minLines: 2,
-                                    maxLines: 3,
-                                    decoration: const InputDecoration(
-                                      hintText:
-                                          'e.g. These are a few of my favourite things',
-                                    ),
-                                  ),
-                                  const SizedBox(height: 24),
-
-                                  // Cover image
-                                  Text(
-                                    'Cover image (optional)',
-                                    style: AppTypography.titleMedium.copyWith(
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  buildCoverImagePicker(),
-                                  const SizedBox(height: 24),
-
-                                  // Visibility
-                                  Text(
-                                    'Visibility',
-                                    style: AppTypography.titleMedium.copyWith(
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-
-                                  // Public option
-                                  GestureDetector(
-                                    onTap:
-                                        () => setSheetState(
-                                          () =>
-                                              visibility =
-                                                  ListVisibility.public,
-                                        ),
-                                    child: Container(
-                                      padding: const EdgeInsets.all(16),
-                                      decoration: BoxDecoration(
-                                        border: Border.all(
-                                          color:
-                                              visibility ==
-                                                      ListVisibility.public
-                                                  ? AppColors.primary
-                                                  : AppColors.divider,
-                                          width: 2,
-                                        ),
-                                        borderRadius: BorderRadius.circular(16),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          PhosphorIcon(
-                                            PhosphorIcons.usersThree(),
-                                            size: 28,
-                                            color:
-                                                visibility ==
-                                                        ListVisibility.public
-                                                    ? AppColors.primary
-                                                    : AppColors.textPrimary,
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  'Public',
-                                                  style:
-                                                      AppTypography.titleMedium,
-                                                ),
-                                                Text(
-                                                  'Anyone with the link can see',
-                                                  style: AppTypography
-                                                      .bodyMedium
-                                                      .copyWith(
-                                                        color:
-                                                            AppColors
-                                                                .textPrimary,
-                                                      ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          if (visibility ==
-                                              ListVisibility.public)
-                                            PhosphorIcon(
-                                              PhosphorIcons.checkCircle(
-                                                PhosphorIconsStyle.fill,
-                                              ),
-                                              color: AppColors.primary,
-                                            ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-
-                                  // Private option
-                                  GestureDetector(
-                                    onTap:
-                                        () => setSheetState(
-                                          () =>
-                                              visibility =
-                                                  ListVisibility.private,
-                                        ),
-                                    child: Container(
-                                      padding: const EdgeInsets.all(16),
-                                      decoration: BoxDecoration(
-                                        border: Border.all(
-                                          color:
-                                              visibility ==
-                                                      ListVisibility.private
-                                                  ? AppColors.primary
-                                                  : AppColors.divider,
-                                          width: 2,
-                                        ),
-                                        borderRadius: BorderRadius.circular(16),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          PhosphorIcon(
-                                            PhosphorIcons.lock(),
-                                            size: 28,
-                                            color:
-                                                visibility ==
-                                                        ListVisibility.private
-                                                    ? AppColors.primary
-                                                    : AppColors.textPrimary,
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  'Private',
-                                                  style:
-                                                      AppTypography.titleMedium,
-                                                ),
-                                                Text(
-                                                  'Only people you share with can see',
-                                                  style: AppTypography
-                                                      .bodyMedium
-                                                      .copyWith(
-                                                        color:
-                                                            AppColors
-                                                                .textPrimary,
-                                                      ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          if (visibility ==
-                                              ListVisibility.private)
-                                            PhosphorIcon(
-                                              PhosphorIcons.checkCircle(
-                                                PhosphorIconsStyle.fill,
-                                              ),
-                                              color: AppColors.primary,
-                                            ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 16),
-                                ],
+                            // List name
+                            Text('List name', style: AppTypography.titleMedium),
+                            const SizedBox(height: 8),
+                            TextFormField(
+                              controller: titleController,
+                              style: AppTypography.titleMedium,
+                              textCapitalization: TextCapitalization.words,
+                              decoration: InputDecoration(
+                                hintText:
+                                    'e.g. Birthday, Wedding, Christmas etc...',
+                                hintStyle: AppTypography.titleMedium.copyWith(
+                                  color: AppColors.textSecondary,
+                                ),
                               ),
                             ),
+                            const SizedBox(height: 20),
 
-                            // Tab 2: Event
-                            SingleChildScrollView(
-                              padding: EdgeInsets.fromLTRB(
-                                24,
-                                24,
-                                24,
-                                24 + MediaQuery.of(context).viewInsets.bottom,
+                            // Description
+                            Text(
+                              'Description (optional)',
+                              style: AppTypography.titleMedium,
+                            ),
+                            const SizedBox(height: 8),
+                            TextFormField(
+                              controller: descriptionController,
+                              style: AppTypography.titleMedium,
+                              textCapitalization: TextCapitalization.sentences,
+                              maxLines: 1,
+                              decoration: InputDecoration(
+                                hintText: 'A short description...',
+                                hintStyle: AppTypography.titleMedium.copyWith(
+                                  color: AppColors.textSecondary,
+                                ),
                               ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Event date section
-                                  Text(
-                                    'Event date',
-                                    style: AppTypography.titleMedium.copyWith(
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Set a date for birthdays, weddings, holidays, etc.',
-                                    style: AppTypography.bodyMedium.copyWith(
-                                      color: AppColors.textPrimary,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 16),
+                            ),
+                            const SizedBox(height: 20),
 
-                                  // Date picker row
-                                  GestureDetector(
+                            // Cover image
+                            Text(
+                              'Cover image (optional)',
+                              style: AppTypography.titleMedium,
+                            ),
+                            const SizedBox(height: 8),
+                            buildCoverImagePicker(),
+                            const SizedBox(height: 20),
+
+                            // Event date & Recurring
+                            Text(
+                              'Event date (optional)',
+                              style: AppTypography.titleMedium,
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                // Date picker
+                                Expanded(
+                                  child: GestureDetector(
                                     onTap: () async {
                                       final picked = await showDatePicker(
                                         context: context,
@@ -1645,6 +1506,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                                             eventDate ?? DateTime.now(),
                                         firstDate: DateTime(2000),
                                         lastDate: DateTime(2100),
+                                        helpText: 'Select event date',
                                         builder: (context, child) {
                                           return Theme(
                                             data: Theme.of(context).copyWith(
@@ -1656,6 +1518,29 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                                                     onSurface:
                                                         AppColors.textPrimary,
                                                   ),
+                                              textTheme: Theme.of(
+                                                context,
+                                              ).textTheme.copyWith(
+                                                labelSmall: const TextStyle(
+                                                  fontSize: 18,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                                headlineMedium: const TextStyle(
+                                                  fontSize: 28,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                              textButtonTheme:
+                                                  TextButtonThemeData(
+                                                    style: TextButton.styleFrom(
+                                                      textStyle:
+                                                          const TextStyle(
+                                                            fontSize: 18,
+                                                            fontWeight:
+                                                                FontWeight.w600,
+                                                          ),
+                                                    ),
+                                                  ),
                                             ),
                                             child: child!,
                                           );
@@ -1666,7 +1551,10 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                                       }
                                     },
                                     child: Container(
-                                      padding: const EdgeInsets.all(16),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 14,
+                                      ),
                                       decoration: BoxDecoration(
                                         border: Border.all(
                                           color: AppColors.divider,
@@ -1677,26 +1565,28 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                                         children: [
                                           PhosphorIcon(
                                             PhosphorIcons.calendarDots(),
-                                            size: 24,
+                                            size: 20,
                                             color:
                                                 eventDate != null
                                                     ? AppColors.primary
-                                                    : AppColors.textPrimary,
+                                                    : AppColors.textSecondary,
                                           ),
-                                          const SizedBox(width: 12),
+                                          const SizedBox(width: 8),
                                           Expanded(
                                             child: Text(
                                               eventDate != null
-                                                  ? _formatEventDate(eventDate!)
-                                                  : 'Select a date',
-                                              style: AppTypography.bodyLarge
+                                                  ? _formatEventDateShort(
+                                                    eventDate!,
+                                                  )
+                                                  : 'Select date',
+                                              style: AppTypography.titleMedium
                                                   .copyWith(
                                                     color:
                                                         eventDate != null
                                                             ? AppColors
                                                                 .textPrimary
                                                             : AppColors
-                                                                .textPrimary,
+                                                                .textSecondary,
                                                   ),
                                             ),
                                           ),
@@ -1709,48 +1599,34 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                                                   }),
                                               child: PhosphorIcon(
                                                 PhosphorIcons.xCircle(),
-                                                size: 24,
-                                                color: AppColors.textPrimary,
+                                                size: 20,
+                                                color: AppColors.textSecondary,
                                               ),
                                             ),
                                         ],
                                       ),
                                     ),
                                   ),
-
-                                  const SizedBox(height: 24),
-
-                                  // Recurring section
-                                  Text(
-                                    'Recurring',
-                                    style: AppTypography.titleMedium.copyWith(
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Enable for events that happen every year',
-                                    style: AppTypography.bodyMedium.copyWith(
-                                      color: AppColors.textPrimary,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 16),
-
-                                  // Recurring toggle
+                                ),
+                                // Recurring toggle (only show if date is set)
+                                if (eventDate != null) ...[
+                                  const SizedBox(width: 8),
                                   GestureDetector(
                                     onTap:
                                         () => setSheetState(
                                           () => isRecurring = !isRecurring,
                                         ),
                                     child: Container(
-                                      padding: const EdgeInsets.all(16),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 14,
+                                      ),
                                       decoration: BoxDecoration(
                                         border: Border.all(
                                           color:
                                               isRecurring
                                                   ? AppColors.primary
                                                   : AppColors.divider,
-                                          width: isRecurring ? 2 : 1,
                                         ),
                                         borderRadius: BorderRadius.circular(12),
                                         color:
@@ -1761,106 +1637,301 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                                                 : null,
                                       ),
                                       child: Row(
+                                        mainAxisSize: MainAxisSize.min,
                                         children: [
                                           PhosphorIcon(
                                             PhosphorIcons.arrowsClockwise(),
-                                            size: 24,
+                                            size: 20,
                                             color:
                                                 isRecurring
                                                     ? AppColors.primary
-                                                    : AppColors.textPrimary,
+                                                    : AppColors.textSecondary,
                                           ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  'Recurring annually',
-                                                  style: AppTypography
-                                                      .titleSmall
-                                                      .copyWith(
-                                                        color:
-                                                            isRecurring
-                                                                ? AppColors
-                                                                    .primary
-                                                                : AppColors
-                                                                    .textPrimary,
-                                                      ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            'Yearly',
+                                            style: AppTypography.titleMedium
+                                                .copyWith(
+                                                  color:
+                                                      isRecurring
+                                                          ? AppColors.primary
+                                                          : AppColors
+                                                              .textPrimary,
                                                 ),
-                                                Text(
-                                                  'For birthdays and yearly events',
-                                                  style: AppTypography.bodySmall
-                                                      .copyWith(
-                                                        color:
-                                                            AppColors
-                                                                .textPrimary,
-                                                      ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          PhosphorIcon(
-                                            isRecurring
-                                                ? PhosphorIcons.checkCircle(
-                                                  PhosphorIconsStyle.fill,
-                                                )
-                                                : PhosphorIcons.circle(),
-                                            size: 24,
-                                            color:
-                                                isRecurring
-                                                    ? AppColors.primary
-                                                    : AppColors.divider,
                                           ),
                                         ],
                                       ),
                                     ),
                                   ),
+                                ],
+                              ],
+                            ),
+                            const SizedBox(height: 20),
 
-                                  // Info about event date
-                                  if (eventDate != null) ...[
-                                    const SizedBox(height: 24),
-                                    Container(
-                                      padding: const EdgeInsets.all(16),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.primary.withOpacity(
-                                          0.1,
+                            // Visibility
+                            Text(
+                              'Visibility',
+                              style: AppTypography.titleMedium,
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildVisibilityOption(
+                                    icon: PhosphorIcons.globeSimple(),
+                                    title: 'Public',
+                                    subtitle: 'Anyone',
+                                    isSelected:
+                                        visibility == ListVisibility.public,
+                                    onTap:
+                                        () => setSheetState(
+                                          () =>
+                                              visibility =
+                                                  ListVisibility.public,
                                         ),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          PhosphorIcon(
-                                            PhosphorIcons.info(),
-                                            size: 24,
-                                            color: AppColors.primary,
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: Text(
-                                              isRecurring
-                                                  ? 'This date will repeat every year'
-                                                  : 'This is a one-time event',
-                                              style: AppTypography.bodyMedium
-                                                  .copyWith(
-                                                    color: AppColors.primary,
-                                                  ),
-                                            ),
-                                          ),
-                                        ],
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: _buildVisibilityOption(
+                                    icon: PhosphorIcons.usersThree(),
+                                    title: 'Friends',
+                                    subtitle: 'Connected',
+                                    isSelected:
+                                        visibility == ListVisibility.friends,
+                                    onTap:
+                                        () => setSheetState(
+                                          () =>
+                                              visibility =
+                                                  ListVisibility.friends,
+                                        ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: _buildVisibilityOption(
+                                    icon: PhosphorIcons.lock(),
+                                    title: 'Private',
+                                    subtitle: 'Only you',
+                                    isSelected:
+                                        visibility == ListVisibility.private,
+                                    onTap:
+                                        () => setSheetState(
+                                          () =>
+                                              visibility =
+                                                  ListVisibility.private,
+                                        ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 20),
+
+                            // Notification preferences
+                            Builder(
+                              builder: (context) {
+                                final isPrivate =
+                                    visibility == ListVisibility.private;
+                                final commitChecked =
+                                    !isPrivate && notifyOnCommit;
+                                final purchaseChecked =
+                                    !isPrivate && notifyOnPurchase;
+
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Notify me when my friends...',
+                                      style: AppTypography.titleMedium.copyWith(
+                                        color:
+                                            isPrivate
+                                                ? AppColors.textSecondary
+                                                : null,
                                       ),
                                     ),
+                                    const SizedBox(height: 12),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: InkWell(
+                                            onTap:
+                                                isPrivate
+                                                    ? null
+                                                    : () => setSheetState(
+                                                      () =>
+                                                          notifyOnCommit =
+                                                              !notifyOnCommit,
+                                                    ),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                            child: Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    vertical: 8,
+                                                  ),
+                                              child: Row(
+                                                children: [
+                                                  Container(
+                                                    width: 24,
+                                                    height: 24,
+                                                    decoration: BoxDecoration(
+                                                      color:
+                                                          commitChecked
+                                                              ? AppColors
+                                                                  .primary
+                                                              : Colors
+                                                                  .transparent,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            6,
+                                                          ),
+                                                      border: Border.all(
+                                                        color:
+                                                            isPrivate
+                                                                ? AppColors
+                                                                    .border
+                                                                    .withValues(
+                                                                      alpha:
+                                                                          0.5,
+                                                                    )
+                                                                : (commitChecked
+                                                                    ? AppColors
+                                                                        .primary
+                                                                    : AppColors
+                                                                        .border),
+                                                        width: 2,
+                                                      ),
+                                                    ),
+                                                    child:
+                                                        commitChecked
+                                                            ? PhosphorIcon(
+                                                              PhosphorIcons.check(
+                                                                PhosphorIconsStyle
+                                                                    .bold,
+                                                              ),
+                                                              size: 16,
+                                                              color:
+                                                                  Colors.white,
+                                                            )
+                                                            : null,
+                                                  ),
+                                                  const SizedBox(width: 10),
+                                                  Flexible(
+                                                    child: Text(
+                                                      'Commit to purchase',
+                                                      style: AppTypography
+                                                          .bodyMedium
+                                                          .copyWith(
+                                                            color:
+                                                                isPrivate
+                                                                    ? AppColors
+                                                                        .textSecondary
+                                                                    : null,
+                                                          ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        Expanded(
+                                          child: InkWell(
+                                            onTap:
+                                                isPrivate
+                                                    ? null
+                                                    : () => setSheetState(
+                                                      () =>
+                                                          notifyOnPurchase =
+                                                              !notifyOnPurchase,
+                                                    ),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                            child: Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    vertical: 8,
+                                                  ),
+                                              child: Row(
+                                                children: [
+                                                  Container(
+                                                    width: 24,
+                                                    height: 24,
+                                                    decoration: BoxDecoration(
+                                                      color:
+                                                          purchaseChecked
+                                                              ? AppColors
+                                                                  .primary
+                                                              : Colors
+                                                                  .transparent,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            6,
+                                                          ),
+                                                      border: Border.all(
+                                                        color:
+                                                            isPrivate
+                                                                ? AppColors
+                                                                    .border
+                                                                    .withValues(
+                                                                      alpha:
+                                                                          0.5,
+                                                                    )
+                                                                : (purchaseChecked
+                                                                    ? AppColors
+                                                                        .primary
+                                                                    : AppColors
+                                                                        .border),
+                                                        width: 2,
+                                                      ),
+                                                    ),
+                                                    child:
+                                                        purchaseChecked
+                                                            ? PhosphorIcon(
+                                                              PhosphorIcons.check(
+                                                                PhosphorIconsStyle
+                                                                    .bold,
+                                                              ),
+                                                              size: 16,
+                                                              color:
+                                                                  Colors.white,
+                                                            )
+                                                            : null,
+                                                  ),
+                                                  const SizedBox(width: 10),
+                                                  Flexible(
+                                                    child: Text(
+                                                      'Mark as purchased',
+                                                      style: AppTypography
+                                                          .bodyMedium
+                                                          .copyWith(
+                                                            color:
+                                                                isPrivate
+                                                                    ? AppColors
+                                                                        .textSecondary
+                                                                    : null,
+                                                          ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ],
-                                  const SizedBox(height: 16),
-                                ],
-                              ),
+                                );
+                              },
                             ),
+                            const SizedBox(height: 24),
                           ],
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               );
             },
@@ -1882,6 +1953,24 @@ class _ListDetailScreenState extends State<ListDetailScreen>
       'October',
       'November',
       'December',
+    ];
+    return '${date.day} ${months[date.month - 1]} ${date.year}';
+  }
+
+  String _formatEventDateShort(DateTime date) {
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     return '${date.day} ${months[date.month - 1]} ${date.year}';
   }
@@ -1984,6 +2073,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
             category: item.category.displayName,
             priority: item.priority.displayName,
             initialTab: 2, // Item details tab
+            ownerWantsNotification: _list.notifyOnCommit,
           ),
     );
   }
@@ -2050,6 +2140,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
             retailerUrl: item.retailerUrl,
             category: item.category.displayName,
             priority: item.priority.displayName,
+            ownerWantsNotification: _list.notifyOnCommit,
           ),
     );
 
@@ -2057,7 +2148,6 @@ class _ListDetailScreenState extends State<ListDetailScreen>
       final action = result['action'] as String;
       if (action == 'commit') {
         final notifyFriends = result['notifyFriends'] as bool;
-        final notifyOwner = result['notifyOwner'] as bool;
         // TODO: Commit item with notification preferences
         AppNotification.success(context, 'Committed to "${item.name}"');
       } else if (action == 'purchased') {
@@ -2396,6 +2486,7 @@ class _CommitSheet extends StatefulWidget {
   final String? category;
   final String? priority;
   final int initialTab;
+  final bool ownerWantsNotification;
 
   const _CommitSheet({
     required this.itemName,
@@ -2407,6 +2498,7 @@ class _CommitSheet extends StatefulWidget {
     this.category,
     this.priority,
     this.initialTab = 0,
+    this.ownerWantsNotification = true,
   });
 
   @override
@@ -2417,7 +2509,8 @@ class _CommitSheetState extends State<_CommitSheet>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   bool _notifyFriends = true;
-  bool _notifyOwner = false;
+
+  String get _ownerFirstName => widget.ownerName.split(' ').first;
 
   @override
   void initState() {
@@ -2433,12 +2526,6 @@ class _CommitSheetState extends State<_CommitSheet>
   void dispose() {
     _tabController.dispose();
     super.dispose();
-  }
-
-  String _truncateToWords(String text, int maxWords) {
-    final words = text.split(' ');
-    if (words.length <= maxWords) return text;
-    return '${words.take(maxWords).join(' ')}...';
   }
 
   @override
@@ -2463,39 +2550,23 @@ class _CommitSheetState extends State<_CommitSheet>
             ),
             child: Column(
               children: [
-                // Title row
+                // Cancel button row
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-                  child: Stack(
-                    alignment: Alignment.center,
+                  padding: const EdgeInsets.fromLTRB(8, 12, 8, 8),
+                  child: Row(
                     children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 70),
-                        child: Text(
-                          _truncateToWords(widget.itemName, 3),
-                          style: AppTypography.titleLarge.copyWith(
-                            color: Colors.white,
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                      Positioned(
-                        left: 0,
-                        child: GestureDetector(
-                          onTap: () => Navigator.pop(context),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 12,
-                            ),
-                            child: Text(
-                              'Cancel',
-                              style: AppTypography.titleMedium.copyWith(
-                                color: Colors.white70,
-                                fontSize: 16,
-                              ),
+                          child: Text(
+                            'Cancel',
+                            style: AppTypography.titleMedium.copyWith(
+                              color: Colors.white70,
+                              fontSize: 16,
                             ),
                           ),
                         ),
@@ -2503,7 +2574,6 @@ class _CommitSheetState extends State<_CommitSheet>
                     ],
                   ),
                 ),
-                const SizedBox(height: 10),
                 // Tab bar
                 TabBar(
                   controller: _tabController,
@@ -2511,6 +2581,7 @@ class _CommitSheetState extends State<_CommitSheet>
                   unselectedLabelColor: Colors.white60,
                   indicatorColor: AppColors.primary,
                   indicatorWeight: 3,
+                  labelPadding: const EdgeInsets.symmetric(horizontal: 8),
                   labelStyle: AppTypography.titleMedium.copyWith(fontSize: 16),
                   tabs: const [
                     Tab(text: 'Commit'),
@@ -2614,8 +2685,7 @@ class _CommitSheetState extends State<_CommitSheet>
           const SizedBox(height: 20),
 
           // Notify friends checkbox
-          Align(
-            alignment: Alignment.centerLeft,
+          Center(
             child: InkWell(
               onTap: () => setState(() => _notifyFriends = !_notifyFriends),
               borderRadius: BorderRadius.circular(8),
@@ -2632,18 +2702,20 @@ class _CommitSheetState extends State<_CommitSheet>
                             (value) =>
                                 setState(() => _notifyFriends = value ?? false),
                         activeColor: AppColors.accent,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        visualDensity: VisualDensity.compact,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(4),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 4),
                     Text(
-                      'Let connected friends know',
+                      'Alert friends connected to this list',
                       style: AppTypography.titleMedium.copyWith(
                         color: Colors.black,
                         fontWeight: FontWeight.w500,
-                        fontSize: 17,
+                        fontSize: 16,
                       ),
                     ),
                   ],
@@ -2652,41 +2724,40 @@ class _CommitSheetState extends State<_CommitSheet>
             ),
           ),
 
-          // Notify owner checkbox
-          Align(
-            alignment: Alignment.centerLeft,
-            child: InkWell(
-              onTap: () => setState(() => _notifyOwner = !_notifyOwner),
-              borderRadius: BorderRadius.circular(8),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Transform.scale(
-                      scale: 1.3,
-                      child: Checkbox(
-                        value: _notifyOwner,
-                        onChanged:
-                            (value) =>
-                                setState(() => _notifyOwner = value ?? false),
-                        activeColor: AppColors.accent,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Let ${widget.ownerName} know',
+          const SizedBox(height: 16),
+
+          // Owner notification status
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  PhosphorIcon(
+                    widget.ownerWantsNotification
+                        ? PhosphorIcons.bellRinging()
+                        : PhosphorIcons.bellSlash(),
+                    size: 22,
+                    color:
+                        widget.ownerWantsNotification
+                            ? AppColors.primary
+                            : AppColors.textSecondary,
+                  ),
+                  const SizedBox(width: 10),
+                  Flexible(
+                    child: Text(
+                      widget.ownerWantsNotification
+                          ? '$_ownerFirstName will be notified automatically'
+                          : '$_ownerFirstName has chosen not to be notified. They will see that someone has committed, but not who.',
                       style: AppTypography.titleMedium.copyWith(
                         color: Colors.black,
-                        fontWeight: FontWeight.w500,
-                        fontSize: 17,
+                        fontSize: 16,
                       ),
+                      textAlign: TextAlign.center,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -2701,7 +2772,6 @@ class _CommitSheetState extends State<_CommitSheet>
                   () => Navigator.pop(context, {
                     'action': 'commit',
                     'notifyFriends': _notifyFriends,
-                    'notifyOwner': _notifyOwner,
                   }),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.accent,
@@ -2735,7 +2805,7 @@ class _CommitSheetState extends State<_CommitSheet>
           TextButton(
             onPressed: () => _tabController.animateTo(1),
             child: Text(
-              'Bought this item? Mark as purchased',
+              'Mark as purchased',
               style: AppTypography.titleMedium.copyWith(
                 color: AppColors.textSecondary,
                 decoration: TextDecoration.underline,
@@ -2824,8 +2894,7 @@ class _CommitSheetState extends State<_CommitSheet>
           const SizedBox(height: 20),
 
           // Notify friends checkbox
-          Align(
-            alignment: Alignment.centerLeft,
+          Center(
             child: InkWell(
               onTap: () => setState(() => _notifyFriends = !_notifyFriends),
               borderRadius: BorderRadius.circular(8),
@@ -2842,18 +2911,20 @@ class _CommitSheetState extends State<_CommitSheet>
                             (value) =>
                                 setState(() => _notifyFriends = value ?? false),
                         activeColor: AppColors.accent,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        visualDensity: VisualDensity.compact,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(4),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 4),
                     Text(
-                      'Let connected friends know',
+                      'Alert friends connected to this list',
                       style: AppTypography.titleMedium.copyWith(
                         color: Colors.black,
                         fontWeight: FontWeight.w500,
-                        fontSize: 17,
+                        fontSize: 16,
                       ),
                     ),
                   ],
@@ -2862,41 +2933,40 @@ class _CommitSheetState extends State<_CommitSheet>
             ),
           ),
 
-          // Notify owner checkbox
-          Align(
-            alignment: Alignment.centerLeft,
-            child: InkWell(
-              onTap: () => setState(() => _notifyOwner = !_notifyOwner),
-              borderRadius: BorderRadius.circular(8),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Transform.scale(
-                      scale: 1.3,
-                      child: Checkbox(
-                        value: _notifyOwner,
-                        onChanged:
-                            (value) =>
-                                setState(() => _notifyOwner = value ?? false),
-                        activeColor: AppColors.accent,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Let ${widget.ownerName} know',
+          const SizedBox(height: 16),
+
+          // Owner notification status
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  PhosphorIcon(
+                    widget.ownerWantsNotification
+                        ? PhosphorIcons.bellRinging()
+                        : PhosphorIcons.bellSlash(),
+                    size: 22,
+                    color:
+                        widget.ownerWantsNotification
+                            ? AppColors.primary
+                            : AppColors.textSecondary,
+                  ),
+                  const SizedBox(width: 10),
+                  Flexible(
+                    child: Text(
+                      widget.ownerWantsNotification
+                          ? '$_ownerFirstName will be notified automatically'
+                          : '$_ownerFirstName has chosen not to be notified. They will see that someone has purchased, but not who.',
                       style: AppTypography.titleMedium.copyWith(
                         color: Colors.black,
-                        fontWeight: FontWeight.w500,
-                        fontSize: 17,
+                        fontSize: 16,
                       ),
+                      textAlign: TextAlign.center,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -2911,7 +2981,6 @@ class _CommitSheetState extends State<_CommitSheet>
                   () => Navigator.pop(context, {
                     'action': 'purchased',
                     'notifyFriends': _notifyFriends,
-                    'notifyOwner': _notifyOwner,
                   }),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.accent,

@@ -28,12 +28,12 @@ enum ClaimStatus {
   }
 }
 
-/// Claim model representing a user's claim on a list item
+/// Commit model representing a user's commitment to a list item
 @immutable
 class Claim {
   final int id;
   final String uid;
-  final int itemId;
+  final String itemUid;
   final String claimedByUserId;
   final ClaimStatus status;
   final String? note;
@@ -45,7 +45,7 @@ class Claim {
   const Claim({
     required this.id,
     required this.uid,
-    required this.itemId,
+    required this.itemUid,
     required this.claimedByUserId,
     required this.status,
     this.note,
@@ -59,7 +59,7 @@ class Claim {
     return Claim(
       id: json['id'] as int,
       uid: json['uid'] as String,
-      itemId: json['item_id'] as int,
+      itemUid: json['item_uid'] as String,
       claimedByUserId: json['claimed_by_user_id'] as String,
       status: ClaimStatus.fromString(json['status'] as String? ?? 'active'),
       note: json['note'] as String?,
@@ -80,7 +80,7 @@ class Claim {
     return {
       'id': id,
       'uid': uid,
-      'item_id': itemId,
+      'item_uid': itemUid,
       'claimed_by_user_id': claimedByUserId,
       'status': status.name,
       'note': note,
@@ -91,11 +91,11 @@ class Claim {
     };
   }
 
-  /// Create a new claim for insertion
+  /// Create a new commit for insertion
   Map<String, dynamic> toInsertJson() {
     return {
       'uid': uid,
-      'item_id': itemId,
+      'item_uid': itemUid,
       'claimed_by_user_id': claimedByUserId,
       'status': status.name,
       'note': note,
@@ -106,7 +106,7 @@ class Claim {
   Claim copyWith({
     int? id,
     String? uid,
-    int? itemId,
+    String? itemUid,
     String? claimedByUserId,
     ClaimStatus? status,
     String? note,
@@ -118,7 +118,7 @@ class Claim {
     return Claim(
       id: id ?? this.id,
       uid: uid ?? this.uid,
-      itemId: itemId ?? this.itemId,
+      itemUid: itemUid ?? this.itemUid,
       claimedByUserId: claimedByUserId ?? this.claimedByUserId,
       status: status ?? this.status,
       note: note ?? this.note,
@@ -157,7 +157,7 @@ class Claim {
   int get hashCode => uid.hashCode;
 
   @override
-  String toString() => 'Claim(uid: $uid, itemId: $itemId, status: $status)';
+  String toString() => 'Claim(uid: $uid, itemUid: $itemUid, status: $status)';
 }
 
 

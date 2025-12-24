@@ -142,9 +142,11 @@ class _ListCardState extends State<ListCard> {
                         GestureDetector(
                           onTap: _showVisibilityDialog,
                           child: PhosphorIcon(
-                            widget.list.isPublic
-                                ? PhosphorIcons.usersThree()
-                                : PhosphorIcons.lock(),
+                            widget.list.visibility == ListVisibility.public
+                                ? PhosphorIcons.globeSimple()
+                                : widget.list.visibility == ListVisibility.friends
+                                    ? PhosphorIcons.usersThree()
+                                    : PhosphorIcons.lock(),
                             size: 16,
                             color: AppColors.textSecondary,
                           ),
@@ -350,15 +352,21 @@ class _ListCardState extends State<ListCard> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 PhosphorIcon(
-                                  widget.list.isPublic
-                                      ? PhosphorIcons.usersThree()
-                                      : PhosphorIcons.lock(),
+                                  widget.list.visibility == ListVisibility.public
+                                      ? PhosphorIcons.globeSimple()
+                                      : widget.list.visibility == ListVisibility.friends
+                                          ? PhosphorIcons.usersThree()
+                                          : PhosphorIcons.lock(),
                                   size: 14,
                                   color: Colors.white,
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
-                                  widget.list.isPublic ? 'Public' : 'Private',
+                                  widget.list.visibility == ListVisibility.public
+                                      ? 'Public'
+                                      : widget.list.visibility == ListVisibility.friends
+                                          ? 'Friends'
+                                          : 'Private',
                                   style: AppTypography.labelMedium.copyWith(
                                     color: Colors.white,
                                   ),

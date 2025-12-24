@@ -93,6 +93,7 @@ class _AppDrawerState extends State<AppDrawer> {
   Widget build(BuildContext context) {
     return Drawer(
       backgroundColor: Colors.transparent,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: Container(
@@ -185,7 +186,7 @@ class _AppDrawerState extends State<AppDrawer> {
                       ),
                       _DrawerItem(
                         icon: PhosphorIcons.question(),
-                        title: 'Help & Support',
+                        title: 'Help & support',
                         onTap: () {
                           Navigator.pop(context);
                           _openUrl('https://shizlist.co/support');
