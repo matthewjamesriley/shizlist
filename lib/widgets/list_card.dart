@@ -138,17 +138,43 @@ class _ListCardState extends State<ListCard> {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        // Visibility icon
+                        // Visibility badge with text
                         GestureDetector(
                           onTap: _showVisibilityDialog,
-                          child: PhosphorIcon(
-                            widget.list.visibility == ListVisibility.public
-                                ? PhosphorIcons.globeSimple()
-                                : widget.list.visibility == ListVisibility.friends
-                                    ? PhosphorIcons.usersThree()
-                                    : PhosphorIcons.lock(),
-                            size: 16,
-                            color: AppColors.textSecondary,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.textSecondary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                PhosphorIcon(
+                                  widget.list.visibility == ListVisibility.public
+                                      ? PhosphorIcons.globeSimple()
+                                      : widget.list.visibility == ListVisibility.friends
+                                          ? PhosphorIcons.usersThree()
+                                          : PhosphorIcons.lock(),
+                                  size: 12,
+                                  color: AppColors.textSecondary,
+                                ),
+                                const SizedBox(width: 3),
+                                Text(
+                                  widget.list.visibility == ListVisibility.public
+                                      ? 'Public'
+                                      : widget.list.visibility == ListVisibility.friends
+                                          ? 'Friends'
+                                          : 'Private',
+                                  style: AppTypography.labelSmall.copyWith(
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                         // Event date
@@ -200,13 +226,25 @@ class _ListCardState extends State<ListCard> {
                           ),
                         ),
                         Text(
-                          '  •  ',
+                          '  |  ',
                           style: AppTypography.bodySmall.copyWith(
                             color: AppColors.textSecondary,
                           ),
                         ),
                         Text(
                           '${widget.list.claimedCount} committed',
+                          style: AppTypography.bodySmall.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        Text(
+                          '  |  ',
+                          style: AppTypography.bodySmall.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        Text(
+                          '${widget.list.purchasedCount} purchased',
                           style: AppTypography.bodySmall.copyWith(
                             color: AppColors.textSecondary,
                           ),

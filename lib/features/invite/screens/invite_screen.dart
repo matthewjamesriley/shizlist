@@ -80,10 +80,15 @@ class _InviteScreenState extends State<InviteScreen> {
     }
   }
 
-  void _copyLink() {
+  Future<void> _copyLink() async {
     if (_currentInvite == null) return;
-    Clipboard.setData(ClipboardData(text: _currentInvite!.inviteUrl));
-    AppNotification.success(context, 'Link copied to clipboard');
+    // Clear clipboard first to avoid iOS bplist bug mixing with share data
+    await Clipboard.setData(const ClipboardData(text: ''));
+    await Future.delayed(const Duration(milliseconds: 50));
+    await Clipboard.setData(ClipboardData(text: _currentInvite!.inviteUrl));
+    if (mounted) {
+      AppNotification.success(context, 'Link copied to clipboard');
+    }
   }
 
   void _shareLink() {

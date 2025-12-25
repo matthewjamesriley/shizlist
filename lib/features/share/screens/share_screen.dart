@@ -290,16 +290,21 @@ class _ShareScreenState extends State<ShareScreen> {
     );
   }
 
-  void _copyLink() {
+  Future<void> _copyLink() async {
     if (_selectedList == null) return;
 
-    Clipboard.setData(ClipboardData(text: _selectedList!.shareUrl));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Link copied to clipboard'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    // Clear clipboard first to avoid iOS bplist bug mixing with share data
+    await Clipboard.setData(const ClipboardData(text: ''));
+    await Future.delayed(const Duration(milliseconds: 50));
+    await Clipboard.setData(ClipboardData(text: _selectedList!.shareUrl));
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Link copied to clipboard'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   void _shareLink() {

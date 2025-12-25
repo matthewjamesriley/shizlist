@@ -501,7 +501,7 @@ class _ManageFriendsSheetState extends State<_ManageFriendsSheet> {
   @override
   Widget build(BuildContext context) {
     return AppBottomSheet(
-      title: 'Manage Friends',
+      title: 'Manage friends',
       confirmText: 'Save',
       onCancel: () => Navigator.pop(context),
       onConfirm: _isSaving ? null : _saveChanges,

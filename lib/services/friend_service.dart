@@ -178,7 +178,39 @@ class FriendService {
       throw Exception('Not authorized to delete this friendship');
     }
 
-    // Delete the record by ID
+    // Determine the friend's user ID
+    final friendUserId = (recordUserId == userId) ? recordFriendId : recordUserId;
+
+    // Delete all list shares between these users (both directions)
+    // 1. Lists current user shared with the friend
+    final myLists = await _client
+        .from('lists')
+        .select('uid')
+        .eq('owner_id', userId);
+    
+    for (final list in (myLists as List)) {
+      await _client
+          .from('list_shares')
+          .delete()
+          .eq('list_uid', list['uid'])
+          .eq('shared_with_user_id', friendUserId);
+    }
+
+    // 2. Lists the friend shared with current user
+    final friendLists = await _client
+        .from('lists')
+        .select('uid')
+        .eq('owner_id', friendUserId);
+    
+    for (final list in (friendLists as List)) {
+      await _client
+          .from('list_shares')
+          .delete()
+          .eq('list_uid', list['uid'])
+          .eq('shared_with_user_id', userId);
+    }
+
+    // Delete the friendship record
     await _client
         .from(_tableName)
         .delete()

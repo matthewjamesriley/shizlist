@@ -502,8 +502,10 @@ class _ContactsScreenState extends State<ContactsScreen> {
   }
 
   Widget _buildFriendTile(Friend friend) {
-    final sharedListNames = _friendSharedListNames[friend.friendUserId] ?? [];
     final friendsLists = _friendsListsSharedWithMe[friend.friendUserId] ?? [];
+    final listNames = friendsLists.map((list) => list.title).join(', ');
+    final firstName = friend.displayName.split(' ').first;
+    final sharedCount = friendsLists.length;
 
     return InkWell(
       onTap: () => _showFriendListAccessSheet(friend),
@@ -511,86 +513,78 @@ class _ContactsScreenState extends State<ContactsScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
           children: [
-            _buildAvatarWithBadge(friend, sharedListNames.length),
-            const SizedBox(width: 14),
+            // Avatar with badge
+            _buildAvatarWithBadge(friend, sharedCount),
+            const SizedBox(width: 12),
+
+            // Name and shared lists
             Expanded(
-              child: Text(
-                friend.displayName,
-                style: AppTypography.titleMedium.copyWith(
-                  color: AppColors.textPrimary,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    friend.displayName,
+                    style: AppTypography.titleMedium.copyWith(
+                      color: AppColors.textPrimary,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    friendsLists.isEmpty
+                        ? '$firstName has not shared any lists'
+                        : listNames,
+                    style: AppTypography.bodySmall.copyWith(
+                      color:
+                          friendsLists.isEmpty
+                              ? AppColors.textSecondary
+                              : AppColors.primary,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ),
             ),
-            // Circle button: Their lists I can view
-            _buildCircleButton(
-              icon: PhosphorIcons.userList(),
-              count: friendsLists.length,
-              isActive: friendsLists.isNotEmpty,
-              tooltip: 'Their lists',
-              onTap: () => _showFriendListAccessSheet(friend, initialTab: 1),
-            ),
+
+            // Chevron
+            Icon(Icons.chevron_right, color: AppColors.textSecondary, size: 20),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildCircleButton({
-    required IconData icon,
-    required int count,
-    required bool isActive,
-    required String tooltip,
-    required VoidCallback? onTap,
-  }) {
-    final color = isActive ? AppColors.primary : AppColors.textSecondary;
-
-    return Tooltip(
-      message: '$tooltip ($count)',
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
+  Widget _buildAvatarWithBadge(Friend friend, int count) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        _buildAvatar(friend),
+        if (count > 0)
+          Positioned(
+            right: -4,
+            top: -4,
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: const BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white,
-                border: Border.all(color: Colors.black, width: 1),
+                color: AppColors.accent,
               ),
-              child: Center(child: PhosphorIcon(icon, size: 18, color: color)),
-            ),
-            if (count > 0)
-              Positioned(
-                right: -8,
-                top: -8,
-                child: Container(
-                  padding: const EdgeInsets.all(5),
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: AppColors.accent,
-                  ),
-                  constraints: const BoxConstraints(
-                    minWidth: 22,
-                    minHeight: 22,
-                  ),
-                  child: Center(
-                    child: Text(
-                      count > 99 ? '99+' : count.toString(),
-                      style: AppTypography.labelSmall.copyWith(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+              constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+              child: Center(
+                child: Text(
+                  count > 99 ? '99+' : count.toString(),
+                  style: AppTypography.labelSmall.copyWith(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
-          ],
-        ),
-      ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -655,7 +649,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
                   isSelected
                       ? AppColors.primary
                       : AppColors.border.withValues(alpha: 0.5),
-              width: isSelected ? 2 : 1,
+              width: 1,
             ),
           ),
           child: Row(
@@ -717,38 +711,6 @@ class _ContactsScreenState extends State<ContactsScreen> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildAvatarWithBadge(Friend friend, int count) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        _buildAvatar(friend),
-        if (count > 0)
-          Positioned(
-            right: -4,
-            top: -4,
-            child: Container(
-              padding: const EdgeInsets.all(4),
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.accent,
-              ),
-              constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
-              child: Center(
-                child: Text(
-                  count > 99 ? '99+' : count.toString(),
-                  style: AppTypography.labelSmall.copyWith(
-                    color: Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-          ),
-      ],
     );
   }
 
@@ -1061,8 +1023,8 @@ class _ManageListsSheetState extends State<_ManageListsSheet>
                     fontSize: 17,
                   ),
                   tabs: [
-                    const Tab(text: 'Your lists'),
                     Tab(text: '$firstName\'s lists'),
+                    const Tab(text: 'Lists you are sharing'),
                   ],
                 ),
               ],
@@ -1072,7 +1034,7 @@ class _ManageListsSheetState extends State<_ManageListsSheet>
           Flexible(
             child: TabBarView(
               controller: _tabController,
-              children: [_buildYourListsTab(), _buildTheirListsTab(firstName)],
+              children: [_buildTheirListsTab(firstName), _buildYourListsTab()],
             ),
           ),
           SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
