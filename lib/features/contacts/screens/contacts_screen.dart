@@ -599,6 +599,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       showDragHandle: false,
+      useRootNavigator: true,
       builder:
           (context) => _ManageListsSheet(
             lists: lists,
@@ -787,6 +788,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       showDragHandle: false,
+      useRootNavigator: true,
       builder:
           (context) => _ManageListsSheet(
             lists: lists,

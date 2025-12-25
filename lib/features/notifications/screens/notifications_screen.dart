@@ -62,18 +62,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Notifications'),
-        actions: [
-          if (_notificationService.notifications.isNotEmpty)
-            TextButton(
-              onPressed: () => _notificationService.markAllAsRead(),
-              child: Text(
-                'Mark all read',
-                style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.primary,
-                ),
-              ),
-            ),
-        ],
       ),
       body: StreamBuilder<List<AppNotificationModel>>(
         stream: _notificationService.notificationsStream,
@@ -172,10 +160,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               const SizedBox(height: 4),
               Text(
                 notification.message!,
-                style: AppTypography.bodySmall.copyWith(
-                  color: AppColors.textSecondary,
+                style: AppTypography.bodyMedium.copyWith(
+                  color: AppColors.textPrimary.withValues(alpha: 0.8),
                 ),
-                maxLines: 2,
+                maxLines: 3,
                 overflow: TextOverflow.ellipsis,
               ),
             ],

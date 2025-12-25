@@ -14,11 +14,13 @@ class NotificationService {
   static const String _tableName = 'notifications';
 
   RealtimeChannel? _channel;
+  Timer? _pollingTimer;
   final _notificationsController = StreamController<List<AppNotificationModel>>.broadcast();
   final _unreadCountController = StreamController<int>.broadcast();
   
   List<AppNotificationModel> _notifications = [];
   int _unreadCount = 0;
+  bool _isInitialized = false;
 
   /// Stream of notifications
   Stream<List<AppNotificationModel>> get notificationsStream => _notificationsController.stream;
@@ -34,6 +36,9 @@ class NotificationService {
 
   /// Initialize realtime subscription for notifications
   Future<void> initialize() async {
+    if (_isInitialized) return;
+    _isInitialized = true;
+    
     final userId = _client.auth.currentUser?.id;
     if (userId == null) return;
 
@@ -41,47 +46,63 @@ class NotificationService {
     await _loadNotifications();
 
     // Subscribe to realtime updates
-    _channel = _client
-        .channel('notifications:$userId')
-        .onPostgresChanges(
-          event: PostgresChangeEvent.insert,
-          schema: 'public',
-          table: _tableName,
-          filter: PostgresChangeFilter(
-            type: PostgresChangeFilterType.eq,
-            column: 'user_id',
-            value: userId,
-          ),
-          callback: (payload) {
-            debugPrint('New notification received: ${payload.newRecord}');
-            final notification = AppNotificationModel.fromJson(payload.newRecord);
-            _notifications.insert(0, notification);
-            _unreadCount++;
-            _notificationsController.add(_notifications);
-            _unreadCountController.add(_unreadCount);
-          },
-        )
-        .onPostgresChanges(
-          event: PostgresChangeEvent.update,
-          schema: 'public',
-          table: _tableName,
-          filter: PostgresChangeFilter(
-            type: PostgresChangeFilterType.eq,
-            column: 'user_id',
-            value: userId,
-          ),
-          callback: (payload) {
-            final updated = AppNotificationModel.fromJson(payload.newRecord);
-            final index = _notifications.indexWhere((n) => n.id == updated.id);
-            if (index != -1) {
-              _notifications[index] = updated;
-              _recalculateUnreadCount();
+    try {
+      _channel = _client
+          .channel('notifications:$userId')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.insert,
+            schema: 'public',
+            table: _tableName,
+            filter: PostgresChangeFilter(
+              type: PostgresChangeFilterType.eq,
+              column: 'user_id',
+              value: userId,
+            ),
+            callback: (payload) {
+              debugPrint('New notification received: ${payload.newRecord}');
+              final notification = AppNotificationModel.fromJson(payload.newRecord);
+              _notifications.insert(0, notification);
+              _unreadCount++;
               _notificationsController.add(_notifications);
               _unreadCountController.add(_unreadCount);
-            }
-          },
-        )
-        .subscribe();
+            },
+          )
+          .onPostgresChanges(
+            event: PostgresChangeEvent.update,
+            schema: 'public',
+            table: _tableName,
+            filter: PostgresChangeFilter(
+              type: PostgresChangeFilterType.eq,
+              column: 'user_id',
+              value: userId,
+            ),
+            callback: (payload) {
+              final updated = AppNotificationModel.fromJson(payload.newRecord);
+              final index = _notifications.indexWhere((n) => n.id == updated.id);
+              if (index != -1) {
+                _notifications[index] = updated;
+                _recalculateUnreadCount();
+                _notificationsController.add(_notifications);
+                _unreadCountController.add(_unreadCount);
+              }
+            },
+          )
+          .subscribe();
+      debugPrint('Notification realtime subscription established');
+    } catch (e) {
+      debugPrint('Failed to establish realtime subscription: $e');
+    }
+
+    // Start polling as a fallback (every 30 seconds)
+    _startPolling();
+  }
+
+  /// Start periodic polling for notifications
+  void _startPolling() {
+    _pollingTimer?.cancel();
+    _pollingTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      _loadNotifications();
+    });
   }
 
   /// Load notifications from database
@@ -199,9 +220,11 @@ class NotificationService {
 
   /// Dispose of resources
   void dispose() {
+    _pollingTimer?.cancel();
     _channel?.unsubscribe();
     _notificationsController.close();
     _unreadCountController.close();
+    _isInitialized = false;
   }
 }
 

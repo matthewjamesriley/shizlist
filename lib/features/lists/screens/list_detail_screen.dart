@@ -1099,6 +1099,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       showDragHandle: false,
+      useRootNavigator: true,
       builder:
           (context) => StatefulBuilder(
             builder: (context, setSheetState) {
@@ -2073,6 +2074,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
       isScrollControlled: true,
       showDragHandle: false,
       backgroundColor: Colors.transparent,
+      useRootNavigator: true,
       builder:
           (context) => _CommitSheet(
             itemName: item.name,
@@ -2190,6 +2192,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
       isScrollControlled: true,
       showDragHandle: false,
       backgroundColor: Colors.transparent,
+      useRootNavigator: true,
       builder:
           (context) => _CommitSheet(
             itemName: item.name,
@@ -2276,6 +2279,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       showDragHandle: false,
+      useRootNavigator: true,
       builder: (context) => Container(
         decoration: const BoxDecoration(
           color: AppColors.surface,
@@ -2417,6 +2421,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
       isScrollControlled: true,
       showDragHandle: false,
       backgroundColor: Colors.transparent,
+      useRootNavigator: true,
       builder:
           (context) => _CommitSheet(
             itemName: item.name,
@@ -2629,6 +2634,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       showDragHandle: false,
+      useRootNavigator: true,
       builder:
           (context) => Container(
             decoration: const BoxDecoration(

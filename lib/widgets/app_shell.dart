@@ -228,6 +228,24 @@ class _AppShellState extends State<AppShell> with TickerProviderStateMixin {
   }
 
   void _onTabTapped(BuildContext context, int index) {
+    // Close any open modal bottom sheets/dialogs
+    // Pop all modal routes from the root navigator
+    final rootNav = Navigator.of(context, rootNavigator: true);
+    rootNav.popUntil((route) {
+      // Keep popping until we hit a non-popup route
+      return route is! PopupRoute;
+    });
+    
+    // Close FAB menu if open
+    if (_isFabMenuOpen) {
+      _toggleFabMenu();
+    }
+    
+    // Close end drawer if open
+    if (_scaffoldKey.currentState?.isEndDrawerOpen ?? false) {
+      _scaffoldKey.currentState?.closeEndDrawer();
+    }
+    
     switch (index) {
       case 0:
         context.go(AppRoutes.lists);
