@@ -155,6 +155,13 @@ class ListItem {
   final String? commitUid;
   final DateTime? claimedAt;
   final DateTime? claimExpiresAt;
+  // Purchase data (from separate purchases table)
+  final bool isPurchased;
+  final String? purchasedByUserId;
+  final String? purchasedByDisplayName;
+  final String? purchasedByAvatarUrl;
+  final String? purchaseNote;
+  final String? purchaseUid;
   final DateTime? purchasedAt;
   final DateTime createdAt;
   final DateTime? updatedAt;
@@ -183,6 +190,12 @@ class ListItem {
     this.commitUid,
     this.claimedAt,
     this.claimExpiresAt,
+    this.isPurchased = false,
+    this.purchasedByUserId,
+    this.purchasedByDisplayName,
+    this.purchasedByAvatarUrl,
+    this.purchaseNote,
+    this.purchaseUid,
     this.purchasedAt,
     required this.createdAt,
     this.updatedAt,
@@ -221,6 +234,12 @@ class ListItem {
           json['claim_expires_at'] != null
               ? DateTime.parse(json['claim_expires_at'] as String)
               : null,
+      isPurchased: json['is_purchased'] as bool? ?? false,
+      purchasedByUserId: json['purchased_by_user_id'] as String?,
+      purchasedByDisplayName: json['purchased_by_display_name'] as String?,
+      purchasedByAvatarUrl: json['purchased_by_avatar_url'] as String?,
+      purchaseNote: json['purchase_note'] as String?,
+      purchaseUid: json['purchase_uid'] as String?,
       purchasedAt:
           json['purchased_at'] != null
               ? DateTime.parse(json['purchased_at'] as String)
@@ -258,6 +277,12 @@ class ListItem {
       'commit_uid': commitUid,
       'claimed_at': claimedAt?.toIso8601String(),
       'claim_expires_at': claimExpiresAt?.toIso8601String(),
+      'is_purchased': isPurchased,
+      'purchased_by_user_id': purchasedByUserId,
+      'purchased_by_display_name': purchasedByDisplayName,
+      'purchased_by_avatar_url': purchasedByAvatarUrl,
+      'purchase_note': purchaseNote,
+      'purchase_uid': purchaseUid,
       'purchased_at': purchasedAt?.toIso8601String(),
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
@@ -307,6 +332,12 @@ class ListItem {
     String? commitUid,
     DateTime? claimedAt,
     DateTime? claimExpiresAt,
+    bool? isPurchased,
+    String? purchasedByUserId,
+    String? purchasedByDisplayName,
+    String? purchasedByAvatarUrl,
+    String? purchaseNote,
+    String? purchaseUid,
     DateTime? purchasedAt,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -335,6 +366,12 @@ class ListItem {
       commitUid: commitUid ?? this.commitUid,
       claimedAt: claimedAt ?? this.claimedAt,
       claimExpiresAt: claimExpiresAt ?? this.claimExpiresAt,
+      isPurchased: isPurchased ?? this.isPurchased,
+      purchasedByUserId: purchasedByUserId ?? this.purchasedByUserId,
+      purchasedByDisplayName: purchasedByDisplayName ?? this.purchasedByDisplayName,
+      purchasedByAvatarUrl: purchasedByAvatarUrl ?? this.purchasedByAvatarUrl,
+      purchaseNote: purchaseNote ?? this.purchaseNote,
+      purchaseUid: purchaseUid ?? this.purchaseUid,
       purchasedAt: purchasedAt ?? this.purchasedAt,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

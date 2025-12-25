@@ -41,6 +41,7 @@ class WishList {
   final DateTime? deletedAt;
   final int itemCount;
   final int claimedCount;
+  final int purchasedCount;
   final DateTime? eventDate;
   final bool isRecurring;
   final bool notifyOnCommit;
@@ -60,6 +61,7 @@ class WishList {
     this.deletedAt,
     this.itemCount = 0,
     this.claimedCount = 0,
+    this.purchasedCount = 0,
     this.eventDate,
     this.isRecurring = false,
     this.notifyOnCommit = true,
@@ -87,6 +89,7 @@ class WishList {
               : null,
       itemCount: json['item_count'] as int? ?? 0,
       claimedCount: json['claimed_count'] as int? ?? 0,
+      purchasedCount: json['purchased_count'] as int? ?? 0,
       eventDate:
           json['event_date'] != null
               ? DateTime.parse(json['event_date'] as String)
@@ -145,6 +148,7 @@ class WishList {
     DateTime? deletedAt,
     int? itemCount,
     int? claimedCount,
+    int? purchasedCount,
     DateTime? eventDate,
     bool? isRecurring,
     bool? notifyOnCommit,
@@ -164,6 +168,7 @@ class WishList {
       deletedAt: deletedAt ?? this.deletedAt,
       itemCount: itemCount ?? this.itemCount,
       claimedCount: claimedCount ?? this.claimedCount,
+      purchasedCount: purchasedCount ?? this.purchasedCount,
       eventDate: eventDate ?? this.eventDate,
       isRecurring: isRecurring ?? this.isRecurring,
       notifyOnCommit: notifyOnCommit ?? this.notifyOnCommit,

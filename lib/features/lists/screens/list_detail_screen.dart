@@ -680,11 +680,16 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                                   item: item,
                                   isOwner: _isOwner,
                                   currentUserId: SupabaseService.currentUserId,
+                                  notifyOnCommit: _list.notifyOnCommit,
+                                  notifyOnPurchase: _list.notifyOnPurchase,
                                   onTap: () => _openItemDetail(item),
                                   onCommitTap: () => _commitItem(item),
                                   onCommitStatusTap: _isOwner
-                                      ? () => _showOwnerCommitInfo(item)
-                                      : () => _openCommitStatus(item),
+                                      ? () => _showOwnerStatusInfo(item, showPurchase: false)
+                                      : () => _openCommitStatus(item, initialTab: 0),
+                                  onPurchaseStatusTap: _isOwner
+                                      ? () => _showOwnerStatusInfo(item, showPurchase: true)
+                                      : () => _openCommitStatus(item, initialTab: 1),
                                   onLinkTap:
                                       item.retailerUrl != null
                                           ? () => _openProductLink(
@@ -2116,7 +2121,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
         }
       } else if (action == 'purchased') {
         try {
-          await ItemService().commitToItem(itemUid: item.uid, note: note);
+          await ItemService().purchaseItem(itemUid: item.uid, note: note);
           if (mounted) {
             AppNotification.success(
               context,
@@ -2216,13 +2221,8 @@ class _ListDetailScreenState extends State<ListDetailScreen>
           }
         }
       } else if (action == 'purchased') {
-        // For purchased, we need to first commit then mark as purchased
-        // Or if already committed, just mark as purchased
         try {
-          // First commit if not already
-          await ItemService().commitToItem(itemUid: item.uid, note: note);
-          // TODO: Need to get the commit UID to mark as purchased
-          // For now, just show success
+          await ItemService().purchaseItem(itemUid: item.uid, note: note);
           if (mounted) {
             AppNotification.success(
               context,
@@ -2239,12 +2239,37 @@ class _ListDetailScreenState extends State<ListDetailScreen>
     }
   }
 
-  void _showOwnerCommitInfo(ListItem item) {
-    final committerName = item.claimedByDisplayName ?? 'Someone';
-    final isPurchased = item.commitStatus == 'purchased';
-    final avatarUrl = item.claimedByAvatarUrl;
+  void _showOwnerStatusInfo(ListItem item, {required bool showPurchase}) {
+    // Check if owner wants to see names based on notification settings
+    final bool isAnonymous = showPurchase 
+        ? !_list.notifyOnPurchase 
+        : !_list.notifyOnCommit;
     
-    final title = isPurchased ? 'Purchased' : 'Committed';
+    // Get the appropriate name, avatar, and note based on which badge was tapped
+    final String personName;
+    final String? avatarUrl;
+    final String? note;
+    final String title;
+    
+    if (isAnonymous) {
+      // Anonymous - don't show real name or avatar
+      personName = 'Anonymous';
+      avatarUrl = null;
+      note = null;
+      title = showPurchase ? 'Purchased' : 'Committed';
+    } else if (showPurchase) {
+      // Show purchase info
+      personName = item.purchasedByDisplayName ?? 'Someone';
+      avatarUrl = item.purchasedByAvatarUrl;
+      note = item.purchaseNote;
+      title = 'Purchased';
+    } else {
+      // Show commit info
+      personName = item.claimedByDisplayName ?? 'Someone';
+      avatarUrl = item.claimedByAvatarUrl;
+      note = item.commitNote;
+      title = 'Committed';
+    }
     
     showModalBottomSheet(
       context: context,
@@ -2299,14 +2324,16 @@ class _ListDetailScreenState extends State<ListDetailScreen>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Avatar or gift icon
+                  // Avatar or icon
                   Container(
                     width: 80,
                     height: 80,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: avatarUrl == null
-                          ? AppColors.accent.withValues(alpha: 0.1)
+                          ? (isAnonymous 
+                              ? AppColors.textSecondary.withValues(alpha: 0.1)
+                              : AppColors.accent.withValues(alpha: 0.1))
                           : null,
                       border: Border.all(color: Colors.grey.shade300, width: 1),
                     ),
@@ -2318,23 +2345,25 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                               height: 80,
                               fit: BoxFit.cover,
                               errorBuilder: (context, error, stackTrace) => Icon(
-                                Icons.card_giftcard,
+                                Icons.person,
                                 size: 40,
-                                color: AppColors.accent,
+                                color: AppColors.textSecondary,
                               ),
                             )
                           : Icon(
-                              Icons.card_giftcard,
+                              isAnonymous 
+                                  ? Icons.person 
+                                  : (showPurchase ? Icons.shopping_bag : Icons.card_giftcard),
                               size: 40,
-                              color: AppColors.accent,
+                              color: isAnonymous ? AppColors.textSecondary : AppColors.accent,
                             ),
                     ),
                   ),
                   
-                  // Committer name
+                  // Person name
                   const SizedBox(height: 16),
                   Text(
-                    'by $committerName',
+                    'by $personName',
                     style: AppTypography.titleMedium.copyWith(
                       color: AppColors.primary,
                       fontWeight: FontWeight.w600,
@@ -2343,10 +2372,10 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                   ),
                   
                   // Note if exists
-                  if (item.commitNote != null && item.commitNote!.isNotEmpty) ...[
+                  if (note != null && note.isNotEmpty) ...[
                     const SizedBox(height: 16),
                     Text(
-                      '"${item.commitNote}"',
+                      '"$note"',
                       style: AppTypography.titleMedium.copyWith(
                         fontStyle: FontStyle.italic,
                         color: AppColors.textPrimary,
@@ -2356,7 +2385,9 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                   ] else ...[
                     const SizedBox(height: 12),
                     Text(
-                      'This item has been reserved.',
+                      showPurchase 
+                          ? 'This item has been purchased.'
+                          : 'This item has been reserved.',
                       style: AppTypography.bodyMedium.copyWith(
                         color: AppColors.textSecondary,
                       ),
@@ -2374,13 +2405,17 @@ class _ListDetailScreenState extends State<ListDetailScreen>
     );
   }
 
-  void _openCommitStatus(ListItem item) async {
+  void _openCommitStatus(ListItem item, {int? initialTab}) async {
     final ownerName = _ownerProfile?.nameOrEmail ?? 'list owner';
     final isMyCommit = item.claimedByUserId == SupabaseService.currentUserId;
+    
+    // Use provided initialTab, or determine based on item status
+    final tabIndex = initialTab ?? (item.isPurchased ? 1 : 0);
 
     final result = await showModalBottomSheet<Map<String, dynamic>?>(
       context: context,
       isScrollControlled: true,
+      showDragHandle: false,
       backgroundColor: Colors.transparent,
       builder:
           (context) => _CommitSheet(
@@ -2388,7 +2423,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
             ownerName: ownerName,
             thumbnailUrl: item.thumbnailUrl,
             item: item,
-            initialTab: 0, // Open on Commit tab
+            initialTab: tabIndex,
             ownerWantsNotification: _list?.notifyOnCommit ?? true,
             isMyCommit: isMyCommit,
           ),
@@ -2913,13 +2948,13 @@ class _CommitSheetState extends State<_CommitSheet>
                         width: 80,
                         height: 80,
                         decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.1),
+                          color: Colors.amber.shade100,
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
                           Icons.check_circle,
                           size: 40,
-                          color: AppColors.primary,
+                          color: Colors.brown.shade700,
                         ),
                       ),
                 ),
@@ -2930,14 +2965,14 @@ class _CommitSheetState extends State<_CommitSheet>
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
+                color: Colors.amber.shade100,
                 shape: BoxShape.circle,
                 border: Border.all(color: Colors.grey.shade300, width: 1),
               ),
               child: Icon(
                 Icons.check_circle,
                 size: 40,
-                color: AppColors.primary,
+                color: Colors.brown.shade700,
               ),
             ),
           const SizedBox(height: 20),
@@ -2956,7 +2991,7 @@ class _CommitSheetState extends State<_CommitSheet>
           Text(
             'by $committerName',
             style: AppTypography.titleMedium.copyWith(
-              color: AppColors.primary,
+              color: Colors.brown.shade800,
               fontWeight: FontWeight.w600,
             ),
             textAlign: TextAlign.center,
@@ -2977,10 +3012,10 @@ class _CommitSheetState extends State<_CommitSheet>
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.05),
+                color: Colors.amber.shade50,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: AppColors.primary.withValues(alpha: 0.2),
+                  color: Colors.amber.shade200,
                 ),
               ),
               child: Column(
@@ -2988,15 +3023,16 @@ class _CommitSheetState extends State<_CommitSheet>
                 children: [
                   Text(
                     'Note from $committerName',
-                    style: AppTypography.labelMedium.copyWith(
-                      color: AppColors.primary,
+                    style: AppTypography.titleSmall.copyWith(
+                      color: Colors.brown.shade800,
                       fontWeight: FontWeight.w600,
+                      fontSize: 14,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     item.commitNote!,
-                    style: AppTypography.bodyMedium,
+                    style: AppTypography.bodyLarge.copyWith(fontSize: 16),
                   ),
                 ],
               ),
@@ -3098,17 +3134,19 @@ class _CommitSheetState extends State<_CommitSheet>
                 children: [
                   Text(
                     'Your note',
-                    style: AppTypography.bodySmall.copyWith(
+                    style: AppTypography.titleSmall.copyWith(
                       color: AppColors.textSecondary,
                       fontWeight: FontWeight.w600,
+                      fontSize: 14,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6),
                   Text(
                     commitNote,
-                    style: AppTypography.bodyMedium.copyWith(
+                    style: AppTypography.bodyLarge.copyWith(
                       color: Colors.black,
                       fontStyle: FontStyle.italic,
+                      fontSize: 16,
                     ),
                   ),
                 ],
@@ -3379,8 +3417,9 @@ class _CommitSheetState extends State<_CommitSheet>
             controller: _noteController,
             decoration: InputDecoration(
               hintText: 'Add a note (optional)',
-              hintStyle: AppTypography.bodyMedium.copyWith(
+              hintStyle: AppTypography.bodyLarge.copyWith(
                 color: AppColors.textSecondary,
+                fontSize: 16,
               ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -3392,15 +3431,15 @@ class _CommitSheetState extends State<_CommitSheet>
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: AppColors.primary),
+                borderSide: BorderSide(color: Colors.amber.shade700),
               ),
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,
-                vertical: 12,
+                vertical: 14,
               ),
             ),
-            style: AppTypography.bodyMedium,
-            maxLines: 2,
+            style: AppTypography.bodyLarge.copyWith(fontSize: 16),
+            maxLines: 3,
             textCapitalization: TextCapitalization.sentences,
           ),
 
@@ -3465,57 +3504,222 @@ class _CommitSheetState extends State<_CommitSheet>
   }
 
   Widget _buildPurchasedTab() {
+    final item = widget.item;
+    
+    // Check if item is purchased
+    if (item != null && item.isPurchased) {
+      final isMyPurchase = item.purchasedByUserId == SupabaseService.currentUserId;
+      if (isMyPurchase) {
+        return _buildMyPurchaseView(item);
+      } else {
+        return _buildOtherUserPurchaseView(item);
+      }
+    }
+    
+    // Show "mark as purchased" form
+    return _buildNewPurchaseView();
+  }
+  
+  Widget _buildMyPurchaseView(ListItem item) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         children: [
           // Thumbnail or fallback icon
-          if (widget.thumbnailUrl != null)
+          _buildPurchaseIcon(),
+          const SizedBox(height: 20),
+          
+          // Title
+          Text(
+            'You purchased this',
+            style: AppTypography.titleLarge.copyWith(
+              color: Colors.black,
+              fontWeight: FontWeight.w600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'This item has been marked as purchased.',
+            style: AppTypography.bodyLarge.copyWith(
+              color: AppColors.textSecondary,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          
+          // Note if exists
+          if (item.purchaseNote != null && item.purchaseNote!.isNotEmpty) ...[
+            const SizedBox(height: 24),
             Container(
-              width: 82,
-              height: 82,
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.grey.shade300, width: 1),
-              ),
-              child: ClipOval(
-                child: Image.network(
-                  widget.thumbnailUrl!,
-                  width: 80,
-                  height: 80,
-                  fit: BoxFit.cover,
-                  errorBuilder:
-                      (context, error, stackTrace) => Container(
-                        width: 80,
-                        height: 80,
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.shopping_bag_outlined,
-                          size: 40,
-                          color: AppColors.primary,
-                        ),
-                      ),
+                color: AppColors.primary.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.2),
                 ),
               ),
-            )
-          else
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.grey.shade300, width: 1),
-              ),
-              child: Icon(
-                Icons.shopping_bag_outlined,
-                size: 40,
-                color: AppColors.primary,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Your note',
+                    style: AppTypography.titleSmall.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    item.purchaseNote!,
+                    style: AppTypography.bodyLarge.copyWith(fontSize: 16),
+                  ),
+                ],
               ),
             ),
+          ],
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildOtherUserPurchaseView(ListItem item) {
+    final purchaserName = item.purchasedByDisplayName ?? 'Someone';
+    
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          // Thumbnail or fallback icon
+          _buildPurchaseIcon(),
+          const SizedBox(height: 20),
+          
+          // Title
+          Text(
+            'Purchased',
+            style: AppTypography.titleLarge.copyWith(
+              color: Colors.black,
+              fontWeight: FontWeight.w600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 12),
+          
+          // Purchaser info
+          Text(
+            'by $purchaserName',
+            style: AppTypography.titleMedium.copyWith(
+              color: AppColors.primary,
+              fontWeight: FontWeight.w600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'This item has already been purchased. You can still view the item details.',
+            style: AppTypography.bodyLarge.copyWith(
+              color: AppColors.textSecondary,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          
+          // Note if exists
+          if (item.purchaseNote != null && item.purchaseNote!.isNotEmpty) ...[
+            const SizedBox(height: 24),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.2),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Note from $purchaserName',
+                    style: AppTypography.titleSmall.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    item.purchaseNote!,
+                    style: AppTypography.bodyLarge.copyWith(fontSize: 16),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildPurchaseIcon() {
+    if (widget.thumbnailUrl != null) {
+      return Container(
+        width: 82,
+        height: 82,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.grey.shade300, width: 1),
+        ),
+        child: ClipOval(
+          child: Image.network(
+            widget.thumbnailUrl!,
+            width: 80,
+            height: 80,
+            fit: BoxFit.cover,
+            errorBuilder:
+                (context, error, stackTrace) => Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.shopping_bag_outlined,
+                    size: 40,
+                    color: AppColors.primary,
+                  ),
+                ),
+          ),
+        ),
+      );
+    } else {
+      return Container(
+        width: 80,
+        height: 80,
+        decoration: BoxDecoration(
+          color: AppColors.primary.withValues(alpha: 0.1),
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.grey.shade300, width: 1),
+        ),
+        child: Icon(
+          Icons.shopping_bag_outlined,
+          size: 40,
+          color: AppColors.primary,
+        ),
+      );
+    }
+  }
+  
+  Widget _buildNewPurchaseView() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          // Thumbnail or fallback icon
+          _buildPurchaseIcon(),
           const SizedBox(height: 20),
 
           // Body text
@@ -3624,8 +3828,9 @@ class _CommitSheetState extends State<_CommitSheet>
             controller: _noteController,
             decoration: InputDecoration(
               hintText: 'Add a note (optional)',
-              hintStyle: AppTypography.bodyMedium.copyWith(
+              hintStyle: AppTypography.bodyLarge.copyWith(
                 color: AppColors.textSecondary,
+                fontSize: 16,
               ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -3641,11 +3846,11 @@ class _CommitSheetState extends State<_CommitSheet>
               ),
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,
-                vertical: 12,
+                vertical: 14,
               ),
             ),
-            style: AppTypography.bodyMedium,
-            maxLines: 2,
+            style: AppTypography.bodyLarge.copyWith(fontSize: 16),
+            maxLines: 3,
             textCapitalization: TextCapitalization.sentences,
           ),
 

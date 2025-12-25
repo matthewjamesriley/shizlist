@@ -52,7 +52,7 @@ class ItemService {
     }).toList();
   }
 
-  /// Get all items for a list with commit data
+  /// Get all items for a list with commit and purchase data
   Future<List<ListItem>> getListItems(int listId) async {
     // First, get the items
     final itemsResponse = await _client
@@ -74,9 +74,16 @@ class ItemService {
         .inFilter('item_uid', itemUids)
         .inFilter('status', ['active', 'purchased']);
 
+    // Fetch purchases separately for these items
+    final purchasesResponse = await _client
+        .from(SupabaseConfig.purchasesTable)
+        .select()
+        .inFilter('item_uid', itemUids)
+        .inFilter('status', ['active', 'purchased']);
+
     // Create a map of item_uid -> commit
     final commitsMap = <String, Map<String, dynamic>>{};
-    final committerUserIds = <String>{};
+    final userIds = <String>{};
     for (final commit in (commitsResponse as List)) {
       final itemUid = commit['item_uid'] as String;
       // Only keep first active/purchased commit per item
@@ -84,28 +91,43 @@ class ItemService {
         commitsMap[itemUid] = commit as Map<String, dynamic>;
         final userId = commit['claimed_by_user_id'] as String?;
         if (userId != null) {
-          committerUserIds.add(userId);
+          userIds.add(userId);
         }
       }
     }
 
-    // Fetch user data for all committers
+    // Create a map of item_uid -> purchase
+    final purchasesMap = <String, Map<String, dynamic>>{};
+    for (final purchase in (purchasesResponse as List)) {
+      final itemUid = purchase['item_uid'] as String;
+      // Only keep first active/purchased purchase per item
+      if (!purchasesMap.containsKey(itemUid)) {
+        purchasesMap[itemUid] = purchase as Map<String, dynamic>;
+        final userId = purchase['claimed_by_user_id'] as String?;
+        if (userId != null) {
+          userIds.add(userId);
+        }
+      }
+    }
+
+    // Fetch user data for all committers and purchasers
     final usersMap = <String, Map<String, dynamic>>{};
-    if (committerUserIds.isNotEmpty) {
+    if (userIds.isNotEmpty) {
       final usersResponse = await _client
           .from(SupabaseConfig.usersTable)
           .select('uid, display_name, avatar_url')
-          .inFilter('uid', committerUserIds.toList());
+          .inFilter('uid', userIds.toList());
       for (final user in (usersResponse as List)) {
         usersMap[user['uid'] as String] = user as Map<String, dynamic>;
       }
     }
 
-    // Map items with their commits
+    // Map items with their commits and purchases
     return items.map((json) {
       final itemJson = Map<String, dynamic>.from(json);
       final itemUid = itemJson['uid'] as String;
 
+      // Map commit data
       final commit = commitsMap[itemUid];
       if (commit != null) {
         itemJson['is_claimed'] = true;
@@ -115,15 +137,34 @@ class ItemService {
         itemJson['commit_note'] = commit['note'];
         itemJson['claimed_at'] = commit['created_at'];
         itemJson['claim_expires_at'] = commit['expires_at'];
-        itemJson['purchased_at'] = commit['purchased_at'];
 
         // Get display name and avatar from users map
         final userId = commit['claimed_by_user_id'] as String?;
         if (userId != null) {
           final userData = usersMap[userId];
-        if (userData != null) {
-          itemJson['claimed_by_display_name'] = userData['display_name'];
-          itemJson['claimed_by_avatar_url'] = userData['avatar_url'];
+          if (userData != null) {
+            itemJson['claimed_by_display_name'] = userData['display_name'];
+            itemJson['claimed_by_avatar_url'] = userData['avatar_url'];
+          }
+        }
+      }
+
+      // Map purchase data
+      final purchase = purchasesMap[itemUid];
+      if (purchase != null) {
+        itemJson['is_purchased'] = true;
+        itemJson['purchased_by_user_id'] = purchase['claimed_by_user_id'];
+        itemJson['purchase_uid'] = purchase['uid'];
+        itemJson['purchase_note'] = purchase['note'];
+        itemJson['purchased_at'] = purchase['purchased_at'] ?? purchase['created_at'];
+
+        // Get display name and avatar from users map
+        final userId = purchase['claimed_by_user_id'] as String?;
+        if (userId != null) {
+          final userData = usersMap[userId];
+          if (userData != null) {
+            itemJson['purchased_by_display_name'] = userData['display_name'];
+            itemJson['purchased_by_avatar_url'] = userData['avatar_url'];
           }
         }
       }
@@ -315,6 +356,57 @@ class ItemService {
           'purchased_at': DateTime.now().toIso8601String(),
         })
         .eq('uid', commitUid);
+  }
+
+  /// Purchase an item (for gifters) - creates entry in purchases table
+  Future<void> purchaseItem({
+    required String itemUid,
+    String? note,
+  }) async {
+    final userId = SupabaseService.currentUserId;
+    if (userId == null) throw Exception('User not authenticated');
+
+    // First check if a purchase already exists for this item
+    final existing = await _client
+        .from(SupabaseConfig.purchasesTable)
+        .select('id')
+        .eq('item_uid', itemUid)
+        .maybeSingle();
+
+    if (existing != null) {
+      // Update existing purchase
+      await _client
+          .from(SupabaseConfig.purchasesTable)
+          .update({
+            'claimed_by_user_id': userId,
+            'status': 'purchased',
+            'purchased_at': DateTime.now().toIso8601String(),
+            if (note != null && note.isNotEmpty) 'note': note,
+          })
+          .eq('item_uid', itemUid);
+    } else {
+      // Insert new purchase
+      await _client.from(SupabaseConfig.purchasesTable).insert({
+        'claimed_by_user_id': userId,
+        'item_uid': itemUid,
+        'status': 'purchased',
+        'purchased_at': DateTime.now().toIso8601String(),
+        if (note != null && note.isNotEmpty) 'note': note,
+      });
+    }
+  }
+
+  /// Remove purchase from an item
+  Future<void> unpurchaseItem(String itemUid) async {
+    final userId = SupabaseService.currentUserId;
+    if (userId == null) throw Exception('User not authenticated');
+
+    // Delete purchase for this user and item
+    await _client
+        .from(SupabaseConfig.purchasesTable)
+        .delete()
+        .eq('item_uid', itemUid)
+        .eq('claimed_by_user_id', userId);
   }
 
   /// Get items with claim status for gifters (excluding owner view)

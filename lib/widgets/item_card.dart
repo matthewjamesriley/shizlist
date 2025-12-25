@@ -16,8 +16,11 @@ class ItemCard extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onCommitTap;
   final VoidCallback? onCommitStatusTap;
+  final VoidCallback? onPurchaseStatusTap;
   final VoidCallback? onLinkTap;
   final ItemPosition position;
+  final bool notifyOnCommit;
+  final bool notifyOnPurchase;
 
   const ItemCard({
     super.key,
@@ -27,14 +30,21 @@ class ItemCard extends StatelessWidget {
     this.onTap,
     this.onCommitTap,
     this.onCommitStatusTap,
+    this.onPurchaseStatusTap,
     this.onLinkTap,
     this.position = ItemPosition.only,
+    this.notifyOnCommit = true,
+    this.notifyOnPurchase = true,
   });
 
   bool get _isCommittedByMe =>
       item.isClaimed && item.claimedByUserId == currentUserId;
 
-  bool get _isPurchased => item.commitStatus == 'purchased';
+  bool get _isPurchasedByMe =>
+      item.isPurchased && item.purchasedByUserId == currentUserId;
+
+  // Check if purchased (either via commit status OR purchases table)
+  bool get _isPurchased => item.commitStatus == 'purchased' || item.isPurchased;
 
   BorderRadius get _borderRadius {
     const radius = Radius.circular(12);
@@ -139,8 +149,8 @@ class ItemCard extends StatelessWidget {
                   ],
                 ),
 
-                // Commit status row at bottom (for anyone if item is committed)
-                if (item.isClaimed) ...[
+                // Commit/Purchase status row at bottom (if item is committed or purchased)
+                if (item.isClaimed || item.isPurchased) ...[
                   const SizedBox(height: 10),
                   _buildCommitStatusRow(),
                 ],
@@ -204,56 +214,92 @@ class ItemCard extends StatelessWidget {
   }
 
   Widget _buildCommitStatusRow() {
+    final isCommitted = item.isClaimed;
     final isPurchased = _isPurchased;
     final isMyCommit = _isCommittedByMe;
+    final isMyPurchase = _isPurchasedByMe;
     final committerName = item.claimedByDisplayName?.split(' ').first ?? 'Someone';
+    final purchaserName = item.purchasedByDisplayName?.split(' ').first ?? 'Someone';
 
-    // Determine status text and icon
-    String statusText;
-    IconData statusIcon;
-    Color statusColor;
-
-    if (isPurchased) {
-      statusText = isMyCommit ? 'You purchased this' : '$committerName purchased this';
-      statusIcon = Icons.shopping_bag;
-      statusColor = AppColors.primary;
-    } else {
-      statusText = isMyCommit ? 'You committed to this' : '$committerName committed';
-      statusIcon = Icons.check_circle;
-      statusColor = AppColors.primary;
+    String getCommitText() {
+      if (isMyCommit) return 'You committed';
+      // For owners: show name only if notifyOnCommit is enabled
+      if (isOwner && !notifyOnCommit) return 'Someone committed';
+      return '$committerName committed';
     }
 
-    return GestureDetector(
-      onTap: onCommitStatusTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: isMyCommit
-              ? AppColors.primary.withValues(alpha: 0.08)
-              : AppColors.claimedBackground,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          children: [
-            Icon(statusIcon, size: 18, color: statusColor),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                statusText,
-                style: AppTypography.bodyMedium.copyWith(
-                  color: isMyCommit ? AppColors.primary : AppColors.textPrimary,
-                  fontWeight: isMyCommit ? FontWeight.w600 : FontWeight.normal,
-                ),
-              ),
+    String getPurchaseText() {
+      if ((item.isPurchased && isMyPurchase) || (!item.isPurchased && isMyCommit)) {
+        return 'You purchased';
+      }
+      // For owners: show name only if notifyOnPurchase is enabled
+      if (isOwner && !notifyOnPurchase) return 'Someone purchased';
+      return item.isPurchased ? '$purchaserName purchased' : '$committerName purchased';
+    }
+
+    return Row(
+      children: [
+        // Committed badge (amber) - show if committed
+        if (isCommitted) ...[
+          GestureDetector(
+            onTap: onCommitStatusTap,
+            child: _buildStatusBadge(
+              text: getCommitText(),
+              icon: Icons.check_circle,
+              backgroundColor: Colors.amber.shade100,
+              textColor: Colors.brown.shade800,
+              iconColor: Colors.brown.shade700,
             ),
-            // Arrow indicator to show it's tappable
-            Icon(
-              Icons.chevron_right,
-              size: 20,
-              color: isMyCommit ? AppColors.primary : AppColors.textSecondary,
+          ),
+        ],
+        
+        // Purchased badge (teal bg, white text) - show if purchased
+        if (isPurchased) ...[
+          if (isCommitted) const SizedBox(width: 8),
+          GestureDetector(
+            onTap: onPurchaseStatusTap ?? onCommitStatusTap,
+            child: _buildStatusBadge(
+              text: getPurchaseText(),
+              icon: Icons.shopping_bag,
+              backgroundColor: AppColors.primary,
+              textColor: Colors.white,
+              iconColor: Colors.white,
             ),
-          ],
-        ),
+          ),
+        ],
+        
+        const Spacer(),
+      ],
+    );
+  }
+  
+  Widget _buildStatusBadge({
+    required String text,
+    required IconData icon,
+    required Color backgroundColor,
+    required Color textColor,
+    required Color iconColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 18, color: iconColor),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: AppTypography.bodyMedium.copyWith(
+              color: textColor,
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+            ),
+          ),
+        ],
       ),
     );
   }

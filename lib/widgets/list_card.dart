@@ -494,7 +494,7 @@ class _ListCardState extends State<ListCard> {
                         ),
                       ),
                       Text(
-                        '0 purchased',
+                        '${widget.list.purchasedCount} purchased',
                         style: AppTypography.bodyMedium.copyWith(
                           color: AppColors.textPrimary,
                         ),

@@ -40,18 +40,27 @@ class ListService {
       final listJson = Map<String, dynamic>.from(json);
       listJson['item_count'] = itemCount;
       
-      // Fetch claimed count for this list (active commits on items in this list)
+      // Fetch claimed count and purchased count for this list
       final listId = json['id'] as int;
       final itemUids = await _getItemUidsForList(listId);
       if (itemUids.isNotEmpty) {
+        // Count commits
         final claimedCountResponse = await _client
             .from('commits')
             .select('id')
             .eq('status', 'active')
             .inFilter('item_uid', itemUids);
         listJson['claimed_count'] = (claimedCountResponse as List).length;
+        
+        // Count purchases
+        final purchasedCountResponse = await _client
+            .from('purchases')
+            .select('id')
+            .inFilter('item_uid', itemUids);
+        listJson['purchased_count'] = (purchasedCountResponse as List).length;
       } else {
         listJson['claimed_count'] = 0;
+        listJson['purchased_count'] = 0;
       }
       
       lists.add(WishList.fromJson(listJson));
@@ -83,18 +92,27 @@ class ListService {
     final listJson = Map<String, dynamic>.from(response);
     listJson['item_count'] = itemCount;
     
-    // Fetch claimed count for this list (active commits on items in this list)
+    // Fetch claimed count and purchased count for this list
     final listId = response['id'] as int;
     final itemUids = await _getItemUidsForList(listId);
     if (itemUids.isNotEmpty) {
+      // Count commits
       final claimedCountResponse = await _client
           .from('commits')
           .select('id')
           .eq('status', 'active')
           .inFilter('item_uid', itemUids);
       listJson['claimed_count'] = (claimedCountResponse as List).length;
+      
+      // Count purchases
+      final purchasedCountResponse = await _client
+          .from('purchases')
+          .select('id')
+          .inFilter('item_uid', itemUids);
+      listJson['purchased_count'] = (purchasedCountResponse as List).length;
     } else {
       listJson['claimed_count'] = 0;
+      listJson['purchased_count'] = 0;
     }
     
     return WishList.fromJson(listJson);
@@ -262,18 +280,27 @@ class ListService {
         final listJson = Map<String, dynamic>.from(listData);
         listJson['item_count'] = itemCount;
         
-        // Fetch claimed count for this list
+        // Fetch claimed count and purchased count for this list
         final listId = listData['id'] as int;
         final itemUids = await _getItemUidsForList(listId);
         if (itemUids.isNotEmpty) {
+          // Count commits
           final claimedCountResponse = await _client
               .from('commits')
               .select('id')
               .eq('status', 'active')
               .inFilter('item_uid', itemUids);
           listJson['claimed_count'] = (claimedCountResponse as List).length;
+          
+          // Count purchases
+          final purchasedCountResponse = await _client
+              .from('purchases')
+              .select('id')
+              .inFilter('item_uid', itemUids);
+          listJson['purchased_count'] = (purchasedCountResponse as List).length;
         } else {
           listJson['claimed_count'] = 0;
+          listJson['purchased_count'] = 0;
         }
         
         results.add(WishList.fromJson(listJson));
