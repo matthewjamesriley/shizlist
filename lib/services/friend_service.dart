@@ -159,12 +159,30 @@ class FriendService {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) throw Exception('Not authenticated');
 
-    // Delete where I am either user_id or friend_user_id
+    // First, get the friendship record to find both user IDs
+    final record = await _client
+        .from(_tableName)
+        .select('user_id, friend_user_id')
+        .eq('id', friendId)
+        .maybeSingle();
+
+    if (record == null) {
+      throw Exception('Friendship not found');
+    }
+
+    final recordUserId = record['user_id'] as String;
+    final recordFriendId = record['friend_user_id'] as String;
+
+    // Verify current user is part of this friendship
+    if (recordUserId != userId && recordFriendId != userId) {
+      throw Exception('Not authorized to delete this friendship');
+    }
+
+    // Delete the record by ID
     await _client
         .from(_tableName)
         .delete()
-        .eq('id', friendId)
-        .or('user_id.eq.$userId,friend_user_id.eq.$userId');
+        .eq('id', friendId);
   }
 
   /// Check if a user is already a friend (either direction)

@@ -249,33 +249,36 @@ class _ListsScreenState extends State<ListsScreen>
   Widget _buildEmptyState() {
     return Stack(
       children: [
-        Center(
-          child: Padding(
-            padding: const EdgeInsets.all(50),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Image.asset(
-                  'assets/images/No-Lists.png',
-                  width: 180,
-                  height: 180,
-                ),
-                const SizedBox(height: 14),
-                Text('No lists yet', style: AppTypography.headlineSmall),
-                const SizedBox(height: 8),
-                Text(
-                  'Create your first list and start sharing the stuff you love!',
-                  style: AppTypography.bodyLarge.copyWith(
-                    color: AppColors.textPrimary,
+        Transform.translate(
+          offset: const Offset(0, -50),
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(50),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Image.asset(
+                    'assets/images/No-Lists.png',
+                    width: 180,
+                    height: 180,
                   ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
+                  const SizedBox(height: 14),
+                  Text('No lists yet', style: AppTypography.headlineSmall),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Create your first list and start sharing the stuff you love!',
+                    style: AppTypography.bodyLarge.copyWith(
+                      color: AppColors.textPrimary,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
             ),
           ),
         ),
-        // Arrow pointing to Add list button
-        Positioned(bottom: 110, left: 14, child: _AnimatedArrow()),
+        // Arrow pointing to FAB (+) button
+        Positioned(bottom: 100, right: 24, child: _AnimatedArrow()),
       ],
     );
   }
@@ -665,7 +668,7 @@ class _AnimatedArrowState extends State<_AnimatedArrow>
       vsync: this,
     )..repeat(reverse: true);
 
-    _bubbleAnimation = Tween<double>(begin: 0, end: 10).animate(
+    _bubbleAnimation = Tween<double>(begin: 20, end: 25).animate(
       CurvedAnimation(parent: _bubbleController, curve: Curves.easeInOut),
     );
 
@@ -704,28 +707,22 @@ class _AnimatedArrowState extends State<_AnimatedArrow>
           children: [
             // Bubble with text
             Transform.translate(
-              offset: Offset(0, _bubbleAnimation.value),
+              offset: Offset(-15, _bubbleAnimation.value),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 10,
+                      horizontal: 30,
+                      vertical: 20,
                     ),
                     decoration: BoxDecoration(
                       color: AppColors.primary,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primary.withValues(alpha: 0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
+                      borderRadius: BorderRadius.circular(60),
                     ),
                     child: Text(
                       'Get started',
+                      textAlign: TextAlign.center,
                       style: AppTypography.titleMedium.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.w700,
@@ -735,13 +732,15 @@ class _AnimatedArrowState extends State<_AnimatedArrow>
                 ],
               ),
             ),
-            // Arrow down with separate animation
+            // Arrow with longer stalk pointing diagonally to FAB
             Transform.translate(
-              offset: Offset(0, _arrowAnimation.value + 4),
-              child: PhosphorIcon(
-                PhosphorIcons.arrowDown(PhosphorIconsStyle.bold),
-                size: 36,
-                color: Colors.black,
+              offset: Offset(
+                _arrowAnimation.value * 0.7,
+                _arrowAnimation.value,
+              ),
+              child: CustomPaint(
+                size: const Size(50, 50),
+                painter: _DiagonalArrowPainter(),
               ),
             ),
           ],
@@ -749,4 +748,42 @@ class _AnimatedArrowState extends State<_AnimatedArrow>
       },
     );
   }
+}
+
+/// Custom painter for diagonal arrow with long stalk and filled head
+class _DiagonalArrowPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint =
+        Paint()
+          ..color = AppColors.primary
+          ..strokeWidth = 7
+          ..strokeCap = StrokeCap.round
+          ..style = PaintingStyle.stroke;
+
+    // Arrow tip position (bottom-right)
+    final arrowTip = Offset(size.width, size.height);
+
+    // Draw diagonal stalk from top-left to arrowhead base
+    const startPoint = Offset(0, 0);
+    final lineEnd = Offset(size.width - 10, size.height - 10);
+    canvas.drawLine(startPoint, lineEnd, paint);
+
+    // Draw filled triangular arrowhead
+    final arrowPaint =
+        Paint()
+          ..color = AppColors.primary
+          ..style = PaintingStyle.fill;
+
+    final arrowPath = Path();
+    arrowPath.moveTo(arrowTip.dx, arrowTip.dy); // Tip
+    arrowPath.lineTo(arrowTip.dx - 18, arrowTip.dy - 5); // Left edge
+    arrowPath.lineTo(arrowTip.dx - 5, arrowTip.dy - 18); // Top edge
+    arrowPath.close();
+
+    canvas.drawPath(arrowPath, arrowPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

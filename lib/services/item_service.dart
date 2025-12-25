@@ -70,17 +70,34 @@ class ItemService {
     // Fetch commits separately for these items
     final commitsResponse = await _client
         .from(SupabaseConfig.commitsTable)
-        .select('*, users(display_name, avatar_url)')
+        .select()
         .inFilter('item_uid', itemUids)
         .inFilter('status', ['active', 'purchased']);
 
     // Create a map of item_uid -> commit
     final commitsMap = <String, Map<String, dynamic>>{};
+    final committerUserIds = <String>{};
     for (final commit in (commitsResponse as List)) {
       final itemUid = commit['item_uid'] as String;
       // Only keep first active/purchased commit per item
       if (!commitsMap.containsKey(itemUid)) {
         commitsMap[itemUid] = commit as Map<String, dynamic>;
+        final userId = commit['claimed_by_user_id'] as String?;
+        if (userId != null) {
+          committerUserIds.add(userId);
+        }
+      }
+    }
+
+    // Fetch user data for all committers
+    final usersMap = <String, Map<String, dynamic>>{};
+    if (committerUserIds.isNotEmpty) {
+      final usersResponse = await _client
+          .from(SupabaseConfig.usersTable)
+          .select('uid, display_name, avatar_url')
+          .inFilter('uid', committerUserIds.toList());
+      for (final user in (usersResponse as List)) {
+        usersMap[user['uid'] as String] = user as Map<String, dynamic>;
       }
     }
 
@@ -100,11 +117,14 @@ class ItemService {
         itemJson['claim_expires_at'] = commit['expires_at'];
         itemJson['purchased_at'] = commit['purchased_at'];
 
-        // Get display name and avatar from nested users
-        final userData = commit['users'] as Map<String, dynamic>?;
+        // Get display name and avatar from users map
+        final userId = commit['claimed_by_user_id'] as String?;
+        if (userId != null) {
+          final userData = usersMap[userId];
         if (userData != null) {
           itemJson['claimed_by_display_name'] = userData['display_name'];
           itemJson['claimed_by_avatar_url'] = userData['avatar_url'];
+          }
         }
       }
 

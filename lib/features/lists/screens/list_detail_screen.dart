@@ -2244,9 +2244,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
     final isPurchased = item.commitStatus == 'purchased';
     final avatarUrl = item.claimedByAvatarUrl;
     
-    final title = isPurchased
-        ? '$committerName purchased this'
-        : '$committerName committed';
+    final title = isPurchased ? 'Purchased' : 'Committed';
     
     showModalBottomSheet(
       context: context,
@@ -2333,9 +2331,20 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                     ),
                   ),
                   
+                  // Committer name
+                  const SizedBox(height: 16),
+                  Text(
+                    'by $committerName',
+                    style: AppTypography.titleMedium.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  
                   // Note if exists
                   if (item.commitNote != null && item.commitNote!.isNotEmpty) ...[
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
                     Text(
                       '"${item.commitNote}"',
                       style: AppTypography.titleMedium.copyWith(
@@ -2345,7 +2354,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                       textAlign: TextAlign.center,
                     ),
                   ] else ...[
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     Text(
                       'This item has been reserved.',
                       style: AppTypography.bodyMedium.copyWith(
@@ -2863,11 +2872,139 @@ class _CommitSheetState extends State<_CommitSheet>
   }
 
   Widget _buildCommitTab() {
-    // Check if viewing an existing commitment
+    // Check if viewing an existing commitment by current user
     if (widget.isMyCommit) {
       return _buildExistingCommitView();
     }
+    
+    // Check if someone else has committed to this item
+    final item = widget.item;
+    if (item != null && item.claimedByUserId != null) {
+      return _buildOtherUserCommitView(item);
+    }
+    
     return _buildNewCommitView();
+  }
+  
+  Widget _buildOtherUserCommitView(ListItem item) {
+    final committerName = item.claimedByDisplayName ?? 'Someone';
+    
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          // Thumbnail or fallback icon
+          if (widget.thumbnailUrl != null)
+            Container(
+              width: 82,
+              height: 82,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.grey.shade300, width: 1),
+              ),
+              child: ClipOval(
+                child: Image.network(
+                  widget.thumbnailUrl!,
+                  width: 80,
+                  height: 80,
+                  fit: BoxFit.cover,
+                  errorBuilder:
+                      (context, error, stackTrace) => Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.check_circle,
+                          size: 40,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                ),
+              ),
+            )
+          else
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.grey.shade300, width: 1),
+              ),
+              child: Icon(
+                Icons.check_circle,
+                size: 40,
+                color: AppColors.primary,
+              ),
+            ),
+          const SizedBox(height: 20),
+          
+          // Title
+          Text(
+            'Committed',
+            style: AppTypography.headlineSmall.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 12),
+          
+          // Committer info
+          Text(
+            'by $committerName',
+            style: AppTypography.titleMedium.copyWith(
+              color: AppColors.primary,
+              fontWeight: FontWeight.w600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'This item has already been committed to. You can still view the item details.',
+            style: AppTypography.bodyLarge.copyWith(
+              color: AppColors.textSecondary,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          
+          // Show commit note if available
+          if (item.commitNote != null && item.commitNote!.isNotEmpty) ...[
+            const SizedBox(height: 24),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.2),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Note from $committerName',
+                    style: AppTypography.labelMedium.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    item.commitNote!,
+                    style: AppTypography.bodyMedium,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 
   Widget _buildExistingCommitView() {

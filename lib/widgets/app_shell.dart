@@ -29,8 +29,7 @@ class AppShell extends StatefulWidget {
   State<AppShell> createState() => _AppShellState();
 }
 
-class _AppShellState extends State<AppShell>
-    with TickerProviderStateMixin {
+class _AppShellState extends State<AppShell> with TickerProviderStateMixin {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final _authService = AuthService();
   final _listService = ListService();
@@ -44,13 +43,17 @@ class _AppShellState extends State<AppShell>
   UserProfile? _userProfile;
   int _lastIndex = 0;
 
-  // Bouncing arrow animation
-  late AnimationController _arrowController;
-  late Animation<double> _arrowAnimation;
-  
   // FAB menu animation
   late AnimationController _fabMenuController;
   late Animation<double> _fabMenuAnimation;
+
+  // FAB menu item 2 (staggered) animation
+  late AnimationController _fabMenuItem2Controller;
+  late Animation<double> _fabMenuItem2Animation;
+
+  // FAB pulse animation
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
 
   @override
   void initState() {
@@ -64,16 +67,6 @@ class _AppShellState extends State<AppShell>
     // Listen for page load to show buttons
     _pageLoadNotifier.addListener(_onPageLoaded);
 
-    // Setup bouncing arrow animation
-    _arrowController = AnimationController(
-      duration: const Duration(milliseconds: 600),
-      vsync: this,
-    )..repeat(reverse: true);
-
-    _arrowAnimation = Tween<double>(begin: 0, end: 10).animate(
-      CurvedAnimation(parent: _arrowController, curve: Curves.easeInOut),
-    );
-    
     // Setup FAB menu animation
     _fabMenuController = AnimationController(
       duration: const Duration(milliseconds: 200),
@@ -83,6 +76,26 @@ class _AppShellState extends State<AppShell>
       parent: _fabMenuController,
       curve: Curves.easeOut,
     );
+
+    // Setup staggered FAB menu item 2 animation (300ms delay)
+    _fabMenuItem2Controller = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+    );
+    _fabMenuItem2Animation = CurvedAnimation(
+      parent: _fabMenuItem2Controller,
+      curve: Curves.easeOut,
+    );
+
+    // Setup FAB pulse animation
+    _pulseController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    )..repeat();
+    _pulseAnimation = Tween<double>(
+      begin: 0,
+      end: 1,
+    ).animate(CurvedAnimation(parent: _pulseController, curve: Curves.easeOut));
   }
 
   void _onPageLoaded() {
@@ -98,29 +111,38 @@ class _AppShellState extends State<AppShell>
 
   @override
   void dispose() {
-    _arrowController.dispose();
     _fabMenuController.dispose();
+    _fabMenuItem2Controller.dispose();
+    _pulseController.dispose();
     UserSettingsService().removeListener(_onSettingsChanged);
     _listsNotifier.removeListener(_onListsChanged);
     _pageLoadNotifier.removeListener(_onPageLoaded);
     super.dispose();
   }
-  
+
   void _toggleFabMenu() {
     setState(() {
       _isFabMenuOpen = !_isFabMenuOpen;
       if (_isFabMenuOpen) {
         _fabMenuController.forward();
+        // Start second button animation with 150ms delay
+        Future.delayed(const Duration(milliseconds: 50), () {
+          if (mounted && _isFabMenuOpen) {
+            _fabMenuItem2Controller.forward();
+          }
+        });
       } else {
+        _fabMenuItem2Controller.reverse();
         _fabMenuController.reverse();
       }
     });
   }
-  
+
   void _closeFabMenu() {
     if (_isFabMenuOpen) {
       setState(() {
         _isFabMenuOpen = false;
+        _fabMenuItem2Controller.reverse();
         _fabMenuController.reverse();
       });
     }
@@ -413,33 +435,11 @@ class _AppShellState extends State<AppShell>
             clipBehavior: Clip.none,
             alignment: Alignment.centerRight,
             children: [
-              // Bouncing arrow (positioned above the button)
-              if (_hasLists && !_hasItems && !_isFabMenuOpen)
-                Positioned(
-                  top: -46,
-                  right: 0,
-                  left: 0,
-                  child: AnimatedBuilder(
-                    animation: _arrowAnimation,
-                    builder: (context, child) {
-                      return Transform.translate(
-                        offset: Offset(0, _arrowAnimation.value),
-                        child: Center(
-                          child: PhosphorIcon(
-                            PhosphorIcons.arrowDown(PhosphorIconsStyle.bold),
-                            size: 36,
-                            color: Colors.black,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
               // Menu items (animated) - appear to the left
               if (_isFabMenuOpen) ...[
                 // Add List option - furthest left
                 Positioned(
-                  right: _hasLists ? 200 : 70,
+                  right: _hasLists ? 165 : 70,
                   child: SlideTransition(
                     position: Tween<Offset>(
                       begin: const Offset(1, 0),
@@ -457,7 +457,7 @@ class _AppShellState extends State<AppShell>
                     ),
                   ),
                 ),
-                // Add Item option (only if has lists) - closer to FAB
+                // Add Item option (only if has lists) - closer to FAB, staggered animation
                 if (_hasLists)
                   Positioned(
                     right: 70,
@@ -465,9 +465,9 @@ class _AppShellState extends State<AppShell>
                       position: Tween<Offset>(
                         begin: const Offset(1, 0),
                         end: Offset.zero,
-                      ).animate(_fabMenuAnimation),
+                      ).animate(_fabMenuItem2Animation),
                       child: FadeTransition(
-                        opacity: _fabMenuAnimation,
+                        opacity: _fabMenuItem2Animation,
                         child: _buildFabMenuItem(
                           label: 'Add item',
                           onTap: () {
@@ -479,40 +479,85 @@ class _AppShellState extends State<AppShell>
                     ),
                   ),
               ],
-              // Main FAB button
+              // Main FAB button with pulse effect
               Positioned(
-                right: 0,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.5),
-                      width: 1,
-                    ),
-                  ),
-                  child: Material(
-                    color: _isFabMenuOpen ? Colors.black : AppColors.accent,
-                    shape: const CircleBorder(),
-                    elevation: 6,
-                    shadowColor: Colors.black.withValues(alpha: 0.3),
-                    child: InkWell(
-                      onTap: _toggleFabMenu,
-                      customBorder: const CircleBorder(),
-                      child: SizedBox(
-                        width: 56,
-                        height: 56,
-                        child: AnimatedRotation(
-                          turns: _isFabMenuOpen ? 0.125 : 0,
-                          duration: const Duration(milliseconds: 200),
-                          child: PhosphorIcon(
-                            PhosphorIcons.plus(),
-                            size: 28,
-                            color: Colors.white,
+                right: -12,
+                child: SizedBox(
+                  width: 80,
+                  height: 80,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Pulse rings (only show when menu is closed and no items yet)
+                      if (!_isFabMenuOpen && !_hasItems) ...[
+                        AnimatedBuilder(
+                          animation: _pulseAnimation,
+                          builder: (context, child) {
+                            // Ease out the size expansion
+                            final easedValue = Curves.easeOut.transform(
+                              _pulseAnimation.value,
+                            );
+                            return Container(
+                              width: 56 + (40 * easedValue),
+                              height: 56 + (40 * easedValue),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: AppColors.accent.withValues(
+                                    alpha: 0.7 * (1 - easedValue),
+                                  ),
+                                  width: 6,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                      // Actual FAB
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.5),
+                            width: 1,
+                          ),
+                        ),
+                        child: Material(
+                          color:
+                              _isFabMenuOpen ? Colors.black : AppColors.accent,
+                          shape: const CircleBorder(),
+                          elevation: 6,
+                          shadowColor: Colors.black.withValues(alpha: 0.3),
+                          child: InkWell(
+                            onTap: _toggleFabMenu,
+                            customBorder: const CircleBorder(),
+                            child: SizedBox(
+                              width: 56,
+                              height: 56,
+                              child: TweenAnimationBuilder<double>(
+                                tween: Tween<double>(
+                                  begin: 0,
+                                  end: _isFabMenuOpen ? 0.125 : 0,
+                                ),
+                                duration: const Duration(milliseconds: 200),
+                                builder: (context, value, child) {
+                                  return Transform.rotate(
+                                    angle: value * 2 * 3.14159,
+                                    child: child,
+                                  );
+                                },
+                                child: PhosphorIcon(
+                                  PhosphorIcons.plus(),
+                                  size: 28,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
                 ),
               ),
@@ -522,7 +567,7 @@ class _AppShellState extends State<AppShell>
       ],
     );
   }
-  
+
   Widget _buildFabMenuItem({
     required String label,
     required VoidCallback onTap,
@@ -537,13 +582,6 @@ class _AppShellState extends State<AppShell>
             color: Colors.white.withValues(alpha: 0.5),
             width: 1,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.2),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
         ),
         child: Material(
           color: AppColors.accent,

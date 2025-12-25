@@ -33,13 +33,39 @@ class ListService {
         .eq('is_deleted', false)
         .order('created_at', ascending: false);
 
-    return (response as List).map((json) {
+    final lists = <WishList>[];
+    for (final json in (response as List)) {
       // Extract item count from the nested list_items count
       final itemCount = json['list_items']?[0]?['count'] as int? ?? 0;
       final listJson = Map<String, dynamic>.from(json);
       listJson['item_count'] = itemCount;
-      return WishList.fromJson(listJson);
-    }).toList();
+      
+      // Fetch claimed count for this list (active commits on items in this list)
+      final listId = json['id'] as int;
+      final itemUids = await _getItemUidsForList(listId);
+      if (itemUids.isNotEmpty) {
+        final claimedCountResponse = await _client
+            .from('commits')
+            .select('id')
+            .eq('status', 'active')
+            .inFilter('item_uid', itemUids);
+        listJson['claimed_count'] = (claimedCountResponse as List).length;
+      } else {
+        listJson['claimed_count'] = 0;
+      }
+      
+      lists.add(WishList.fromJson(listJson));
+    }
+    return lists;
+  }
+  
+  /// Helper to get item UIDs for a list
+  Future<List<String>> _getItemUidsForList(int listId) async {
+    final response = await _client
+        .from('list_items')
+        .select('uid')
+        .eq('list_id', listId);
+    return (response as List).map((item) => item['uid'] as String).toList();
   }
 
   /// Get a single list by UID
@@ -56,6 +82,21 @@ class ListService {
     final itemCount = response['list_items']?[0]?['count'] as int? ?? 0;
     final listJson = Map<String, dynamic>.from(response);
     listJson['item_count'] = itemCount;
+    
+    // Fetch claimed count for this list (active commits on items in this list)
+    final listId = response['id'] as int;
+    final itemUids = await _getItemUidsForList(listId);
+    if (itemUids.isNotEmpty) {
+      final claimedCountResponse = await _client
+          .from('commits')
+          .select('id')
+          .eq('status', 'active')
+          .inFilter('item_uid', itemUids);
+      listJson['claimed_count'] = (claimedCountResponse as List).length;
+    } else {
+      listJson['claimed_count'] = 0;
+    }
+    
     return WishList.fromJson(listJson);
   }
 
@@ -195,24 +236,49 @@ class ListService {
     final userId = SupabaseService.currentUserId;
     if (userId == null) throw Exception('User not authenticated');
 
-    final response = await _client
+    // Get all list UIDs shared with this user
+    final sharesResponse = await _client
         .from(SupabaseConfig.listSharesTable)
-        .select('list_uid, ${SupabaseConfig.listsTable}!inner(*, list_items(count))')
+        .select('list_uid')
         .eq('shared_with_user_id', userId);
 
+    final listUids = (sharesResponse as List)
+        .map((r) => r['list_uid'] as String)
+        .toList();
+
+    if (listUids.isEmpty) return [];
+
+    // Fetch the actual lists by their UIDs
+    final listsResponse = await _client
+        .from(SupabaseConfig.listsTable)
+        .select('*, list_items(count)')
+        .inFilter('uid', listUids)
+        .eq('is_deleted', false);
+
     final results = <WishList>[];
-    for (final json in (response as List)) {
-      final listData = json[SupabaseConfig.listsTable];
-      if (listData != null) {
-        try {
-          // Extract item count from the nested list_items count
-          final itemCount = listData['list_items']?[0]?['count'] as int? ?? 0;
-          final listJson = Map<String, dynamic>.from(listData);
-          listJson['item_count'] = itemCount;
-          results.add(WishList.fromJson(listJson));
-        } catch (e) {
-          debugPrint('Error parsing shared list: $e');
+    for (final listData in (listsResponse as List)) {
+      try {
+        final itemCount = listData['list_items']?[0]?['count'] as int? ?? 0;
+        final listJson = Map<String, dynamic>.from(listData);
+        listJson['item_count'] = itemCount;
+        
+        // Fetch claimed count for this list
+        final listId = listData['id'] as int;
+        final itemUids = await _getItemUidsForList(listId);
+        if (itemUids.isNotEmpty) {
+          final claimedCountResponse = await _client
+              .from('commits')
+              .select('id')
+              .eq('status', 'active')
+              .inFilter('item_uid', itemUids);
+          listJson['claimed_count'] = (claimedCountResponse as List).length;
+        } else {
+          listJson['claimed_count'] = 0;
         }
+        
+        results.add(WishList.fromJson(listJson));
+      } catch (e) {
+        debugPrint('Error parsing shared list: $e');
       }
     }
     return results;

@@ -206,7 +206,7 @@ class _ListCardState extends State<ListCard> {
                           ),
                         ),
                         Text(
-                          '${widget.list.claimedCount} claimed',
+                          '${widget.list.claimedCount} committed',
                           style: AppTypography.bodySmall.copyWith(
                             color: AppColors.textSecondary,
                           ),

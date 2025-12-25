@@ -491,7 +491,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
             ),
             const SizedBox(height: 32),
             AppButton(
-              label: 'Invite Friend',
+              label: 'Invite friend',
               icon: PhosphorIcons.userPlus(),
               onPressed: _addFriend,
             ),
@@ -735,10 +735,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
                 shape: BoxShape.circle,
                 color: AppColors.accent,
               ),
-              constraints: const BoxConstraints(
-                minWidth: 18,
-                minHeight: 18,
-              ),
+              constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
               child: Center(
                 child: Text(
                   count > 99 ? '99+' : count.toString(),
