@@ -5,7 +5,7 @@ class AppConstants {
   // App Info
   static const String appName = 'ShizList';
   static const String appTagline = 'Share the stuff you love';
-  static const String appVersion = '1.0.0';
+  static const String appVersion = '1.0.11';
 
   // Image Sizes
   static const int thumbnailSize = 150;

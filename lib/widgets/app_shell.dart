@@ -5,11 +5,13 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_typography.dart';
 import '../features/lists/widgets/create_list_dialog.dart';
+import '../features/notifications/screens/notifications_screen.dart';
 import '../models/user_profile.dart';
 import '../routing/app_router.dart';
 import '../services/auth_service.dart';
 import '../services/list_service.dart';
 import '../services/lists_notifier.dart';
+import '../services/notification_service.dart';
 import '../services/user_settings_service.dart';
 import '../services/page_load_notifier.dart';
 import '../services/view_mode_notifier.dart';
@@ -36,12 +38,14 @@ class _AppShellState extends State<AppShell> with TickerProviderStateMixin {
   final _listsNotifier = ListsNotifier();
   final _viewModeNotifier = ViewModeNotifier();
   final _pageLoadNotifier = PageLoadNotifier();
+  final _notificationService = NotificationService();
   bool _showButtons = false;
   bool _hasLists = false;
   bool _hasItems = false;
   bool _isFabMenuOpen = false;
   UserProfile? _userProfile;
   int _lastIndex = 0;
+  int _unreadNotifications = 0;
 
   // FAB menu animation
   late AnimationController _fabMenuController;
@@ -60,6 +64,7 @@ class _AppShellState extends State<AppShell> with TickerProviderStateMixin {
     super.initState();
     _loadUserProfile();
     _checkHasListsAndItems();
+    _initNotifications();
     // Listen for profile updates
     UserSettingsService().addListener(_onSettingsChanged);
     // Listen for list changes
@@ -193,6 +198,27 @@ class _AppShellState extends State<AppShell> with TickerProviderStateMixin {
     }
   }
 
+  Future<void> _initNotifications() async {
+    await _notificationService.initialize();
+    _notificationService.unreadCountStream.listen((count) {
+      if (mounted) {
+        setState(() => _unreadNotifications = count);
+      }
+    });
+    // Set initial count
+    if (mounted) {
+      setState(() => _unreadNotifications = _notificationService.unreadCount);
+    }
+  }
+
+  void _openNotifications() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const NotificationsScreen(),
+      ),
+    );
+  }
+
   int _getCurrentIndex(BuildContext context) {
     final location = GoRouterState.of(context).matchedLocation;
     if (location.startsWith(AppRoutes.lists)) return 0;
@@ -246,12 +272,60 @@ class _AppShellState extends State<AppShell> with TickerProviderStateMixin {
                 ),
         centerTitle: true,
         actions: [
-          // Messages icon - commented out for later use
-          // IconButton(
-          //   icon: PhosphorIcon(PhosphorIcons.chatCircleText()),
-          //   onPressed: () => context.go(AppRoutes.messages),
-          //   tooltip: 'Messages',
-          // ),
+          // Notifications bell icon with badge
+          Padding(
+            padding: const EdgeInsets.only(right: 4),
+            child: GestureDetector(
+              onTap: _openNotifications,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.textPrimary, width: 1.5),
+                    ),
+                    child: Center(
+                      child: PhosphorIcon(
+                        PhosphorIcons.bell(),
+                        color: AppColors.textPrimary,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                  if (_unreadNotifications > 0)
+                    Positioned(
+                      right: -4,
+                      top: -4,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: AppColors.accent,
+                          shape: BoxShape.circle,
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 18,
+                          minHeight: 18,
+                        ),
+                        child: Center(
+                          child: Text(
+                            _unreadNotifications > 99 ? '99+' : '$_unreadNotifications',
+                            style: AppTypography.labelSmall.copyWith(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
           // Profile picture that opens drawer
           Padding(
             padding: const EdgeInsets.only(right: 12),
