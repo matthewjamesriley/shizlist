@@ -280,7 +280,6 @@ class _EditItemSheetState extends State<EditItemSheet>
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.85,
       ),
-      margin: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -392,7 +391,12 @@ class _EditItemSheetState extends State<EditItemSheet>
 
   Widget _buildDetailsTab() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.fromLTRB(
+        16,
+        16,
+        16,
+        16 + MediaQuery.of(context).viewInsets.bottom,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -415,6 +419,7 @@ class _EditItemSheetState extends State<EditItemSheet>
           TextFormField(
             controller: _descriptionController,
             style: AppTypography.bodyLarge,
+            minLines: 1,
             maxLines: 3,
             decoration: const InputDecoration(hintText: 'Add a description'),
             textCapitalization: TextCapitalization.sentences,
@@ -591,7 +596,12 @@ class _EditItemSheetState extends State<EditItemSheet>
 
   Widget _buildMediaTab() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.fromLTRB(
+        16,
+        16,
+        16,
+        16 + MediaQuery.of(context).viewInsets.bottom,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

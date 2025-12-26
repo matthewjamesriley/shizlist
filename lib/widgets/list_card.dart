@@ -147,28 +147,34 @@ class _ListCardState extends State<ListCard> {
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: AppColors.textSecondary.withValues(alpha: 0.1),
+                              color: AppColors.textSecondary.withValues(
+                                alpha: 0.1,
+                              ),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 PhosphorIcon(
-                                  widget.list.visibility == ListVisibility.public
+                                  widget.list.visibility ==
+                                          ListVisibility.public
                                       ? PhosphorIcons.globeSimple()
-                                      : widget.list.visibility == ListVisibility.friends
-                                          ? PhosphorIcons.usersThree()
-                                          : PhosphorIcons.lock(),
+                                      : widget.list.visibility ==
+                                          ListVisibility.friends
+                                      ? PhosphorIcons.usersThree()
+                                      : PhosphorIcons.lock(),
                                   size: 12,
                                   color: AppColors.textSecondary,
                                 ),
                                 const SizedBox(width: 3),
                                 Text(
-                                  widget.list.visibility == ListVisibility.public
+                                  widget.list.visibility ==
+                                          ListVisibility.public
                                       ? 'Public'
-                                      : widget.list.visibility == ListVisibility.friends
-                                          ? 'Friends'
-                                          : 'Private',
+                                      : widget.list.visibility ==
+                                          ListVisibility.friends
+                                      ? 'Friends'
+                                      : 'Private',
                                   style: AppTypography.labelSmall.copyWith(
                                     color: AppColors.textSecondary,
                                   ),
@@ -186,9 +192,12 @@ class _ListCardState extends State<ListCard> {
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: widget.list.isUpcoming
-                                  ? AppColors.primary.withValues(alpha: 0.15)
-                                  : Colors.grey.withValues(alpha: 0.15),
+                              color:
+                                  widget.list.isUpcoming
+                                      ? AppColors.primary.withValues(
+                                        alpha: 0.15,
+                                      )
+                                      : Colors.grey.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Row(
@@ -197,17 +206,19 @@ class _ListCardState extends State<ListCard> {
                                 PhosphorIcon(
                                   PhosphorIcons.calendarDots(),
                                   size: 12,
-                                  color: widget.list.isUpcoming
-                                      ? AppColors.primary
-                                      : AppColors.textSecondary,
+                                  color:
+                                      widget.list.isUpcoming
+                                          ? AppColors.primary
+                                          : AppColors.textSecondary,
                                 ),
                                 const SizedBox(width: 3),
                                 Text(
                                   _getEventDateLabel(),
                                   style: AppTypography.labelSmall.copyWith(
-                                    color: widget.list.isUpcoming
-                                        ? AppColors.primary
-                                        : AppColors.textSecondary,
+                                    color:
+                                        widget.list.isUpcoming
+                                            ? AppColors.primary
+                                            : AppColors.textSecondary,
                                   ),
                                 ),
                               ],
@@ -283,10 +294,7 @@ class _ListCardState extends State<ListCard> {
                       decoration: BoxDecoration(
                         color: Colors.white,
                         shape: BoxShape.circle,
-                        border: Border.all(
-                          color: AppColors.border,
-                          width: 1,
-                        ),
+                        border: Border.all(color: AppColors.border, width: 1),
                       ),
                       child: Center(
                         child: PhosphorIcon(
@@ -367,6 +375,19 @@ class _ListCardState extends State<ListCard> {
                           _isImageExpanded
                               ? Alignment.topCenter
                               : Alignment.center,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Center(
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            value:
+                                loadingProgress.expectedTotalBytes != null
+                                    ? loadingProgress.cumulativeBytesLoaded /
+                                        loadingProgress.expectedTotalBytes!
+                                    : null,
+                          ),
+                        );
+                      },
                     ),
                   // Visibility badge and event date (left)
                   Positioned(
@@ -390,21 +411,25 @@ class _ListCardState extends State<ListCard> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 PhosphorIcon(
-                                  widget.list.visibility == ListVisibility.public
+                                  widget.list.visibility ==
+                                          ListVisibility.public
                                       ? PhosphorIcons.globeSimple()
-                                      : widget.list.visibility == ListVisibility.friends
-                                          ? PhosphorIcons.usersThree()
-                                          : PhosphorIcons.lock(),
+                                      : widget.list.visibility ==
+                                          ListVisibility.friends
+                                      ? PhosphorIcons.usersThree()
+                                      : PhosphorIcons.lock(),
                                   size: 14,
                                   color: Colors.white,
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
-                                  widget.list.visibility == ListVisibility.public
+                                  widget.list.visibility ==
+                                          ListVisibility.public
                                       ? 'Public'
-                                      : widget.list.visibility == ListVisibility.friends
-                                          ? 'Friends'
-                                          : 'Private',
+                                      : widget.list.visibility ==
+                                          ListVisibility.friends
+                                      ? 'Friends'
+                                      : 'Private',
                                   style: AppTypography.labelMedium.copyWith(
                                     color: Colors.white,
                                   ),

@@ -128,21 +128,17 @@ class _ListsScreenState extends State<ListsScreen>
 
       final lists = await _listService.getUserLists();
 
-      // Load friends count for each list
-      final friendsCount = <String, int>{};
-      for (final list in lists) {
-        final users = await _listShareService.getUsersForList(list.uid);
-        friendsCount[list.uid] = users.length;
-      }
-
+      // Show lists immediately
       setState(() {
         _lists = lists;
-        _listFriendsCount = friendsCount;
         _isLoading = false;
       });
 
       // Notify that page has loaded (for button animation)
       PageLoadNotifier().notifyListsPageLoaded();
+
+      // Load friends count in background
+      _loadFriendsCountInBackground(lists);
     } catch (e) {
       setState(() {
         _error = e.toString();
@@ -150,6 +146,24 @@ class _ListsScreenState extends State<ListsScreen>
       });
       // Still notify even on error so buttons appear
       PageLoadNotifier().notifyListsPageLoaded();
+    }
+  }
+
+  /// Load friends count for each list without blocking UI
+  Future<void> _loadFriendsCountInBackground(List<WishList> lists) async {
+    final friendsCount = <String, int>{};
+    for (final list in lists) {
+      try {
+        final users = await _listShareService.getUsersForList(list.uid);
+        friendsCount[list.uid] = users.length;
+      } catch (e) {
+        // Silently fail for individual lists
+      }
+    }
+    if (mounted) {
+      setState(() {
+        _listFriendsCount = friendsCount;
+      });
     }
   }
 

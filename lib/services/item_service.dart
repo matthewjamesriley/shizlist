@@ -67,19 +67,22 @@ class ItemService {
     // Get all item UIDs
     final itemUids = items.map((i) => i['uid'] as String).toList();
 
-    // Fetch commits separately for these items
-    final commitsResponse = await _client
-        .from(SupabaseConfig.commitsTable)
-        .select()
-        .inFilter('item_uid', itemUids)
-        .inFilter('status', ['active', 'purchased']);
+    // Fetch commits and purchases in parallel
+    final results = await Future.wait([
+      _client
+          .from(SupabaseConfig.commitsTable)
+          .select()
+          .inFilter('item_uid', itemUids)
+          .inFilter('status', ['active', 'purchased']),
+      _client
+          .from(SupabaseConfig.purchasesTable)
+          .select()
+          .inFilter('item_uid', itemUids)
+          .inFilter('status', ['active', 'purchased']),
+    ]);
 
-    // Fetch purchases separately for these items
-    final purchasesResponse = await _client
-        .from(SupabaseConfig.purchasesTable)
-        .select()
-        .inFilter('item_uid', itemUids)
-        .inFilter('status', ['active', 'purchased']);
+    final commitsResponse = results[0];
+    final purchasesResponse = results[1];
 
     // Create a map of item_uid -> commit
     final commitsMap = <String, Map<String, dynamic>>{};
@@ -156,7 +159,8 @@ class ItemService {
         itemJson['purchased_by_user_id'] = purchase['claimed_by_user_id'];
         itemJson['purchase_uid'] = purchase['uid'];
         itemJson['purchase_note'] = purchase['note'];
-        itemJson['purchased_at'] = purchase['purchased_at'] ?? purchase['created_at'];
+        itemJson['purchased_at'] =
+            purchase['purchased_at'] ?? purchase['created_at'];
 
         // Get display name and avatar from users map
         final userId = purchase['claimed_by_user_id'] as String?;
@@ -359,19 +363,17 @@ class ItemService {
   }
 
   /// Purchase an item (for gifters) - creates entry in purchases table
-  Future<void> purchaseItem({
-    required String itemUid,
-    String? note,
-  }) async {
+  Future<void> purchaseItem({required String itemUid, String? note}) async {
     final userId = SupabaseService.currentUserId;
     if (userId == null) throw Exception('User not authenticated');
 
     // First check if a purchase already exists for this item
-    final existing = await _client
-        .from(SupabaseConfig.purchasesTable)
-        .select('id')
-        .eq('item_uid', itemUid)
-        .maybeSingle();
+    final existing =
+        await _client
+            .from(SupabaseConfig.purchasesTable)
+            .select('id')
+            .eq('item_uid', itemUid)
+            .maybeSingle();
 
     if (existing != null) {
       // Update existing purchase

@@ -161,28 +161,10 @@ class _ListDetailScreenState extends State<ListDetailScreen>
       // Load items for this list
       final items = await ItemService().getListItems(list.id);
 
-      // If viewing a friend's list, fetch their profile
-      UserProfile? ownerProfile;
-      if (list.ownerId != SupabaseService.currentUserId) {
-        try {
-          final profileData =
-              await SupabaseService.client
-                  .from('users')
-                  .select()
-                  .eq('uid', list.ownerId)
-                  .maybeSingle();
-          if (profileData != null) {
-            ownerProfile = UserProfile.fromJson(profileData);
-          }
-        } catch (e) {
-          debugPrint('Error fetching owner profile: $e');
-        }
-      }
-
+      // Show content immediately
       setState(() {
         _list = list;
         _items = items;
-        _ownerProfile = ownerProfile;
         _isLoading = false;
       });
 
@@ -197,11 +179,35 @@ class _ListDetailScreenState extends State<ListDetailScreen>
           }
         });
       }
+
+      // If viewing a friend's list, fetch their profile in the background
+      if (list.ownerId != SupabaseService.currentUserId) {
+        _loadOwnerProfileInBackground(list.ownerId);
+      }
     } catch (e) {
       debugPrint('Error loading list: $e');
       if (mounted) {
         context.go('/lists');
       }
+    }
+  }
+
+  /// Load owner profile in background without blocking UI
+  Future<void> _loadOwnerProfileInBackground(String ownerId) async {
+    try {
+      final profileData =
+          await SupabaseService.client
+              .from('users')
+              .select()
+              .eq('uid', ownerId)
+              .maybeSingle();
+      if (profileData != null && mounted) {
+        setState(() {
+          _ownerProfile = UserProfile.fromJson(profileData);
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching owner profile: $e');
     }
   }
 
@@ -229,8 +235,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
             onPressed: () => context.pop(),
           ),
         ),
-        body:
-            const SizedBox.shrink(), // Empty instead of spinner for smoother transition
+        body: const Center(child: CircularProgressIndicator())
       );
     }
 
