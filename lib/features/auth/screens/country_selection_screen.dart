@@ -84,6 +84,9 @@ class _CountrySelectionScreenState extends State<CountrySelectionScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 500),
         child: Column(
           children: [
             // Header
@@ -247,6 +250,8 @@ class _CountrySelectionScreenState extends State<CountrySelectionScreen> {
               ),
             ),
           ],
+        ),
+          ),
         ),
       ),
     );

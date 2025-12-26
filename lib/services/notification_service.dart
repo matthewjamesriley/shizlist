@@ -17,6 +17,7 @@ class NotificationService {
   Timer? _pollingTimer;
   final _notificationsController = StreamController<List<AppNotificationModel>>.broadcast();
   final _unreadCountController = StreamController<int>.broadcast();
+  final _newNotificationController = StreamController<AppNotificationModel>.broadcast();
   
   List<AppNotificationModel> _notifications = [];
   int _unreadCount = 0;
@@ -27,6 +28,9 @@ class NotificationService {
   
   /// Stream of unread count
   Stream<int> get unreadCountStream => _unreadCountController.stream;
+  
+  /// Stream of new notifications (fires when a new notification arrives)
+  Stream<AppNotificationModel> get newNotificationStream => _newNotificationController.stream;
   
   /// Current unread count
   int get unreadCount => _unreadCount;
@@ -65,6 +69,7 @@ class NotificationService {
               _unreadCount++;
               _notificationsController.add(_notifications);
               _unreadCountController.add(_unreadCount);
+              _newNotificationController.add(notification);
             },
           )
           .onPostgresChanges(
@@ -224,6 +229,7 @@ class NotificationService {
     _channel?.unsubscribe();
     _notificationsController.close();
     _unreadCountController.close();
+    _newNotificationController.close();
     _isInitialized = false;
   }
 }

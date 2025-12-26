@@ -151,6 +151,9 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 450),
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
           child: Column(
@@ -432,6 +435,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
               const SizedBox(height: 32),
             ],
+          ),
+        ),
           ),
         ),
       ),

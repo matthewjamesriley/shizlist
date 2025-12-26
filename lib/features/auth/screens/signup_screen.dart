@@ -174,6 +174,9 @@ class _SignupScreenState extends State<SignupScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 450),
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
           child: Column(
@@ -471,6 +474,8 @@ class _SignupScreenState extends State<SignupScreen> {
 
               const SizedBox(height: 32),
             ],
+          ),
+        ),
           ),
         ),
       ),

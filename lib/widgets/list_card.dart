@@ -161,8 +161,8 @@ class _ListCardState extends State<ListCard> {
                                       ? PhosphorIcons.globeSimple()
                                       : widget.list.visibility ==
                                           ListVisibility.friends
-                                      ? PhosphorIcons.usersThree()
-                                      : PhosphorIcons.lock(),
+                                          ? PhosphorIcons.usersThree()
+                                          : PhosphorIcons.lock(),
                                   size: 12,
                                   color: AppColors.textSecondary,
                                 ),
@@ -173,8 +173,8 @@ class _ListCardState extends State<ListCard> {
                                       ? 'Public'
                                       : widget.list.visibility ==
                                           ListVisibility.friends
-                                      ? 'Friends'
-                                      : 'Private',
+                                          ? 'Friends'
+                                          : 'Private',
                                   style: AppTypography.labelSmall.copyWith(
                                     color: AppColors.textSecondary,
                                   ),
@@ -197,7 +197,7 @@ class _ListCardState extends State<ListCard> {
                                       ? AppColors.primary.withValues(
                                         alpha: 0.15,
                                       )
-                                      : Colors.grey.withValues(alpha: 0.15),
+                                  : Colors.grey.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Row(
@@ -208,8 +208,8 @@ class _ListCardState extends State<ListCard> {
                                   size: 12,
                                   color:
                                       widget.list.isUpcoming
-                                          ? AppColors.primary
-                                          : AppColors.textSecondary,
+                                      ? AppColors.primary
+                                      : AppColors.textSecondary,
                                 ),
                                 const SizedBox(width: 3),
                                 Text(
@@ -217,8 +217,8 @@ class _ListCardState extends State<ListCard> {
                                   style: AppTypography.labelSmall.copyWith(
                                     color:
                                         widget.list.isUpcoming
-                                            ? AppColors.primary
-                                            : AppColors.textSecondary,
+                                        ? AppColors.primary
+                                        : AppColors.textSecondary,
                                   ),
                                 ),
                               ],
@@ -343,6 +343,13 @@ class _ListCardState extends State<ListCard> {
   }
 
   Widget _buildFullCard() {
+    // Use taller images on iPad/tablets
+    final isTablet = MediaQuery.of(context).size.width > 600;
+    final imageHeight = widget.list.coverImageUrl != null 
+        ? (isTablet ? 180.0 : 100.0) 
+        : (isTablet ? 80.0 : 55.0);
+    final expandedHeight = isTablet ? 400.0 : 300.0;
+
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -352,10 +359,7 @@ class _ListCardState extends State<ListCard> {
           children: [
             // Header with cover or gradient
             Container(
-              height:
-                  _isImageExpanded
-                      ? 300
-                      : (widget.list.coverImageUrl != null ? 100 : 55),
+              height: _isImageExpanded ? expandedHeight : imageHeight,
               width: double.infinity,
               decoration: BoxDecoration(
                 gradient:
@@ -416,8 +420,8 @@ class _ListCardState extends State<ListCard> {
                                       ? PhosphorIcons.globeSimple()
                                       : widget.list.visibility ==
                                           ListVisibility.friends
-                                      ? PhosphorIcons.usersThree()
-                                      : PhosphorIcons.lock(),
+                                          ? PhosphorIcons.usersThree()
+                                          : PhosphorIcons.lock(),
                                   size: 14,
                                   color: Colors.white,
                                 ),
@@ -428,8 +432,8 @@ class _ListCardState extends State<ListCard> {
                                       ? 'Public'
                                       : widget.list.visibility ==
                                           ListVisibility.friends
-                                      ? 'Friends'
-                                      : 'Private',
+                                          ? 'Friends'
+                                          : 'Private',
                                   style: AppTypography.labelMedium.copyWith(
                                     color: Colors.white,
                                   ),

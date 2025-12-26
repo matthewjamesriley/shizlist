@@ -75,6 +75,8 @@ class _AcceptInviteScreenState extends State<AcceptInviteScreen> {
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 450),
           child: Padding(
             padding: const EdgeInsets.all(32),
             child: Column(
@@ -158,6 +160,7 @@ class _AcceptInviteScreenState extends State<AcceptInviteScreen> {
                     ),
                   ),
               ],
+            ),
             ),
           ),
         ),

@@ -8,11 +8,16 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../models/friend.dart';
 import '../../../models/models.dart';
 import '../../../services/image_upload_service.dart';
+import '../../../services/friend_service.dart';
 import '../../../services/item_service.dart';
 import '../../../services/list_service.dart';
+import '../../../services/list_share_service.dart';
 import '../../../services/lists_notifier.dart';
+import '../../../services/notification_service.dart';
+import '../../../models/app_notification.dart';
 import '../../../widgets/add_item_sheet.dart';
 import '../../../widgets/app_bottom_sheet.dart';
 import '../../../widgets/app_dialog.dart';
@@ -21,6 +26,7 @@ import '../../../widgets/bottom_sheet_header.dart';
 import '../../../widgets/edit_item_sheet.dart';
 import '../../../widgets/item_card.dart';
 import '../../../services/supabase_service.dart';
+import '../../notifications/screens/notifications_screen.dart';
 
 /// List detail screen showing items in a wish list
 class ListDetailScreen extends StatefulWidget {
@@ -49,6 +55,14 @@ class _ListDetailScreenState extends State<ListDetailScreen>
   // Multi-select mode
   bool _isMultiSelectMode = false;
   final Set<String> _selectedItemUids = {};
+
+  // Notifications
+  final NotificationService _notificationService = NotificationService();
+  int _unreadNotifications = 0;
+  
+  // Slide-in notification toast
+  AppNotificationModel? _toastNotification;
+  bool _showToast = false;
 
   // Get filtered and sorted items
   List<ListItem> get _filteredItems {
@@ -138,6 +152,69 @@ class _ListDetailScreenState extends State<ListDetailScreen>
       curve: Curves.easeIn,
     );
     _loadList();
+    _initNotifications();
+  }
+
+  Future<void> _initNotifications() async {
+    await _notificationService.initialize();
+    _notificationService.unreadCountStream.listen((count) {
+      if (mounted) {
+        setState(() => _unreadNotifications = count);
+      }
+    });
+    _notificationService.newNotificationStream.listen((notification) {
+      if (mounted) {
+        _showNotificationToast(notification);
+      }
+    });
+    if (mounted) {
+      setState(() => _unreadNotifications = _notificationService.unreadCount);
+    }
+  }
+  
+  void _showNotificationToast(AppNotificationModel notification) {
+    // First add the widget to the tree off-screen
+    setState(() {
+      _toastNotification = notification;
+      _showToast = false;
+    });
+    
+    // Then animate it in after a frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        setState(() => _showToast = true);
+      }
+    });
+    
+    // Auto-dismiss after 8 seconds
+    Future.delayed(const Duration(seconds: 8), () {
+      if (mounted && _toastNotification?.uid == notification.uid) {
+        setState(() => _showToast = false);
+        // Clear notification after animation completes
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (mounted && _toastNotification?.uid == notification.uid) {
+            setState(() => _toastNotification = null);
+          }
+        });
+      }
+    });
+  }
+  
+  void _dismissToast() {
+    setState(() => _showToast = false);
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) {
+        setState(() => _toastNotification = null);
+      }
+    });
+  }
+
+  void _openNotifications() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const NotificationsScreen(),
+      ),
+    );
   }
 
   @override
@@ -239,6 +316,13 @@ class _ListDetailScreenState extends State<ListDetailScreen>
       );
     }
 
+    // Use taller header on iPad/tablets when there's a cover image
+    final isTablet = MediaQuery.of(context).size.width > 600;
+    final baseToolbarHeight = _list.description != null ? 70.0 : kToolbarHeight;
+    final toolbarHeight = _list.coverImageUrl != null && isTablet 
+        ? 140.0 
+        : baseToolbarHeight;
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor:
@@ -278,7 +362,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
           onPressed: () => context.pop(),
         ),
         centerTitle: true,
-        toolbarHeight: _list.description != null ? 70 : kToolbarHeight,
+        toolbarHeight: toolbarHeight,
         title: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -299,6 +383,60 @@ class _ListDetailScreenState extends State<ListDetailScreen>
           ],
         ),
         actions: [
+          // Notifications bell icon
+          Padding(
+            padding: const EdgeInsets.only(right: 4),
+            child: GestureDetector(
+              onTap: _openNotifications,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: Colors.transparent,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 1.5),
+                    ),
+                    child: Center(
+                      child: PhosphorIcon(
+                        PhosphorIcons.bell(),
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                  if (_unreadNotifications > 0)
+                    Positioned(
+                      right: -4,
+                      top: -4,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: AppColors.accent,
+                          shape: BoxShape.circle,
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 18,
+                          minHeight: 18,
+                        ),
+                        child: Center(
+                          child: Text(
+                            _unreadNotifications > 99 ? '99+' : '$_unreadNotifications',
+                            style: AppTypography.labelSmall.copyWith(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
           if (_isOwner)
             PopupMenuButton<String>(
               iconColor: Colors.white,
@@ -325,6 +463,30 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                           const SizedBox(width: 8),
                           Text(
                             'Edit list',
+                            style: AppTypography.titleMedium.copyWith(
+                              fontSize: 15,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuDivider(),
+                    PopupMenuItem(
+                      value: 'friends',
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
+                      child: Row(
+                        children: [
+                          PhosphorIcon(
+                            PhosphorIcons.users(),
+                            size: 20,
+                            color: AppColors.textPrimary,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Manage friends',
                             style: AppTypography.titleMedium.copyWith(
                               fontSize: 15,
                             ),
@@ -794,6 +956,92 @@ class _ListDetailScreenState extends State<ListDetailScreen>
               ),
             ),
           ),
+          // Slide-in notification toast
+          if (_toastNotification != null)
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOutCubic,
+              top: 16,
+              right: _showToast ? 12 : -350,
+              child: GestureDetector(
+                onTap: () {
+                  _dismissToast();
+                  _openNotifications();
+                },
+                onHorizontalDragEnd: (details) {
+                  if (details.primaryVelocity != null && details.primaryVelocity! > 0) {
+                    _dismissToast();
+                  }
+                },
+                child: Material(
+                  elevation: 8,
+                  borderRadius: BorderRadius.circular(16),
+                  shadowColor: Colors.black.withValues(alpha: 0.3),
+                  child: Container(
+                    width: 320,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.textPrimary,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.15),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Center(
+                            child: PhosphorIcon(
+                              PhosphorIcons.bell(PhosphorIconsStyle.fill),
+                              size: 20,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                _toastNotification!.title,
+                                style: AppTypography.titleSmall.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              if (_toastNotification!.message != null) ...[
+                                const SizedBox(height: 2),
+                                Text(
+                                  _toastNotification!.message!,
+                                  style: AppTypography.bodySmall.copyWith(
+                                    color: Colors.white.withValues(alpha: 0.7),
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        PhosphorIcon(
+                          PhosphorIcons.caretRight(),
+                          size: 16,
+                          color: Colors.white.withValues(alpha: 0.7),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
       bottomNavigationBar: AnimatedSlide(
@@ -1070,10 +1318,37 @@ class _ListDetailScreenState extends State<ListDetailScreen>
       case 'edit':
         _showEditListSheet();
         break;
+      case 'friends':
+        _showManageFriendsSheet();
+        break;
       case 'delete':
         _confirmDeleteList();
         break;
     }
+  }
+
+  void _showManageFriendsSheet() async {
+    final friendService = FriendService();
+    final listShareService = ListShareService();
+    final friends = await friendService.getFriends();
+
+    if (!mounted) return;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      showDragHandle: false,
+      useRootNavigator: true,
+      builder: (context) => _ManageFriendsSheet(
+        list: _list,
+        friends: friends,
+        listShareService: listShareService,
+        onComplete: () {
+          // Refresh the list to show updated friend count if needed
+        },
+      ),
+    );
   }
 
   void _showEditListSheet() {
@@ -4064,6 +4339,257 @@ class _CommitSheetState extends State<_CommitSheet>
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+/// Sheet for managing which friends have access to a list
+class _ManageFriendsSheet extends StatefulWidget {
+  final WishList list;
+  final List<Friend> friends;
+  final ListShareService listShareService;
+  final VoidCallback onComplete;
+
+  const _ManageFriendsSheet({
+    required this.list,
+    required this.friends,
+    required this.listShareService,
+    required this.onComplete,
+  });
+
+  @override
+  State<_ManageFriendsSheet> createState() => _ManageFriendsSheetState();
+}
+
+class _ManageFriendsSheetState extends State<_ManageFriendsSheet> {
+  final _searchController = TextEditingController();
+  final Map<String, bool> _friendShareStatus = {};
+  List<Friend> _filteredFriends = [];
+  bool _isLoading = true;
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _filteredFriends = widget.friends;
+    _loadCurrentShares();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadCurrentShares() async {
+    final sharedUsers = await widget.listShareService.getUsersForList(
+      widget.list.uid,
+    );
+
+    for (final friend in widget.friends) {
+      _friendShareStatus[friend.friendUserId] = sharedUsers.contains(
+        friend.friendUserId,
+      );
+    }
+
+    if (mounted) {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  void _filterFriends(String query) {
+    if (query.isEmpty) {
+      setState(() => _filteredFriends = widget.friends);
+    } else {
+      final lowerQuery = query.toLowerCase();
+      setState(() {
+        _filteredFriends =
+            widget.friends.where((friend) {
+              final name = friend.displayName.toLowerCase();
+              return name.contains(lowerQuery);
+            }).toList();
+      });
+    }
+  }
+
+  Future<void> _saveChanges() async {
+    setState(() => _isSaving = true);
+
+    try {
+      for (final entry in _friendShareStatus.entries) {
+        final friendId = entry.key;
+        final shouldShare = entry.value;
+
+        if (shouldShare) {
+          await widget.listShareService.shareListWithUser(
+            widget.list.uid,
+            friendId,
+          );
+        } else {
+          await widget.listShareService.unshareListWithUser(
+            widget.list.uid,
+            friendId,
+          );
+        }
+      }
+
+      if (mounted) {
+        Navigator.pop(context);
+        AppNotification.success(context, 'Friends updated');
+        widget.onComplete();
+      }
+    } catch (e) {
+      debugPrint('Error updating friends: $e');
+      if (mounted) {
+        setState(() => _isSaving = false);
+        AppNotification.error(context, 'Failed to update friends');
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AppBottomSheet(
+      title: 'Manage friends',
+      confirmText: 'Save',
+      onCancel: () => Navigator.pop(context),
+      onConfirm: _isSaving ? null : _saveChanges,
+      isLoading: _isSaving,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Description
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: Text(
+              'Select friends who can see "${widget.list.title}":',
+              style: AppTypography.bodyMedium.copyWith(
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ),
+
+          // Search bar
+          TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: 'Search friends...',
+              prefixIcon: PhosphorIcon(PhosphorIcons.magnifyingGlass()),
+              isDense: true,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 12,
+              ),
+            ),
+            onChanged: _filterFriends,
+          ),
+          const SizedBox(height: 16),
+
+          // Friends list
+          if (_isLoading)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(32),
+                child: CircularProgressIndicator(),
+              ),
+            )
+          else if (widget.friends.isEmpty)
+            Padding(
+              padding: const EdgeInsets.all(32),
+              child: Center(
+                child: Text(
+                  'You don\'t have any friends yet.',
+                  style: AppTypography.bodyLarge.copyWith(
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ),
+            )
+          else
+            ..._filteredFriends.map((friend) {
+              final isShared = _friendShareStatus[friend.friendUserId] ?? false;
+              return _buildFriendTile(friend, isShared);
+            }),
+
+          const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFriendTile(Friend friend, bool isShared) {
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _friendShareStatus[friend.friendUserId] = !isShared;
+        });
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Row(
+          children: [
+            // Checkbox
+            Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                color: isShared ? AppColors.primary : Colors.transparent,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: isShared ? AppColors.primary : AppColors.border,
+                  width: 2,
+                ),
+              ),
+              child:
+                  isShared
+                      ? PhosphorIcon(
+                        PhosphorIcons.check(PhosphorIconsStyle.bold),
+                        size: 16,
+                        color: Colors.white,
+                      )
+                      : null,
+            ),
+            const SizedBox(width: 12),
+            // Avatar
+            _buildAvatar(friend),
+            const SizedBox(width: 12),
+            // Name
+            Expanded(
+              child: Text(friend.displayName, style: AppTypography.titleMedium),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAvatar(Friend friend) {
+    if (friend.friendAvatarUrl != null && friend.friendAvatarUrl!.isNotEmpty) {
+      return CircleAvatar(
+        radius: 20,
+        backgroundImage: NetworkImage(friend.friendAvatarUrl!),
+        backgroundColor: AppColors.claimedBackground,
+      );
+    }
+
+    final colors = [
+      AppColors.categoryEvents,
+      AppColors.categoryTrips,
+      AppColors.categoryStuff,
+      AppColors.categoryCrafted,
+      AppColors.categoryMeals,
+      AppColors.primary,
+    ];
+    final colorIndex = friend.id % colors.length;
+    final color = colors[colorIndex];
+
+    return CircleAvatar(
+      radius: 20,
+      backgroundColor: color.withValues(alpha: 0.2),
+      child: Text(
+        friend.initials,
+        style: AppTypography.titleMedium.copyWith(color: color),
       ),
     );
   }

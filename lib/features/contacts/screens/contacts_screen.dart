@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -5,15 +6,18 @@ import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../models/app_notification.dart';
 import '../../../models/friend.dart';
 import '../../../models/wish_list.dart';
 import '../../../routing/app_router.dart';
 import '../../../services/friend_service.dart';
 import '../../../services/list_service.dart';
 import '../../../services/list_share_service.dart';
+import '../../../services/notification_service.dart';
 import '../../../widgets/app_button.dart';
 import '../../../widgets/app_dialog.dart';
 import '../../../widgets/app_notification.dart';
+import '../../notifications/screens/notifications_screen.dart';
 
 /// Friends screen for managing friends and shared list participants
 class ContactsScreen extends StatefulWidget {
@@ -28,6 +32,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
   final _friendService = FriendService();
   final _listService = ListService();
   final _listShareService = ListShareService();
+  final _notificationService = NotificationService();
 
   List<Friend> _friends = [];
   List<Friend> _filteredFriends = [];
@@ -45,15 +50,74 @@ class _ContactsScreenState extends State<ContactsScreen> {
   // For showing/hiding floating buttons on scroll
   bool _showButtons = true;
 
+  // Slide-in notification toast
+  AppNotificationModel? _toastNotification;
+  bool _showToast = false;
+  StreamSubscription? _notificationSubscription;
+
   @override
   void initState() {
     super.initState();
     _loadFriends();
+    _setupNotificationListener();
+  }
+
+  void _setupNotificationListener() {
+    _notificationSubscription = _notificationService.newNotificationStream
+        .listen((notification) {
+          if (mounted) {
+            _showNotificationToast(notification);
+          }
+        });
+  }
+
+  void _showNotificationToast(AppNotificationModel notification) {
+    // First add the widget to the tree off-screen
+    setState(() {
+      _toastNotification = notification;
+      _showToast = false;
+    });
+    
+    // Then animate it in after a frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        setState(() => _showToast = true);
+      }
+    });
+
+    // Auto-dismiss after 8 seconds
+    Future.delayed(const Duration(seconds: 8), () {
+      if (mounted && _toastNotification?.uid == notification.uid) {
+        setState(() => _showToast = false);
+        // Clear notification after animation completes
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (mounted && _toastNotification?.uid == notification.uid) {
+            setState(() => _toastNotification = null);
+          }
+        });
+      }
+    });
+  }
+
+  void _dismissToast() {
+    setState(() => _showToast = false);
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) {
+        setState(() => _toastNotification = null);
+      }
+    });
+  }
+
+  void _openNotifications() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+    );
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _notificationSubscription?.cancel();
     super.dispose();
   }
 
@@ -291,6 +355,94 @@ class _ContactsScreenState extends State<ContactsScreen> {
                             ),
                           ),
                         ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+        // Slide-in notification toast
+        if (_toastNotification != null)
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOutCubic,
+            top: 16,
+            right: _showToast ? 12 : -350,
+            child: GestureDetector(
+              onTap: () {
+                _dismissToast();
+                _openNotifications();
+              },
+              onHorizontalDragEnd: (details) {
+                if (details.primaryVelocity != null &&
+                    details.primaryVelocity! > 0) {
+                  _dismissToast();
+                }
+              },
+              child: Material(
+                elevation: 8,
+                borderRadius: BorderRadius.circular(16),
+                shadowColor: Colors.black.withValues(alpha: 0.3),
+                child: Container(
+                  width: 320,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.textPrimary,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: PhosphorIcon(
+                            PhosphorIcons.bell(PhosphorIconsStyle.fill),
+                            size: 20,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _toastNotification!.title,
+                              style: AppTypography.titleSmall.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            if (_toastNotification!.message != null) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                _toastNotification!.message!,
+                                style: AppTypography.bodySmall.copyWith(
+                                  color: Colors.white.withValues(alpha: 0.7),
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      PhosphorIcon(
+                        PhosphorIcons.caretRight(),
+                        size: 16,
+                        color: Colors.white.withValues(alpha: 0.7),
                       ),
                     ],
                   ),
@@ -965,7 +1117,7 @@ class _ManageListsSheetState extends State<_ManageListsSheet>
                           AnimatedBuilder(
                             animation: _tabController,
                             builder: (context, child) {
-                              if (_tabController.index != 0) {
+                              if (_tabController.index != 1) {
                                 return const SizedBox(width: 60);
                               }
                               return GestureDetector(
