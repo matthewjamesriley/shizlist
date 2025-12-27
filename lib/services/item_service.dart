@@ -1,6 +1,7 @@
 import 'package:uuid/uuid.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'supabase_service.dart';
+import 'notification_service.dart';
 import '../models/models.dart';
 import '../core/constants/supabase_config.dart';
 
@@ -341,6 +342,49 @@ class ItemService {
   Future<void> uncommitFromItem(String itemUid) async {
     final userId = SupabaseService.currentUserId;
     if (userId == null) throw Exception('User not authenticated');
+
+    // Get item and list info for the notification
+    try {
+      final itemResponse = await _client
+          .from(SupabaseConfig.listItemsTable)
+          .select('name, list_id, lists!inner(owner_id, title)')
+          .eq('uid', itemUid)
+          .maybeSingle();
+      
+      if (itemResponse != null) {
+        final listData = itemResponse['lists'] as Map<String, dynamic>;
+        final ownerId = listData['owner_id'] as String;
+        final listTitle = listData['title'] as String;
+        final itemName = itemResponse['name'] as String;
+        
+        // Get current user's display name
+        final userResponse = await _client
+            .from(SupabaseConfig.usersTable)
+            .select('display_name')
+            .eq('uid', userId)
+            .maybeSingle();
+        final userName = userResponse?['display_name'] as String? ?? 'Someone';
+        
+        // Notify the list owner (if not the same user)
+        if (ownerId != userId) {
+          try {
+            await NotificationService().createNotification(
+              userId: ownerId,
+              type: 'commit_revoked',
+              title: '$userName revoked commitment',
+              message: 'Uncommitted from "$itemName" on your $listTitle list',
+              data: {'item_uid': itemUid, 'item_name': itemName},
+            );
+          } catch (notifError) {
+            // Log but don't fail the uncommit
+            print('Failed to create revoke notification: $notifError');
+          }
+        }
+      }
+    } catch (e) {
+      // Don't fail the uncommit if notification lookup fails
+      print('Error getting item info for notification: $e');
+    }
 
     // Delete active commit for this user and item
     await _client

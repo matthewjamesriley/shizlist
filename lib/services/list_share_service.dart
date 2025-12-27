@@ -1,9 +1,11 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/wish_list.dart';
+import 'notification_service.dart';
 
 /// Service for managing list shares (sharing lists with friends)
 class ListShareService {
   final _client = Supabase.instance.client;
+  final _notificationService = NotificationService();
   static const _tableName = 'list_shares';
 
   /// Get all list UIDs shared with a specific user
@@ -34,11 +36,56 @@ class ListShareService {
     String userId, {
     bool canEdit = false,
   }) async {
+    // Check if already shared (to avoid duplicate notifications)
+    final existing = await _client
+        .from(_tableName)
+        .select('id')
+        .eq('list_uid', listUid)
+        .eq('shared_with_user_id', userId)
+        .maybeSingle();
+    
+    final isNewShare = existing == null;
+    
     await _client.from(_tableName).upsert({
       'list_uid': listUid,
       'shared_with_user_id': userId,
       'can_edit': canEdit,
     }, onConflict: 'list_uid,shared_with_user_id');
+    
+    // Notify the user if this is a new share
+    if (isNewShare) {
+      try {
+        // Get list info and owner name
+        final listResponse = await _client
+            .from('lists')
+            .select('title, owner_id')
+            .eq('uid', listUid)
+            .maybeSingle();
+        
+        if (listResponse != null) {
+          final listTitle = listResponse['title'] as String;
+          final ownerId = listResponse['owner_id'] as String;
+          
+          // Get owner's display name
+          final ownerResponse = await _client
+              .from('users')
+              .select('display_name')
+              .eq('uid', ownerId)
+              .maybeSingle();
+          final ownerName = ownerResponse?['display_name'] as String? ?? 'Someone';
+          
+          await _notificationService.createNotification(
+            userId: userId,
+            type: 'added_to_list',
+            title: '$ownerName shared a list with you',
+            message: 'You now have access to "$listTitle"',
+            data: {'list_uid': listUid, 'list_title': listTitle},
+          );
+        }
+      } catch (e) {
+        // Don't fail the share if notification fails
+      }
+    }
   }
 
   /// Share multiple lists with a user
@@ -87,11 +134,56 @@ class ListShareService {
 
   /// Remove a user's access to a list
   Future<void> unshareListWithUser(String listUid, String userId) async {
+    // Check if the share exists before deleting
+    final existing = await _client
+        .from(_tableName)
+        .select('id')
+        .eq('list_uid', listUid)
+        .eq('shared_with_user_id', userId)
+        .maybeSingle();
+    
+    final wasShared = existing != null;
+    
     await _client
         .from(_tableName)
         .delete()
         .eq('list_uid', listUid)
         .eq('shared_with_user_id', userId);
+    
+    // Notify the user if they were removed
+    if (wasShared) {
+      try {
+        // Get list info and owner name
+        final listResponse = await _client
+            .from('lists')
+            .select('title, owner_id')
+            .eq('uid', listUid)
+            .maybeSingle();
+        
+        if (listResponse != null) {
+          final listTitle = listResponse['title'] as String;
+          final ownerId = listResponse['owner_id'] as String;
+          
+          // Get owner's display name
+          final ownerResponse = await _client
+              .from('users')
+              .select('display_name')
+              .eq('uid', ownerId)
+              .maybeSingle();
+          final ownerName = ownerResponse?['display_name'] as String? ?? 'Someone';
+          
+          await _notificationService.createNotification(
+            userId: userId,
+            type: 'removed_from_list',
+            title: '$ownerName removed you from a list',
+            message: 'You no longer have access to "$listTitle"',
+            data: {'list_uid': listUid, 'list_title': listTitle},
+          );
+        }
+      } catch (e) {
+        // Don't fail the unshare if notification fails
+      }
+    }
   }
 
   /// Remove multiple lists from a user

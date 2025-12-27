@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
@@ -82,12 +83,16 @@ class _ListsScreenState extends State<ListsScreen>
   }
 
   void _showNotificationToast(AppNotificationModel notification) {
+    // Play alert sound
+    final player = AudioPlayer();
+    player.play(AssetSource('sounds/alert.mp3'));
+    
     // First add the widget to the tree off-screen
     setState(() {
       _toastNotification = notification;
       _showToast = false;
     });
-
+    
     // Then animate it in after a frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {

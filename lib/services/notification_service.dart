@@ -211,6 +211,7 @@ class NotificationService {
     Map<String, dynamic>? data,
   }) async {
     try {
+      debugPrint('Creating notification for user $userId: $title');
       await _client.from(_tableName).insert({
         'user_id': userId,
         'type': type,
@@ -218,8 +219,10 @@ class NotificationService {
         'message': message,
         'data': data,
       });
+      debugPrint('Notification created successfully');
     } catch (e) {
       debugPrint('Error creating notification: $e');
+      rethrow; // Re-throw so caller knows it failed
     }
   }
 

@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:ui';
 
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -63,6 +64,10 @@ class _ListDetailScreenState extends State<ListDetailScreen>
   // Slide-in notification toast
   AppNotificationModel? _toastNotification;
   bool _showToast = false;
+  
+  // Priority animation overlay
+  bool _showPriorityAnimation = false;
+  ItemPriority? _animatedPriority;
 
   // Get filtered and sorted items
   List<ListItem> get _filteredItems {
@@ -173,6 +178,10 @@ class _ListDetailScreenState extends State<ListDetailScreen>
   }
   
   void _showNotificationToast(AppNotificationModel notification) {
+    // Play alert sound
+    final player = AudioPlayer();
+    player.play(AssetSource('sounds/alert.mp3'));
+    
     // First add the widget to the tree off-screen
     setState(() {
       _toastNotification = notification;
@@ -863,6 +872,9 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                                             item.retailerUrl!,
                                           )
                                           : null,
+                                  onPriorityTap: _isOwner
+                                      ? () => _cyclePriority(item)
+                                      : null,
                                   position: position,
                                 );
                               },
@@ -1038,6 +1050,45 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                         ),
                       ],
                     ),
+                  ),
+                ),
+              ),
+            ),
+          // Priority change animation overlay
+          if (_showPriorityAnimation && _animatedPriority != null)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: Center(
+                  child: TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0.0, end: 1.0),
+                    duration: const Duration(milliseconds: 400),
+                    curve: Curves.easeOut,
+                    builder: (context, value, child) {
+                      // Scale from 0.5 to 1.2, then fade out
+                      final scale = 0.5 + (value * 0.7);
+                      final opacity = (value < 0.7 ? 1.0 : 1.0 - ((value - 0.7) / 0.3)).clamp(0.0, 1.0);
+                      return Opacity(
+                        opacity: opacity,
+                        child: Transform.scale(
+                          scale: scale,
+                          child: Container(
+                            width: 120,
+                            height: 120,
+                            decoration: BoxDecoration(
+                              color: _animatedPriority!.color.withValues(alpha: 0.15),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Center(
+                              child: PhosphorIcon(
+                                _animatedPriority!.icon,
+                                size: 64,
+                                color: _animatedPriority!.color,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ),
               ),
@@ -2342,6 +2393,56 @@ class _ListDetailScreenState extends State<ListDetailScreen>
     } else {
       // For friend's lists, open the commit sheet on the Item details tab
       _showItemDetailsSheet(item);
+    }
+  }
+
+  Future<void> _cyclePriority(ListItem item) async {
+    // Cycle through priorities: none -> low -> medium -> high -> none
+    final priorities = [
+      ItemPriority.none,
+      ItemPriority.low,
+      ItemPriority.medium,
+      ItemPriority.high,
+    ];
+    
+    final currentIndex = priorities.indexOf(item.priority);
+    final nextIndex = (currentIndex + 1) % priorities.length;
+    final nextPriority = priorities[nextIndex];
+    
+    // Play UI sound (don't await - play in background)
+    final player = AudioPlayer();
+    player.play(AssetSource('sounds/ui-sound-270349.mp3'));
+    
+    // Show the animation
+    setState(() {
+      _animatedPriority = nextPriority;
+      _showPriorityAnimation = true;
+    });
+    
+    // Auto-hide after animation
+    Future.delayed(const Duration(milliseconds: 800), () {
+      if (mounted) {
+        setState(() => _showPriorityAnimation = false);
+      }
+    });
+    
+    try {
+      final updatedItem = await ItemService().updateItem(
+        uid: item.uid,
+        priority: nextPriority,
+      );
+      
+      // Update local state
+      setState(() {
+        final index = _items.indexWhere((i) => i.uid == item.uid);
+        if (index != -1) {
+          _items[index] = updatedItem;
+        }
+      });
+    } catch (e) {
+      if (mounted) {
+        AppNotification.error(context, 'Failed to update priority');
+      }
     }
   }
 

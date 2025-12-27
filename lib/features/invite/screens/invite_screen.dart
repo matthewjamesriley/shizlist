@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
@@ -57,6 +58,10 @@ class _InviteScreenState extends State<InviteScreen> {
   }
 
   void _showNotificationToast(AppNotificationModel notification) {
+    // Play alert sound
+    final player = AudioPlayer();
+    player.play(AssetSource('sounds/alert.mp3'));
+    
     // First add the widget to the tree off-screen
     setState(() {
       _toastNotification = notification;

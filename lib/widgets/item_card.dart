@@ -18,6 +18,7 @@ class ItemCard extends StatelessWidget {
   final VoidCallback? onCommitStatusTap;
   final VoidCallback? onPurchaseStatusTap;
   final VoidCallback? onLinkTap;
+  final VoidCallback? onPriorityTap;
   final ItemPosition position;
   final bool notifyOnCommit;
   final bool notifyOnPurchase;
@@ -32,6 +33,7 @@ class ItemCard extends StatelessWidget {
     this.onCommitStatusTap,
     this.onPurchaseStatusTap,
     this.onLinkTap,
+    this.onPriorityTap,
     this.position = ItemPosition.only,
     this.notifyOnCommit = true,
     this.notifyOnPurchase = true,
@@ -206,11 +208,22 @@ class ItemCard extends StatelessWidget {
   }
 
   Widget _buildPriorityBadge() {
-    return PhosphorIcon(
+    final badge = PhosphorIcon(
       item.priority.icon,
       size: 20,
       color: item.priority.color,
     );
+    
+    // Make tappable for owners
+    if (isOwner && onPriorityTap != null) {
+      return GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onPriorityTap,
+        child: badge,
+      );
+    }
+    
+    return badge;
   }
 
   Widget _buildCommitStatusRow() {

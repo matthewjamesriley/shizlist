@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui';
 
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
@@ -72,6 +73,10 @@ class _ContactsScreenState extends State<ContactsScreen> {
   }
 
   void _showNotificationToast(AppNotificationModel notification) {
+    // Play alert sound
+    final player = AudioPlayer();
+    player.play(AssetSource('sounds/alert.mp3'));
+    
     // First add the widget to the tree off-screen
     setState(() {
       _toastNotification = notification;
