@@ -28,6 +28,7 @@ import '../../../widgets/app_notification.dart';
 import '../../../widgets/bottom_sheet_header.dart';
 import '../../../widgets/edit_item_sheet.dart';
 import '../../../widgets/item_card.dart';
+import '../../../widgets/fading_image_carousel.dart';
 import '../../../services/supabase_service.dart';
 import '../../notifications/screens/notifications_screen.dart';
 
@@ -336,11 +337,20 @@ class _ListDetailScreenState extends State<ListDetailScreen>
       );
     }
 
-    // Use taller header on iPad/tablets when there's a cover image
+    // Get item images for carousel (when no cover image is set) - prefer main images over thumbnails
+    final itemImages = _items
+        .where((item) => item.mainImageUrl != null || item.thumbnailUrl != null)
+        .take(5)
+        .map((item) => item.mainImageUrl ?? item.thumbnailUrl!)
+        .toList();
+    final hasCarouselImages = _list.coverImageUrl == null && itemImages.isNotEmpty;
+
+    // Use taller header on iPad/tablets when there's a cover image or carousel
     final isTablet = MediaQuery.of(context).size.width > 600;
     final baseToolbarHeight = _list.description != null ? 70.0 : kToolbarHeight;
+    final hasImage = _list.coverImageUrl != null || hasCarouselImages;
     final toolbarHeight =
-        _list.coverImageUrl != null && isTablet ? 140.0 : baseToolbarHeight;
+        hasImage && isTablet ? 140.0 : baseToolbarHeight;
 
     return Scaffold(
       appBar: AppBar(
@@ -353,23 +363,50 @@ class _ListDetailScreenState extends State<ListDetailScreen>
             _list.coverImageUrl != null
                 ? Stack(
                   fit: StackFit.expand,
+                  clipBehavior: Clip.hardEdge,
                   children: [
                     // Solid color base (shows while loading)
                     Container(color: AppColors.primary),
-                    // Fading image on top
-                    TweenAnimationBuilder<double>(
-                      tween: Tween(begin: 0.0, end: 1.0),
-                      duration: const Duration(milliseconds: 400),
-                      curve: Curves.easeOut,
-                      builder: (context, value, child) {
-                        return Opacity(
-                          opacity: value,
-                          child: Image.network(
-                            _list.coverImageUrl!,
-                            fit: BoxFit.cover,
-                          ),
-                        );
-                      },
+                    // Fading image on top - centered
+                    Positioned.fill(
+                      child: TweenAnimationBuilder<double>(
+                        tween: Tween(begin: 0.0, end: 1.0),
+                        duration: const Duration(milliseconds: 400),
+                        curve: Curves.easeOut,
+                        builder: (context, value, child) {
+                          return Opacity(
+                            opacity: value,
+                            child: Image.network(
+                              _list.coverImageUrl!,
+                              fit: BoxFit.cover,
+                              alignment: Alignment.center,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    // Dark overlay
+                    Container(color: Colors.black.withValues(alpha: 0.5)),
+                  ],
+                )
+                : hasCarouselImages
+                ? Stack(
+                  fit: StackFit.expand,
+                  clipBehavior: Clip.hardEdge,
+                  children: [
+                    // Solid color base
+                    Container(color: AppColors.primary),
+                    // Fading carousel of item images with pan effect
+                    Positioned.fill(
+                      child: FadingImageCarousel(
+                        imageUrls: itemImages,
+                        fit: BoxFit.cover,
+                        alignment: Alignment.center,
+                        displayDuration: const Duration(seconds: 8),
+                        fadeDuration: const Duration(milliseconds: 1200),
+                        enablePan: true,
+                        panScale: 1.15,
+                      ),
                     ),
                     // Dark overlay
                     Container(color: Colors.black.withValues(alpha: 0.5)),

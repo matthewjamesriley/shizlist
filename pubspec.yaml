@@ -1,7 +1,7 @@
 name: shizlist
 description: "Share the stuff you love - A collaborative wish list app"
 publish_to: 'none'
-version: 1.0.21+26
+version: 1.0.22+27
 
 environment:
   sdk: ^3.7.2

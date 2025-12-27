@@ -107,11 +107,11 @@ class ItemCard extends StatelessWidget {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            if (item.price != null) ...[
-                              Text(item.formattedPrice, style: AppTypography.priceText),
-                              const SizedBox(width: 6),
-                            ],
-                            _buildPriorityBadge(),
+                    if (item.price != null) ...[
+                      Text(item.formattedPrice, style: AppTypography.priceText),
+                      const SizedBox(width: 6),
+                    ],
+                    _buildPriorityBadge(),
                           ],
                         ),
                       ),

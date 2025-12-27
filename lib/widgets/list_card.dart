@@ -4,6 +4,7 @@ import '../core/theme/app_colors.dart';
 import '../core/theme/app_typography.dart';
 import '../models/wish_list.dart';
 import 'app_dialog.dart';
+import 'fading_image_carousel.dart';
 
 /// List card widget for displaying wish lists
 class ListCard extends StatefulWidget {
@@ -13,6 +14,9 @@ class ListCard extends StatefulWidget {
   final VoidCallback? onFriendsTap;
   final int friendsCount;
   final bool isCompact;
+  
+  /// Item thumbnail URLs to cycle through when no cover image is set
+  final List<String> itemThumbnails;
 
   const ListCard({
     super.key,
@@ -22,6 +26,7 @@ class ListCard extends StatefulWidget {
     this.onFriendsTap,
     this.friendsCount = 0,
     this.isCompact = false,
+    this.itemThumbnails = const [],
   });
 
   @override
@@ -345,9 +350,10 @@ class _ListCardState extends State<ListCard> {
   Widget _buildFullCard() {
     // Use taller images on iPad/tablets
     final isTablet = MediaQuery.of(context).size.width > 600;
-    final imageHeight = widget.list.coverImageUrl != null 
-        ? (isTablet ? 180.0 : 100.0) 
-        : (isTablet ? 80.0 : 55.0);
+    final hasImage = widget.list.coverImageUrl != null || widget.itemThumbnails.isNotEmpty;
+    final imageHeight = hasImage 
+        ? (isTablet ? 216.0 : 120.0) 
+        : (isTablet ? 96.0 : 66.0);
     final expandedHeight = isTablet ? 400.0 : 300.0;
 
     return Card(
@@ -363,14 +369,14 @@ class _ListCardState extends State<ListCard> {
               width: double.infinity,
               decoration: BoxDecoration(
                 gradient:
-                    widget.list.coverImageUrl == null
+                    !hasImage
                         ? AppColors.primaryGradient
                         : null,
               ),
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  // Image (if exists)
+                  // Cover image (if exists)
                   if (widget.list.coverImageUrl != null)
                     Image.network(
                       widget.list.coverImageUrl!,
@@ -392,6 +398,20 @@ class _ListCardState extends State<ListCard> {
                           ),
                         );
                       },
+                    )
+                  // Fading carousel of item thumbnails (if no cover image but has items)
+                  else if (widget.itemThumbnails.isNotEmpty)
+                    FadingImageCarousel(
+                      imageUrls: widget.itemThumbnails,
+                      fit: BoxFit.cover,
+                      alignment: Alignment.center,
+                      displayDuration: const Duration(seconds: 8),
+                      fadeDuration: const Duration(milliseconds: 1200),
+                      enablePan: true,
+                      panScale: 1.25,
+                      overlay: Container(
+                        color: Colors.black.withValues(alpha: 0.15),
+                      ),
                     ),
                   // Visibility badge and event date (left)
                   Positioned(

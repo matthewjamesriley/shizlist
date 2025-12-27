@@ -599,4 +599,45 @@ class ItemService {
         )
         .subscribe();
   }
+
+  /// Get image URLs for items in a list (up to limit)
+  /// Returns list of main image URLs (or thumbnails as fallback) for items that have images
+  Future<List<String>> getListItemImages(int listId, {int limit = 5}) async {
+    try {
+      final response = await _client
+          .from(SupabaseConfig.listItemsTable)
+          .select('thumbnail_url, main_image_url')
+          .eq('list_id', listId)
+          .or('thumbnail_url.not.is.null,main_image_url.not.is.null')
+          .limit(limit);
+
+      return (response as List)
+          .map<String?>((item) => 
+              item['main_image_url'] as String? ?? item['thumbnail_url'] as String?)
+          .where((url) => url != null)
+          .cast<String>()
+          .toList();
+    } catch (e) {
+      debugPrint('Error fetching list item images: $e');
+      return [];
+    }
+  }
+
+  /// Get image URLs for multiple lists at once
+  /// Returns a map of listId -> list of image URLs (prefers main images over thumbnails)
+  Future<Map<int, List<String>>> getMultipleListImages(
+    List<int> listIds, {
+    int limitPerList = 5,
+  }) async {
+    final result = <int, List<String>>{};
+    
+    // Fetch images for all lists in parallel
+    await Future.wait(
+      listIds.map((listId) async {
+        result[listId] = await getListItemImages(listId, limit: limitPerList);
+      }),
+    );
+    
+    return result;
+  }
 }

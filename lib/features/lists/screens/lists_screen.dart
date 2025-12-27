@@ -19,6 +19,7 @@ import '../../../widgets/app_bottom_sheet.dart';
 import '../../../widgets/app_dialog.dart';
 import '../../../widgets/app_notification.dart';
 import '../../../widgets/list_card.dart';
+import '../../../services/item_service.dart';
 import '../../notifications/screens/notifications_screen.dart';
 import '../widgets/create_list_dialog.dart';
 
@@ -41,6 +42,7 @@ class _ListsScreenState extends State<ListsScreen>
 
   List<WishList> _lists = [];
   Map<String, int> _listFriendsCount = {};
+  Map<String, List<String>> _listThumbnails = {}; // listUid -> thumbnail URLs
   bool _isLoading = true;
   String? _error;
 
@@ -206,8 +208,9 @@ class _ListsScreenState extends State<ListsScreen>
       // Notify that page has loaded (for button animation)
       PageLoadNotifier().notifyListsPageLoaded();
 
-      // Load friends count in background
+      // Load friends count and thumbnails in background
       _loadFriendsCountInBackground(lists);
+      _loadThumbnailsInBackground(lists);
     } catch (e) {
       setState(() {
         _error = e.toString();
@@ -232,6 +235,26 @@ class _ListsScreenState extends State<ListsScreen>
     if (mounted) {
       setState(() {
         _listFriendsCount = friendsCount;
+      });
+    }
+  }
+
+  /// Load item images for lists without cover images
+  Future<void> _loadThumbnailsInBackground(List<WishList> lists) async {
+    // Only fetch images for lists without a cover image
+    final listsWithoutCover = lists.where((l) => l.coverImageUrl == null).toList();
+    if (listsWithoutCover.isEmpty) return;
+
+    final listIds = listsWithoutCover.map((l) => l.id).toList();
+    final images = await ItemService().getMultipleListImages(listIds);
+
+    if (mounted) {
+      final imagesByUid = <String, List<String>>{};
+      for (final list in listsWithoutCover) {
+        imagesByUid[list.uid] = images[list.id] ?? [];
+      }
+      setState(() {
+        _listThumbnails = imagesByUid;
       });
     }
   }
@@ -380,6 +403,7 @@ class _ListsScreenState extends State<ListsScreen>
             friendsCount: _listFriendsCount[list.uid] ?? 0,
             onFriendsTap: () => _showManageFriendsSheet(list),
             isCompact: _viewModeNotifier.isCompactView,
+            itemThumbnails: _listThumbnails[list.uid] ?? [],
           );
         },
       ),

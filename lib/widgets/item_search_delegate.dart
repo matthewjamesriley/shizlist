@@ -197,7 +197,7 @@ class ItemSearchDelegate extends SearchDelegate<ItemSearchResult?> {
     return Container(
       color: isEvenRow ? Colors.white : AppColors.surfaceVariant.withValues(alpha: 0.5),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       leading: Container(
         width: 56,
         height: 56,
@@ -251,12 +251,12 @@ class ItemSearchDelegate extends SearchDelegate<ItemSearchResult?> {
             children: [
               Flexible(
                 child: Text(
-                  result.listTitle,
+            result.listTitle,
                   style: AppTypography.bodyMedium.copyWith(
                     color: AppColors.textSecondary,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
                 ),
               ),
               const SizedBox(width: 8),
@@ -313,45 +313,45 @@ class ItemSearchDelegate extends SearchDelegate<ItemSearchResult?> {
       onTap: () {
         if (isOwnItem) {
           // Open edit sheet for own items
-          EditItemSheet.show(
-            context,
-            item: result.item,
+        EditItemSheet.show(
+          context,
+          item: result.item,
             listUid: result.listUid,
-            onSaved: () {
-              AppNotification.success(context, 'Item updated');
-              _forceRefresh(context);
-            },
-            onDeleted: () async {
-              final confirmed = await showDialog<bool>(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  title: const Text('Delete item?'),
-                  content: Text('Are you sure you want to delete "${result.item.name}"?'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx, false),
-                      child: const Text('Cancel'),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx, true),
-                      style: TextButton.styleFrom(foregroundColor: AppColors.error),
-                      child: const Text('Delete'),
-                    ),
-                  ],
-                ),
-              );
-              
-              if (confirmed == true) {
-                try {
-                  await ItemService().deleteItem(result.item.uid);
-                  AppNotification.success(context, 'Item deleted');
-                  _forceRefresh(context);
-                } catch (e) {
-                  AppNotification.error(context, 'Failed to delete item');
-                }
+          onSaved: () {
+            AppNotification.success(context, 'Item updated');
+            _forceRefresh(context);
+          },
+          onDeleted: () async {
+            final confirmed = await showDialog<bool>(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: const Text('Delete item?'),
+                content: Text('Are you sure you want to delete "${result.item.name}"?'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: const Text('Cancel'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, true),
+                    style: TextButton.styleFrom(foregroundColor: AppColors.error),
+                    child: const Text('Delete'),
+                  ),
+                ],
+              ),
+            );
+            
+            if (confirmed == true) {
+              try {
+                await ItemService().deleteItem(result.item.uid);
+                AppNotification.success(context, 'Item deleted');
+                _forceRefresh(context);
+              } catch (e) {
+                AppNotification.error(context, 'Failed to delete item');
               }
-            },
-          );
+            }
+          },
+        );
         } else {
           // Open view/commit sheet for friend's items
           ViewItemSheet.show(
