@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'supabase_service.dart';
@@ -10,11 +11,21 @@ class ItemSearchResult {
   final ListItem item;
   final String listUid;
   final String listTitle;
+  final bool isOwnItem;
+  final String? ownerDisplayName;
+  final String? ownerId;
+  final bool notifyOnCommit;
+  final bool notifyOnPurchase;
 
   const ItemSearchResult({
     required this.item,
     required this.listUid,
     required this.listTitle,
+    this.isOwnItem = true,
+    this.ownerDisplayName,
+    this.ownerId,
+    this.notifyOnCommit = true,
+    this.notifyOnPurchase = true,
   });
 }
 
@@ -23,34 +34,128 @@ class ItemService {
   final SupabaseClient _client = SupabaseService.client;
   final _uuid = const Uuid();
 
-  /// Search all items across all lists for the current user
+  /// Search all items across all lists for the current user (own + shared)
   Future<List<ItemSearchResult>> searchAllItems(String query) async {
     final userId = SupabaseService.currentUserId;
     if (userId == null) throw Exception('User not authenticated');
 
     if (query.trim().isEmpty) return [];
 
-    // Get all items from user's lists that match the search query
-    final response = await _client
+    final searchTerm = '%${query.trim()}%';
+    final results = <ItemSearchResult>[];
+
+    try {
+
+    // 1. Search user's own lists
+    final ownResponse = await _client
         .from(SupabaseConfig.listItemsTable)
-        .select('*, lists!inner(uid, title, owner_id, is_deleted)')
+        .select('*, lists!inner(uid, title, owner_id, is_deleted, notify_on_commit, notify_on_purchase)')
         .eq('lists.owner_id', userId)
         .eq('lists.is_deleted', false)
-        .ilike('name', '%${query.trim()}%')
+        .ilike('name', searchTerm)
         .order('created_at', ascending: false)
-        .limit(50);
+        .limit(25);
 
-    return (response as List).map((json) {
+    for (final json in (ownResponse as List)) {
       final listData = json['lists'] as Map<String, dynamic>;
       final itemJson = Map<String, dynamic>.from(json);
       itemJson.remove('lists');
 
-      return ItemSearchResult(
+      results.add(ItemSearchResult(
         item: ListItem.fromJson(itemJson),
         listUid: listData['uid'] as String,
         listTitle: listData['title'] as String,
-      );
-    }).toList();
+        isOwnItem: true,
+        ownerId: userId,
+        notifyOnCommit: listData['notify_on_commit'] as bool? ?? true,
+        notifyOnPurchase: listData['notify_on_purchase'] as bool? ?? true,
+      ));
+    }
+
+    // 2. Get lists shared with user
+    final sharesResponse = await _client
+        .from(SupabaseConfig.listSharesTable)
+        .select('list_uid')
+        .eq('shared_with_user_id', userId);
+
+    final sharedListUids = (sharesResponse as List)
+        .map((r) => r['list_uid'] as String)
+        .toList();
+
+    if (sharedListUids.isNotEmpty) {
+      // Get list IDs from UIDs
+      final listsResponse = await _client
+          .from(SupabaseConfig.listsTable)
+          .select('id')
+          .inFilter('uid', sharedListUids)
+          .eq('is_deleted', false);
+      
+      final sharedListIds = (listsResponse as List)
+          .map((r) => r['id'] as int)
+          .toList();
+
+      if (sharedListIds.isEmpty) return results;
+
+      // Search items in shared lists by list_id
+      final sharedResponse = await _client
+          .from(SupabaseConfig.listItemsTable)
+          .select('*, lists!inner(uid, title, owner_id, is_deleted, notify_on_commit, notify_on_purchase)')
+          .inFilter('list_id', sharedListIds)
+          .eq('lists.is_deleted', false)
+          .ilike('name', searchTerm)
+          .order('created_at', ascending: false)
+          .limit(25);
+
+      // Get owner profiles for shared lists
+      final ownerIds = <String>{};
+      for (final json in (sharedResponse as List)) {
+        final listData = json['lists'] as Map<String, dynamic>;
+        ownerIds.add(listData['owner_id'] as String);
+      }
+
+      Map<String, String> ownerNames = {};
+      if (ownerIds.isNotEmpty) {
+        final usersResponse = await _client
+            .from(SupabaseConfig.usersTable)
+            .select('uid, display_name, email')
+            .inFilter('uid', ownerIds.toList());
+
+        for (final user in (usersResponse as List)) {
+          final id = user['uid'] as String;
+          final displayName = user['display_name'] as String?;
+          final email = user['email'] as String?;
+          ownerNames[id] = displayName ?? email?.split('@').first ?? 'Friend';
+        }
+      }
+
+      for (final json in (sharedResponse as List)) {
+        final listData = json['lists'] as Map<String, dynamic>;
+        final itemJson = Map<String, dynamic>.from(json);
+        itemJson.remove('lists');
+        final ownerId = listData['owner_id'] as String;
+
+        results.add(ItemSearchResult(
+          item: ListItem.fromJson(itemJson),
+          listUid: listData['uid'] as String,
+          listTitle: listData['title'] as String,
+          isOwnItem: false,
+          ownerId: ownerId,
+          ownerDisplayName: ownerNames[ownerId] ?? 'Friend',
+          notifyOnCommit: listData['notify_on_commit'] as bool? ?? true,
+          notifyOnPurchase: listData['notify_on_purchase'] as bool? ?? true,
+        ));
+      }
+    }
+
+    // Sort by created_at descending
+    results.sort((a, b) => b.item.createdAt.compareTo(a.item.createdAt));
+
+    return results.take(50).toList();
+    } catch (e, stackTrace) {
+      debugPrint('Search error: $e');
+      debugPrint('Stack trace: $stackTrace');
+      rethrow;
+    }
   }
 
   /// Get all items for a list with commit and purchase data

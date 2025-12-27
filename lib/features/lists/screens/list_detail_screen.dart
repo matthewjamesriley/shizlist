@@ -4,6 +4,7 @@ import 'dart:ui';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
@@ -61,16 +62,19 @@ class _ListDetailScreenState extends State<ListDetailScreen>
   // Notifications
   final NotificationService _notificationService = NotificationService();
   int _unreadNotifications = 0;
-  
+
   // Slide-in notification toast
   AppNotificationModel? _toastNotification;
   bool _showToast = false;
-  
+
   // Priority animation overlay
   bool _showPriorityAnimation = false;
   ItemPriority? _animatedPriority;
   int _priorityAnimationKey = 0; // Key to force animation restart
   Timer? _priorityAnimationTimer;
+
+  // Hide purchased items toggle
+  bool _hidePurchased = false;
 
   // Get filtered and sorted items
   List<ListItem> get _filteredItems {
@@ -84,6 +88,11 @@ class _ListDetailScreenState extends State<ListDetailScreen>
           _items
               .where((item) => item.category == _selectedCategoryFilter)
               .toList();
+    }
+
+    // Filter out purchased items if toggle is on
+    if (_hidePurchased) {
+      items = items.where((item) => !item.isPurchased).toList();
     }
 
     // Apply sorting
@@ -179,25 +188,25 @@ class _ListDetailScreenState extends State<ListDetailScreen>
       setState(() => _unreadNotifications = _notificationService.unreadCount);
     }
   }
-  
+
   void _showNotificationToast(AppNotificationModel notification) {
     // Play alert sound
     final player = AudioPlayer();
     player.play(AssetSource('sounds/alert.mp3'));
-    
+
     // First add the widget to the tree off-screen
     setState(() {
       _toastNotification = notification;
       _showToast = false;
     });
-    
+
     // Then animate it in after a frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         setState(() => _showToast = true);
       }
     });
-    
+
     // Auto-dismiss after 8 seconds
     Future.delayed(const Duration(seconds: 8), () {
       if (mounted && _toastNotification?.uid == notification.uid) {
@@ -211,7 +220,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
       }
     });
   }
-  
+
   void _dismissToast() {
     setState(() => _showToast = false);
     Future.delayed(const Duration(milliseconds: 300), () {
@@ -222,11 +231,9 @@ class _ListDetailScreenState extends State<ListDetailScreen>
   }
 
   void _openNotifications() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const NotificationsScreen(),
-      ),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const NotificationsScreen()));
   }
 
   @override
@@ -325,16 +332,15 @@ class _ListDetailScreenState extends State<ListDetailScreen>
             onPressed: () => context.pop(),
           ),
         ),
-        body: const Center(child: CircularProgressIndicator())
+        body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     // Use taller header on iPad/tablets when there's a cover image
     final isTablet = MediaQuery.of(context).size.width > 600;
     final baseToolbarHeight = _list.description != null ? 70.0 : kToolbarHeight;
-    final toolbarHeight = _list.coverImageUrl != null && isTablet 
-        ? 140.0 
-        : baseToolbarHeight;
+    final toolbarHeight =
+        _list.coverImageUrl != null && isTablet ? 140.0 : baseToolbarHeight;
 
     return Scaffold(
       appBar: AppBar(
@@ -436,7 +442,9 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                         ),
                         child: Center(
                           child: Text(
-                            _unreadNotifications > 99 ? '99+' : '$_unreadNotifications',
+                            _unreadNotifications > 99
+                                ? '99+'
+                                : '$_unreadNotifications',
                             style: AppTypography.labelSmall.copyWith(
                               color: Colors.white,
                               fontSize: 10,
@@ -503,6 +511,40 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                             style: AppTypography.titleMedium.copyWith(
                               fontSize: 15,
                             ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuDivider(),
+                    PopupMenuItem(
+                      value: 'toggle_purchased',
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
+                      child: Row(
+                        children: [
+                          PhosphorIcon(
+                            PhosphorIcons.shoppingCart(),
+                            size: 20,
+                            color: AppColors.textPrimary,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Hide purchased',
+                              style: AppTypography.titleMedium.copyWith(
+                                fontSize: 15,
+                              ),
+                            ),
+                          ),
+                          Switch(
+                            value: _hidePurchased,
+                            onChanged: (value) {
+                              setState(() => _hidePurchased = value);
+                              Navigator.pop(context);
+                            },
+                            activeColor: AppColors.primary,
                           ),
                         ],
                       ),
@@ -864,21 +906,36 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                                   notifyOnPurchase: _list.notifyOnPurchase,
                                   onTap: () => _openItemDetail(item),
                                   onCommitTap: () => _commitItem(item),
-                                  onCommitStatusTap: _isOwner
-                                      ? () => _showOwnerStatusInfo(item, showPurchase: false)
-                                      : () => _openCommitStatus(item, initialTab: 0),
-                                  onPurchaseStatusTap: _isOwner
-                                      ? () => _showOwnerStatusInfo(item, showPurchase: true)
-                                      : () => _openCommitStatus(item, initialTab: 1),
+                                  onCommitStatusTap:
+                                      _isOwner
+                                          ? () => _showOwnerStatusInfo(
+                                            item,
+                                            showPurchase: false,
+                                          )
+                                          : () => _openCommitStatus(
+                                            item,
+                                            initialTab: 0,
+                                          ),
+                                  onPurchaseStatusTap:
+                                      _isOwner
+                                          ? () => _showOwnerStatusInfo(
+                                            item,
+                                            showPurchase: true,
+                                          )
+                                          : () => _openCommitStatus(
+                                            item,
+                                            initialTab: 1,
+                                          ),
                                   onLinkTap:
                                       item.retailerUrl != null
                                           ? () => _openProductLink(
                                             item.retailerUrl!,
                                           )
                                           : null,
-                                  onPriorityTap: _isOwner
-                                      ? () => _cyclePriority(item)
-                                      : null,
+                                  onPriorityTap:
+                                      _isOwner
+                                          ? () => _cyclePriority(item)
+                                          : null,
                                   position: position,
                                 );
                               },
@@ -985,7 +1042,8 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                   _openNotifications();
                 },
                 onHorizontalDragEnd: (details) {
-                  if (details.primaryVelocity != null && details.primaryVelocity! > 0) {
+                  if (details.primaryVelocity != null &&
+                      details.primaryVelocity! > 0) {
                     _dismissToast();
                   }
                 },
@@ -1066,24 +1124,76 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                   child: TweenAnimationBuilder<double>(
                     key: ValueKey(_priorityAnimationKey),
                     tween: Tween(begin: 0.0, end: 1.0),
-                    duration: const Duration(milliseconds: 400),
+                    duration: const Duration(milliseconds: 1200),
                     curve: Curves.easeOut,
                     builder: (context, value, child) {
-                      // Scale from 0.5 to 1.2, then fade out
-                      final scale = 0.5 + (value * 0.7);
-                      final opacity = (value < 0.7 ? 1.0 : 1.0 - ((value - 0.7) / 0.3)).clamp(0.0, 1.0);
-                      return Opacity(
-                        opacity: opacity,
-                        child: Transform.scale(
-                          scale: scale,
-                          child: Container(
-                            width: 120,
-                            height: 120,
-                            decoration: BoxDecoration(
-                              color: _animatedPriority!.color.withValues(alpha: 0.15),
-                              shape: BoxShape.circle,
+                      // Icon: starts at 0ms, scale and fade
+                      final iconScale = 0.5 + (value * 0.7);
+                      final iconOpacity = (value < 0.7
+                              ? 1.0
+                              : 1.0 - ((value - 0.7) / 0.3))
+                          .clamp(0.0, 1.0);
+
+                      // Circle 1: starts at 200ms (0.17 of 1200ms)
+                      const circle1Start = 0.17;
+                      final circle1Opacity =
+                          value < circle1Start
+                              ? 0.0
+                              : value < circle1Start + 0.1
+                              ? ((value - circle1Start) / 0.1).clamp(0.0, 1.0)
+                              : value < 0.7
+                              ? 1.0
+                              : (1.0 - ((value - 0.7) / 0.3)).clamp(0.0, 1.0);
+
+                      // Circle 2: starts at 400ms (0.33 of 1200ms)
+                      const circle2Start = 0.33;
+                      final circle2Opacity =
+                          value < circle2Start
+                              ? 0.0
+                              : value < circle2Start + 0.1
+                              ? ((value - circle2Start) / 0.1).clamp(0.0, 1.0)
+                              : value < 0.75
+                              ? 1.0
+                              : (1.0 - ((value - 0.75) / 0.25)).clamp(0.0, 1.0);
+
+                      return Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          // Circle 2 (outer, delayed most)
+                          Opacity(
+                            opacity: circle2Opacity * 0.1,
+                            child: Transform.scale(
+                              scale: iconScale * 1.5,
+                              child: Container(
+                                width: 120,
+                                height: 120,
+                                decoration: BoxDecoration(
+                                  color: _animatedPriority!.color,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
                             ),
-                            child: Center(
+                          ),
+                          // Circle 1 (inner, delayed)
+                          Opacity(
+                            opacity: circle1Opacity * 0.15,
+                            child: Transform.scale(
+                              scale: iconScale,
+                              child: Container(
+                                width: 120,
+                                height: 120,
+                                decoration: BoxDecoration(
+                                  color: _animatedPriority!.color,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            ),
+                          ),
+                          // Icon (immediate)
+                          Opacity(
+                            opacity: iconOpacity,
+                            child: Transform.scale(
+                              scale: iconScale,
                               child: PhosphorIcon(
                                 _animatedPriority!.icon,
                                 size: 64,
@@ -1091,7 +1201,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                               ),
                             ),
                           ),
-                        ),
+                        ],
                       );
                     },
                   ),
@@ -1377,6 +1487,9 @@ class _ListDetailScreenState extends State<ListDetailScreen>
       case 'friends':
         _showManageFriendsSheet();
         break;
+      case 'toggle_purchased':
+        setState(() => _hidePurchased = !_hidePurchased);
+        break;
       case 'delete':
         _confirmDeleteList();
         break;
@@ -1396,14 +1509,15 @@ class _ListDetailScreenState extends State<ListDetailScreen>
       backgroundColor: Colors.transparent,
       showDragHandle: false,
       useRootNavigator: true,
-      builder: (context) => _ManageFriendsSheet(
-        list: _list,
-        friends: friends,
-        listShareService: listShareService,
-        onComplete: () {
-          // Refresh the list to show updated friend count if needed
-        },
-      ),
+      builder:
+          (context) => _ManageFriendsSheet(
+            list: _list,
+            friends: friends,
+            listShareService: listShareService,
+            onComplete: () {
+              // Refresh the list to show updated friend count if needed
+            },
+          ),
     );
   }
 
@@ -2409,28 +2523,50 @@ class _ListDetailScreenState extends State<ListDetailScreen>
       ItemPriority.medium,
       ItemPriority.high,
     ];
-    
+
     final currentIndex = priorities.indexOf(item.priority);
     final nextIndex = (currentIndex + 1) % priorities.length;
     final nextPriority = priorities[nextIndex];
-    
+
     // Cancel any existing animation timer
     _priorityAnimationTimer?.cancel();
-    
+
     // Show the animation (increment key to restart animation)
     setState(() {
       _animatedPriority = nextPriority;
       _showPriorityAnimation = true;
       _priorityAnimationKey++;
     });
-    
+
+    // Haptic feedback triplet matching animation timing (0ms, 200ms, 400ms)
+    HapticFeedback.lightImpact();
+    Future.delayed(const Duration(milliseconds: 200), () {
+      HapticFeedback.lightImpact();
+    });
+    Future.delayed(const Duration(milliseconds: 400), () {
+      HapticFeedback.lightImpact();
+    });
+
+    // Play sound effect based on priority (don't await - let it play in background)
+    if (nextPriority != ItemPriority.none) {
+      final player = AudioPlayer();
+      player.setVolume(0.6); // Reduce volume by 40%
+      final soundFile = switch (nextPriority) {
+        ItemPriority.low => 'sounds/trill-1.m4a',
+        ItemPriority.medium => 'sounds/trill-2.m4a',
+        ItemPriority.high => 'sounds/trill-3.m4a',
+        ItemPriority.none => '', // Won't reach here
+      };
+      player.play(AssetSource(soundFile));
+    }
+
     // Auto-hide after animation
-    _priorityAnimationTimer = Timer(const Duration(milliseconds: 800), () {
+    _priorityAnimationTimer = Timer(const Duration(milliseconds: 1400), () {
       if (mounted) {
         setState(() => _showPriorityAnimation = false);
       }
     });
-    
+
     // Update local state immediately (preserve commit/purchase data)
     setState(() {
       final index = _items.indexWhere((i) => i.uid == item.uid);
@@ -2438,12 +2574,9 @@ class _ListDetailScreenState extends State<ListDetailScreen>
         _items[index] = item.copyWith(priority: nextPriority);
       }
     });
-    
+
     try {
-      await ItemService().updateItem(
-        uid: item.uid,
-        priority: nextPriority,
-      );
+      await ItemService().updateItem(uid: item.uid, priority: nextPriority);
     } catch (e) {
       if (mounted) {
         AppNotification.error(context, 'Failed to update priority');
@@ -2541,11 +2674,13 @@ class _ListDetailScreenState extends State<ListDetailScreen>
     EditItemSheet.show(
       context,
       item: item,
+      listUid: widget.listUid,
       onSaved: () {
         _refreshItems();
         AppNotification.success(context, 'Item updated');
       },
       onDeleted: () => _confirmDeleteItem(item),
+      onListCoverChanged: _loadList,
     );
   }
 
@@ -2630,16 +2765,15 @@ class _ListDetailScreenState extends State<ListDetailScreen>
 
   void _showOwnerStatusInfo(ListItem item, {required bool showPurchase}) {
     // Check if owner wants to see names based on notification settings
-    final bool isAnonymous = showPurchase 
-        ? !_list.notifyOnPurchase 
-        : !_list.notifyOnCommit;
-    
+    final bool isAnonymous =
+        showPurchase ? !_list.notifyOnPurchase : !_list.notifyOnCommit;
+
     // Get the appropriate name, avatar, and note based on which badge was tapped
     final String personName;
     final String? avatarUrl;
     final String? note;
     final String title;
-    
+
     if (isAnonymous) {
       // Anonymous - don't show real name or avatar
       personName = 'Anonymous';
@@ -2659,146 +2793,167 @@ class _ListDetailScreenState extends State<ListDetailScreen>
       note = item.commitNote;
       title = 'Committed';
     }
-    
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       showDragHandle: false,
       useRootNavigator: true,
-      builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Header
-            Container(
-              decoration: const BoxDecoration(
-                color: Colors.black,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-              ),
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Text(
-                    title,
-                    style: AppTypography.titleLarge.copyWith(color: Colors.white),
+      builder:
+          (context) => Container(
+            decoration: const BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header
+                Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.black,
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(24),
+                    ),
                   ),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-                        child: Text(
-                          'Close',
-                          style: AppTypography.titleMedium.copyWith(
-                            color: Colors.white70,
-                            fontSize: 16,
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Text(
+                        title,
+                        style: AppTypography.titleLarge.copyWith(
+                          color: Colors.white,
+                        ),
+                      ),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: GestureDetector(
+                          onTap: () => Navigator.pop(context),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 12,
+                            ),
+                            child: Text(
+                              'Close',
+                              style: AppTypography.titleMedium.copyWith(
+                                color: Colors.white70,
+                                fontSize: 16,
+                              ),
+                            ),
                           ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
-                ],
-              ),
-            ),
-            
-            // Content
-            Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Avatar or icon
-                  Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: avatarUrl == null
-                          ? (isAnonymous 
-                              ? AppColors.textSecondary.withValues(alpha: 0.1)
-                              : AppColors.accent.withValues(alpha: 0.1))
-                          : null,
-                      border: Border.all(color: Colors.grey.shade300, width: 1),
-                    ),
-                    child: ClipOval(
-                      child: avatarUrl != null
-                          ? Image.network(
-                              avatarUrl,
-                              width: 80,
-                              height: 80,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) => Icon(
-                                Icons.person,
-                                size: 40,
-                                color: AppColors.textSecondary,
-                              ),
-                            )
-                          : Icon(
-                              isAnonymous 
-                                  ? Icons.person 
-                                  : (showPurchase ? Icons.shopping_bag : Icons.card_giftcard),
-                              size: 40,
-                              color: isAnonymous ? AppColors.textSecondary : AppColors.accent,
-                            ),
-                    ),
-                  ),
-                  
-                  // Person name
-                  const SizedBox(height: 16),
-                  Text(
-                    'by $personName',
-                    style: AppTypography.titleMedium.copyWith(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  
-                  // Note if exists
-                  if (note != null && note.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    Text(
-                      '"$note"',
-                      style: AppTypography.titleMedium.copyWith(
-                        fontStyle: FontStyle.italic,
-                        color: AppColors.textPrimary,
+                ),
+
+                // Content
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Avatar or icon
+                      Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color:
+                              avatarUrl == null
+                                  ? (isAnonymous
+                                      ? AppColors.textSecondary.withValues(
+                                        alpha: 0.1,
+                                      )
+                                      : AppColors.accent.withValues(alpha: 0.1))
+                                  : null,
+                          border: Border.all(
+                            color: Colors.grey.shade300,
+                            width: 1,
+                          ),
+                        ),
+                        child: ClipOval(
+                          child:
+                              avatarUrl != null
+                                  ? Image.network(
+                                    avatarUrl,
+                                    width: 80,
+                                    height: 80,
+                                    fit: BoxFit.cover,
+                                    errorBuilder:
+                                        (context, error, stackTrace) => Icon(
+                                          Icons.person,
+                                          size: 40,
+                                          color: AppColors.textSecondary,
+                                        ),
+                                  )
+                                  : Icon(
+                                    isAnonymous
+                                        ? Icons.person
+                                        : (showPurchase
+                                            ? Icons.shopping_bag
+                                            : Icons.card_giftcard),
+                                    size: 40,
+                                    color:
+                                        isAnonymous
+                                            ? AppColors.textSecondary
+                                            : AppColors.accent,
+                                  ),
+                        ),
                       ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ] else ...[
-                    const SizedBox(height: 12),
-                    Text(
-                      showPurchase 
-                          ? 'This item has been purchased.'
-                          : 'This item has been reserved.',
-                      style: AppTypography.bodyMedium.copyWith(
-                        color: AppColors.textSecondary,
+
+                      // Person name
+                      const SizedBox(height: 16),
+                      Text(
+                        'by $personName',
+                        style: AppTypography.titleMedium.copyWith(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        textAlign: TextAlign.center,
                       ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                  
-                  const SizedBox(height: 24),
-                ],
-              ),
+
+                      // Note if exists
+                      if (note != null && note.isNotEmpty) ...[
+                        const SizedBox(height: 16),
+                        Text(
+                          '"$note"',
+                          style: AppTypography.titleMedium.copyWith(
+                            fontStyle: FontStyle.italic,
+                            color: AppColors.textPrimary,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ] else ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          showPurchase
+                              ? 'This item has been purchased.'
+                              : 'This item has been reserved.',
+                          style: AppTypography.bodyMedium.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+
+                      const SizedBox(height: 24),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
     );
   }
 
   void _openCommitStatus(ListItem item, {int? initialTab}) async {
     final ownerName = _ownerProfile?.nameOrEmail ?? 'list owner';
     final isMyCommit = item.claimedByUserId == SupabaseService.currentUserId;
-    
+
     // Use provided initialTab, or determine based on item status
     final tabIndex = initialTab ?? (item.isPurchased ? 1 : 0);
 
@@ -3303,19 +3458,19 @@ class _CommitSheetState extends State<_CommitSheet>
     if (widget.isMyCommit) {
       return _buildExistingCommitView();
     }
-    
+
     // Check if someone else has committed to this item
     final item = widget.item;
     if (item != null && item.claimedByUserId != null) {
       return _buildOtherUserCommitView(item);
     }
-    
+
     return _buildNewCommitView();
   }
-  
+
   Widget _buildOtherUserCommitView(ListItem item) {
     final committerName = item.claimedByDisplayName ?? 'Someone';
-    
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -3368,7 +3523,7 @@ class _CommitSheetState extends State<_CommitSheet>
               ),
             ),
           const SizedBox(height: 20),
-          
+
           // Title
           Text(
             'Committed',
@@ -3378,7 +3533,7 @@ class _CommitSheetState extends State<_CommitSheet>
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 12),
-          
+
           // Committer info
           Text(
             'by $committerName',
@@ -3396,7 +3551,7 @@ class _CommitSheetState extends State<_CommitSheet>
             ),
             textAlign: TextAlign.center,
           ),
-          
+
           // Show commit note if available
           if (item.commitNote != null && item.commitNote!.isNotEmpty) ...[
             const SizedBox(height: 24),
@@ -3406,9 +3561,7 @@ class _CommitSheetState extends State<_CommitSheet>
               decoration: BoxDecoration(
                 color: Colors.amber.shade50,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: Colors.amber.shade200,
-                ),
+                border: Border.all(color: Colors.amber.shade200),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -3897,21 +4050,22 @@ class _CommitSheetState extends State<_CommitSheet>
 
   Widget _buildPurchasedTab() {
     final item = widget.item;
-    
+
     // Check if item is purchased
     if (item != null && item.isPurchased) {
-      final isMyPurchase = item.purchasedByUserId == SupabaseService.currentUserId;
+      final isMyPurchase =
+          item.purchasedByUserId == SupabaseService.currentUserId;
       if (isMyPurchase) {
         return _buildMyPurchaseView(item);
       } else {
         return _buildOtherUserPurchaseView(item);
       }
     }
-    
+
     // Show "mark as purchased" form
     return _buildNewPurchaseView();
   }
-  
+
   Widget _buildMyPurchaseView(ListItem item) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
@@ -3920,7 +4074,7 @@ class _CommitSheetState extends State<_CommitSheet>
           // Thumbnail or fallback icon
           _buildPurchaseIcon(),
           const SizedBox(height: 20),
-          
+
           // Title
           Text(
             'You purchased this',
@@ -3938,7 +4092,7 @@ class _CommitSheetState extends State<_CommitSheet>
             ),
             textAlign: TextAlign.center,
           ),
-          
+
           // Note if exists
           if (item.purchaseNote != null && item.purchaseNote!.isNotEmpty) ...[
             const SizedBox(height: 24),
@@ -3976,10 +4130,10 @@ class _CommitSheetState extends State<_CommitSheet>
       ),
     );
   }
-  
+
   Widget _buildOtherUserPurchaseView(ListItem item) {
     final purchaserName = item.purchasedByDisplayName ?? 'Someone';
-    
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -3987,7 +4141,7 @@ class _CommitSheetState extends State<_CommitSheet>
           // Thumbnail or fallback icon
           _buildPurchaseIcon(),
           const SizedBox(height: 20),
-          
+
           // Title
           Text(
             'Purchased',
@@ -3998,7 +4152,7 @@ class _CommitSheetState extends State<_CommitSheet>
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 12),
-          
+
           // Purchaser info
           Text(
             'by $purchaserName',
@@ -4016,7 +4170,7 @@ class _CommitSheetState extends State<_CommitSheet>
             ),
             textAlign: TextAlign.center,
           ),
-          
+
           // Note if exists
           if (item.purchaseNote != null && item.purchaseNote!.isNotEmpty) ...[
             const SizedBox(height: 24),
@@ -4054,7 +4208,7 @@ class _CommitSheetState extends State<_CommitSheet>
       ),
     );
   }
-  
+
   Widget _buildPurchaseIcon() {
     if (widget.thumbnailUrl != null) {
       return Container(
@@ -4104,7 +4258,7 @@ class _CommitSheetState extends State<_CommitSheet>
       );
     }
   }
-  
+
   Widget _buildNewPurchaseView() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),

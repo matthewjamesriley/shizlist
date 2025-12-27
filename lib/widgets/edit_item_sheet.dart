@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../core/theme/app_colors.dart';
@@ -9,6 +10,7 @@ import '../models/list_item.dart';
 import '../services/item_service.dart';
 import '../services/image_upload_service.dart';
 import '../services/amazon_service.dart';
+import '../services/list_service.dart';
 import '../services/user_settings_service.dart';
 import 'app_button.dart';
 import 'app_notification.dart';
@@ -17,22 +19,28 @@ import '../core/utils/price_formatter.dart';
 /// Edit Item Sheet with tabs - can be shown from any context
 class EditItemSheet extends StatefulWidget {
   final ListItem item;
+  final String? listUid;
   final VoidCallback? onSaved;
   final VoidCallback? onDeleted;
+  final VoidCallback? onListCoverChanged;
 
   const EditItemSheet({
     super.key,
     required this.item,
+    this.listUid,
     this.onSaved,
     this.onDeleted,
+    this.onListCoverChanged,
   });
 
   /// Show the edit item sheet as a modal bottom sheet
   static Future<void> show(
     BuildContext context, {
     required ListItem item,
+    String? listUid,
     VoidCallback? onSaved,
     VoidCallback? onDeleted,
+    VoidCallback? onListCoverChanged,
   }) {
     return showModalBottomSheet(
       context: context,
@@ -45,8 +53,10 @@ class EditItemSheet extends StatefulWidget {
             data: AppTheme.lightTheme,
             child: EditItemSheet(
               item: item,
+              listUid: listUid,
               onSaved: onSaved,
               onDeleted: onDeleted,
+              onListCoverChanged: onListCoverChanged,
             ),
           ),
     );
@@ -79,6 +89,9 @@ class _EditItemSheetState extends State<EditItemSheet>
 
   // Amazon URL fetching
   bool _isFetchingAmazon = false;
+
+  // Flag to prevent re-entrant URL extraction
+  bool _isExtractingUrl = false;
 
   @override
   void initState() {
@@ -215,6 +228,28 @@ class _EditItemSheetState extends State<EditItemSheet>
       _thumbnailUrl = null;
       _mainImageUrl = null;
     });
+  }
+
+  Future<void> _setAsListCover() async {
+    if (widget.listUid == null) return;
+
+    final imageUrl = _mainImageUrl ?? _thumbnailUrl;
+    if (imageUrl == null) return;
+
+    try {
+      await ListService().updateList(
+        uid: widget.listUid!,
+        coverImageUrl: imageUrl,
+      );
+      if (mounted) {
+        AppNotification.success(context, 'Set as list cover');
+        widget.onListCoverChanged?.call();
+      }
+    } catch (e) {
+      if (mounted) {
+        AppNotification.error(context, 'Failed to set list cover');
+      }
+    }
   }
 
   void _showImagePreview() {
@@ -616,8 +651,35 @@ class _EditItemSheetState extends State<EditItemSheet>
             controller: _urlController,
             style: AppTypography.bodyLarge,
             keyboardType: TextInputType.url,
-            decoration: const InputDecoration(hintText: 'https://'),
-            onChanged: (_) => setState(() {}), // Refresh to update button state
+            autocorrect: false,
+            enableSuggestions: false,
+            decoration: InputDecoration(
+              hintText: 'https://',
+              suffixIcon: IconButton(
+                icon: Icon(
+                  PhosphorIcons.clipboard(PhosphorIconsStyle.fill),
+                  color: AppColors.accent,
+                ),
+                onPressed: _pasteFromClipboard,
+                tooltip: 'Paste from clipboard',
+              ),
+            ),
+            onChanged: (value) {
+              // Prevent re-entrant calls while we're updating the text
+              if (_isExtractingUrl) return;
+
+              // Extract URL if text contains extra content (e.g. from share sheets)
+              final extracted = _extractUrl(value);
+              if (extracted != value) {
+                _isExtractingUrl = true;
+                _urlController.text = extracted;
+                _urlController.selection = TextSelection.fromPosition(
+                  TextPosition(offset: extracted.length),
+                );
+                _isExtractingUrl = false;
+              }
+              setState(() {}); // Refresh to update button state
+            },
           ),
           const SizedBox(height: 12),
 
@@ -625,27 +687,24 @@ class _EditItemSheetState extends State<EditItemSheet>
           if (_urlController.text.trim().isNotEmpty)
             Row(
               children: [
-                // Get product info button (only for Amazon URLs)
-                if (AmazonService.isAmazonUrl(_urlController.text.trim()) ||
-                    AmazonService.isShortLink(_urlController.text.trim()))
+                // Get product info button (for any URL)
+                if (_urlController.text.trim().startsWith('http'))
                   Expanded(
-                    child: AppButton.primary(
+                    child: AppButton.accent(
                       label:
                           _isFetchingAmazon
                               ? 'Fetching...'
                               : 'Get product info',
-                      onPressed:
-                          !_isFetchingAmazon ? _fetchAmazonProductInfo : null,
+                      onPressed: !_isFetchingAmazon ? _fetchProductInfo : null,
                       isLoading: _isFetchingAmazon,
                       size: ButtonSize.small,
                     ),
                   ),
-                if (AmazonService.isAmazonUrl(_urlController.text.trim()) ||
-                    AmazonService.isShortLink(_urlController.text.trim()))
+                if (_urlController.text.trim().startsWith('http'))
                   const SizedBox(width: 12),
                 // View item button
                 Expanded(
-                  child: AppButton.outlinePrimary(
+                  child: AppButton.primary(
                     label: 'View item',
                     icon: PhosphorIcons.arrowSquareOut(),
                     size: ButtonSize.small,
@@ -699,43 +758,94 @@ class _EditItemSheetState extends State<EditItemSheet>
           ),
         ] else if (_selectedImage != null || _thumbnailUrl != null) ...[
           // Selected/uploaded image preview
-          Stack(
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              GestureDetector(
-                onTap: _showImagePreview,
-                child: Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.divider),
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child:
-                      _selectedImage != null
-                          ? Image.file(_selectedImage!, fit: BoxFit.cover)
-                          : Image.network(_thumbnailUrl!, fit: BoxFit.cover),
-                ),
-              ),
-              Positioned(
-                top: 4,
-                right: 4,
-                child: GestureDetector(
-                  onTap: _removeImage,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.6),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.close,
-                      color: Colors.white,
-                      size: 16,
+              Stack(
+                children: [
+                  GestureDetector(
+                    onTap: _showImagePreview,
+                    child: Container(
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.divider),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child:
+                          _selectedImage != null
+                              ? Image.file(_selectedImage!, fit: BoxFit.cover)
+                              : Image.network(
+                                _thumbnailUrl!,
+                                fit: BoxFit.cover,
+                              ),
                     ),
                   ),
-                ),
+                  Positioned(
+                    top: 4,
+                    right: 4,
+                    child: GestureDetector(
+                      onTap: _removeImage,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.6),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.close,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
+              // Set as list cover button
+              if (widget.listUid != null &&
+                  (_mainImageUrl != null || _thumbnailUrl != null)) ...[
+                const SizedBox(width: 16),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: _setAsListCover,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 14,
+                        horizontal: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: AppColors.primary.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          PhosphorIcon(
+                            PhosphorIcons.image(),
+                            color: AppColors.primary,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              'Set as list cover',
+                              style: AppTypography.bodyMedium.copyWith(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ] else ...[
@@ -816,6 +926,45 @@ class _EditItemSheetState extends State<EditItemSheet>
     );
   }
 
+  /// Extract URL from text that may contain additional content
+  /// e.g. "Check this out! https://example.com/product" -> "https://example.com/product"
+  String _extractUrl(String text) {
+    // Match http:// or https:// URLs
+    // URL pattern: protocol + domain + optional path/query
+    final urlRegex = RegExp(
+      r'https?://[a-zA-Z0-9\-._~:/?#\[\]@!$&()*+,;=%]+',
+      caseSensitive: false,
+    );
+    final match = urlRegex.firstMatch(text);
+    if (match != null) {
+      var url = match.group(0) ?? text;
+      // Trim any trailing punctuation that shouldn't be part of URL
+      url = url.replaceAll(RegExp(r'[,.\s]+$'), '');
+      debugPrint('Extracted URL: $url');
+      return url.trim();
+    }
+    return text;
+  }
+
+  /// Paste URL from clipboard, extracting if needed
+  Future<void> _pasteFromClipboard() async {
+    final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
+    if (clipboardData?.text != null && clipboardData!.text!.isNotEmpty) {
+      var extracted = _extractUrl(clipboardData.text!);
+      // Add https:// if no protocol present
+      if (extracted.isNotEmpty &&
+          !extracted.startsWith('http://') &&
+          !extracted.startsWith('https://')) {
+        extracted = 'https://$extracted';
+      }
+      _urlController.text = extracted;
+      _urlController.selection = TextSelection.fromPosition(
+        TextPosition(offset: extracted.length),
+      );
+      setState(() {}); // Refresh UI
+    }
+  }
+
   Future<void> _openProductUrl() async {
     final urlString = _urlController.text.trim();
     if (urlString.isEmpty) return;
@@ -836,70 +985,77 @@ class _EditItemSheetState extends State<EditItemSheet>
     }
   }
 
-  Future<void> _fetchAmazonProductInfo() async {
+  Future<void> _fetchProductInfo() async {
     final url = _urlController.text.trim();
     if (url.isEmpty) return;
 
     setState(() => _isFetchingAmazon = true);
 
     try {
-      // Resolve short links first (amzn.to, a.co, amzn.eu, etc.)
+      Map<String, String?> info;
+      bool isAmazon = false;
+
+      // Check if it's an Amazon URL
       String resolvedUrl = url;
       if (AmazonService.isShortLink(url)) {
         resolvedUrl = await AmazonService.resolveShortLink(url);
       }
 
-      if (!AmazonService.isAmazonUrl(resolvedUrl)) {
-        if (mounted) {
-          setState(() => _isFetchingAmazon = false);
-          AppNotification.error(context, 'Please enter a valid Amazon URL');
+      if (AmazonService.isAmazonUrl(resolvedUrl)) {
+        isAmazon = true;
+
+        if (AmazonService.isSearchUrl(resolvedUrl)) {
+          if (mounted) {
+            setState(() => _isFetchingAmazon = false);
+            AppNotification.error(
+              context,
+              'This is a search page. Please select a specific product first.',
+            );
+          }
+          return;
         }
-        return;
+
+        final asin = AmazonService.extractAsin(resolvedUrl);
+        if (asin == null) {
+          if (mounted) {
+            setState(() => _isFetchingAmazon = false);
+            AppNotification.error(
+              context,
+              'Could not find product in this URL',
+            );
+          }
+          return;
+        }
+
+        info = await AmazonService.fetchProductInfo(url);
+      } else {
+        // Use generic fetcher for non-Amazon URLs
+        info = await AmazonService.fetchGenericProductInfo(url);
       }
 
-      if (AmazonService.isSearchUrl(resolvedUrl)) {
-        if (mounted) {
-          setState(() => _isFetchingAmazon = false);
-          AppNotification.error(
-            context,
-            'This is a search page. Please select a specific product first.',
-          );
-        }
-        return;
-      }
-
-      final asin = AmazonService.extractAsin(resolvedUrl);
-      if (asin == null) {
-        if (mounted) {
-          setState(() => _isFetchingAmazon = false);
-          AppNotification.error(context, 'Could not find product in this URL');
-        }
-        return;
-      }
-
-      final info = await AmazonService.fetchProductInfo(url);
       if (mounted) {
+        bool foundAnyInfo = false;
+
         // Update name if found
         if (info['title'] != null && info['title']!.isNotEmpty) {
           _nameController.text = info['title']!;
+          foundAnyInfo = true;
         }
 
         // Update price if found
         if (info['price'] != null && info['price']!.isNotEmpty) {
           _priceController.text = info['price']!;
+          foundAnyInfo = true;
         }
 
-        // Update URL with affiliate link
-        if (info['affiliateUrl'] != null) {
+        // Update URL with affiliate link (Amazon only)
+        if (isAmazon && info['affiliateUrl'] != null) {
           _urlController.text = info['affiliateUrl']!;
         }
 
-        // Download and upload Amazon image if found and no image currently set
-        if (info['imageUrl'] != null &&
-            info['imageUrl']!.isNotEmpty &&
-            _thumbnailUrl == null &&
-            _mainImageUrl == null &&
-            _selectedImage == null) {
+        // Download and upload image if found
+        if (info['imageUrl'] != null && info['imageUrl']!.isNotEmpty) {
+          foundAnyInfo = true;
           setState(() {
             _uploadStatus = 'Downloading image...';
             _isUploadingImage = true;
@@ -921,6 +1077,7 @@ class _EditItemSheetState extends State<EditItemSheet>
 
             if (uploadResult != null && mounted) {
               setState(() {
+                _selectedImage = null; // Clear any locally selected image
                 _thumbnailUrl = uploadResult.thumbnailUrl;
                 _mainImageUrl = uploadResult.mainImageUrl;
                 _isUploadingImage = false;
@@ -952,7 +1109,14 @@ class _EditItemSheetState extends State<EditItemSheet>
           }
         } else {
           setState(() => _isFetchingAmazon = false);
-          AppNotification.success(context, 'Product info updated!');
+          if (foundAnyInfo) {
+            AppNotification.success(context, 'Product info updated!');
+          } else {
+            AppNotification.error(
+              context,
+              'Unable to fetch product info from this website',
+            );
+          }
         }
       }
     } catch (e) {

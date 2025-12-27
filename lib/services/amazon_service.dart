@@ -605,4 +605,270 @@ class AmazonService {
         .replaceAll('&nbsp;', ' ')
         .trim();
   }
+
+  /// Fetch product info from any URL (non-Amazon)
+  /// Uses Open Graph meta tags and schema.org data
+  static Future<Map<String, String?>> fetchGenericProductInfo(String url) async {
+    final result = <String, String?>{
+      'title': null,
+      'price': null,
+      'imageUrl': null,
+    };
+
+    try {
+      final response = await http
+          .get(
+            Uri.parse(url),
+            headers: {
+              'User-Agent':
+                  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+              'Accept':
+                  'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+              'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8',
+              'Accept-Encoding': 'identity',
+            },
+          )
+          .timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        final html = response.body;
+        
+        // Extract title
+        result['title'] = _extractGenericTitle(html);
+        
+        // Extract price
+        result['price'] = _extractGenericPrice(html);
+        
+        // Extract image
+        result['imageUrl'] = _extractGenericImage(html);
+      }
+    } catch (e) {
+      // Return whatever we have
+    }
+
+    return result;
+  }
+
+  /// Extract title from generic HTML using Open Graph and other meta tags
+  static String? _extractGenericTitle(String html) {
+    // Try og:title
+    var match = RegExp(
+      r'<meta[^>]+property="og:title"[^>]+content="([^"]+)"',
+      caseSensitive: false,
+    ).firstMatch(html);
+    if (match != null) {
+      return _decodeHtml(match.group(1) ?? '');
+    }
+
+    // Try og:title with content first
+    match = RegExp(
+      r'<meta[^>]+content="([^"]+)"[^>]+property="og:title"',
+      caseSensitive: false,
+    ).firstMatch(html);
+    if (match != null) {
+      return _decodeHtml(match.group(1) ?? '');
+    }
+
+    // Try twitter:title
+    match = RegExp(
+      r'<meta[^>]+name="twitter:title"[^>]+content="([^"]+)"',
+      caseSensitive: false,
+    ).firstMatch(html);
+    if (match != null) {
+      return _decodeHtml(match.group(1) ?? '');
+    }
+
+    // Try schema.org JSON-LD name
+    match = RegExp(
+      r'"@type"\s*:\s*"Product"[^}]*"name"\s*:\s*"([^"]+)"',
+      caseSensitive: false,
+    ).firstMatch(html);
+    if (match != null) {
+      return _decodeHtml(match.group(1) ?? '');
+    }
+
+    // Try title tag
+    match = RegExp(
+      r'<title>([^<]+)</title>',
+      caseSensitive: false,
+    ).firstMatch(html);
+    if (match != null) {
+      var title = _decodeHtml(match.group(1) ?? '');
+      // Clean up common suffixes
+      title = title.replaceAll(RegExp(r'\s*[|\-–—].*$'), '');
+      return title.trim();
+    }
+
+    return null;
+  }
+
+  /// Extract price from generic HTML
+  static String? _extractGenericPrice(String html) {
+    // Decode HTML entities for price symbols
+    final decodedHtml = html
+        .replaceAll('&pound;', '£')
+        .replaceAll('&#163;', '£')
+        .replaceAll('&euro;', '€')
+        .replaceAll('&#8364;', '€')
+        .replaceAll('&dollar;', '\$')
+        .replaceAll('&#36;', '\$');
+
+    // Try og:price:amount
+    var match = RegExp(
+      r'<meta[^>]+property="og:price:amount"[^>]+content="([^"]+)"',
+      caseSensitive: false,
+    ).firstMatch(decodedHtml);
+    if (match != null) {
+      return match.group(1)?.replaceAll(',', '');
+    }
+
+    // Try product:price:amount
+    match = RegExp(
+      r'<meta[^>]+property="product:price:amount"[^>]+content="([^"]+)"',
+      caseSensitive: false,
+    ).firstMatch(decodedHtml);
+    if (match != null) {
+      return match.group(1)?.replaceAll(',', '');
+    }
+
+    // Try schema.org JSON-LD price
+    match = RegExp(
+      r'"@type"\s*:\s*"Product"[^}]*"price"\s*:\s*"?([0-9,.]+)"?',
+      caseSensitive: false,
+    ).firstMatch(decodedHtml);
+    if (match != null) {
+      return match.group(1)?.replaceAll(',', '');
+    }
+
+    // Try offers.price in JSON-LD
+    match = RegExp(
+      r'"offers"\s*:\s*\{[^}]*"price"\s*:\s*"?([0-9,.]+)"?',
+      caseSensitive: false,
+    ).firstMatch(decodedHtml);
+    if (match != null) {
+      return match.group(1)?.replaceAll(',', '');
+    }
+
+    // Try common price class patterns
+    match = RegExp(
+      r'class="[^"]*price[^"]*"[^>]*>\s*[£\$€]?\s*([0-9,]+\.?[0-9]*)',
+      caseSensitive: false,
+    ).firstMatch(decodedHtml);
+    if (match != null) {
+      return match.group(1)?.replaceAll(',', '');
+    }
+
+    // Try data-price attribute
+    match = RegExp(
+      r'data-price="([0-9,.]+)"',
+      caseSensitive: false,
+    ).firstMatch(decodedHtml);
+    if (match != null) {
+      return match.group(1)?.replaceAll(',', '');
+    }
+
+    // Try generic JSON "price" field
+    match = RegExp(
+      r'"price"\s*:\s*"?([0-9]+\.?[0-9]*)"?',
+      caseSensitive: false,
+    ).firstMatch(decodedHtml);
+    if (match != null) {
+      return match.group(1);
+    }
+
+    // Try Shein-specific patterns
+    // salePrice in JSON
+    match = RegExp(
+      r'"salePrice"\s*:\s*\{[^}]*"amount"\s*:\s*"?([0-9,.]+)"?',
+      caseSensitive: false,
+    ).firstMatch(decodedHtml);
+    if (match != null) {
+      return match.group(1)?.replaceAll(',', '');
+    }
+
+    // sale_price or retail_price
+    match = RegExp(
+      r'"(?:sale_price|salePrice|retailPrice|retail_price)"\s*:\s*"?([0-9,.]+)"?',
+      caseSensitive: false,
+    ).firstMatch(decodedHtml);
+    if (match != null) {
+      return match.group(1)?.replaceAll(',', '');
+    }
+
+    // Shein amountWithSymbol pattern
+    match = RegExp(
+      r'"amountWithSymbol"\s*:\s*"[£\$€]?\s*([0-9,.]+)"',
+      caseSensitive: false,
+    ).firstMatch(decodedHtml);
+    if (match != null) {
+      return match.group(1)?.replaceAll(',', '');
+    }
+
+    // Try data-us-price or data-gb-price attributes
+    match = RegExp(
+      r'data-(?:us|gb|eu)-price="([0-9,.]+)"',
+      caseSensitive: false,
+    ).firstMatch(decodedHtml);
+    if (match != null) {
+      return match.group(1)?.replaceAll(',', '');
+    }
+
+    // Try lowPrice in offers
+    match = RegExp(
+      r'"lowPrice"\s*:\s*"?([0-9,.]+)"?',
+      caseSensitive: false,
+    ).firstMatch(decodedHtml);
+    if (match != null) {
+      return match.group(1)?.replaceAll(',', '');
+    }
+
+    // Try price with currency symbol
+    match = RegExp(r'[£\$€]\s*([0-9]+\.[0-9]{2})\b').firstMatch(decodedHtml);
+    if (match != null) {
+      return match.group(1);
+    }
+
+    return null;
+  }
+
+  /// Extract image from generic HTML
+  static String? _extractGenericImage(String html) {
+    // Try og:image
+    var match = RegExp(
+      r'<meta[^>]+property="og:image"[^>]+content="([^"]+)"',
+      caseSensitive: false,
+    ).firstMatch(html);
+    if (match != null) {
+      return _decodeHtml(match.group(1) ?? '');
+    }
+
+    // Try og:image with content first
+    match = RegExp(
+      r'<meta[^>]+content="([^"]+)"[^>]+property="og:image"',
+      caseSensitive: false,
+    ).firstMatch(html);
+    if (match != null) {
+      return _decodeHtml(match.group(1) ?? '');
+    }
+
+    // Try twitter:image
+    match = RegExp(
+      r'<meta[^>]+name="twitter:image"[^>]+content="([^"]+)"',
+      caseSensitive: false,
+    ).firstMatch(html);
+    if (match != null) {
+      return _decodeHtml(match.group(1) ?? '');
+    }
+
+    // Try schema.org JSON-LD image
+    match = RegExp(
+      r'"@type"\s*:\s*"Product"[^}]*"image"\s*:\s*"([^"]+)"',
+      caseSensitive: false,
+    ).firstMatch(html);
+    if (match != null) {
+      return _decodeHtml(match.group(1) ?? '');
+    }
+
+    return null;
+  }
 }

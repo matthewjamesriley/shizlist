@@ -7,6 +7,7 @@ import '../core/theme/app_typography.dart';
 import '../services/item_service.dart';
 import 'app_notification.dart';
 import 'edit_item_sheet.dart';
+import 'view_item_sheet.dart';
 
 /// Search delegate for searching items across all lists
 class ItemSearchDelegate extends SearchDelegate<ItemSearchResult?> {
@@ -91,14 +92,14 @@ class ItemSearchDelegate extends SearchDelegate<ItemSearchResult?> {
           ),
           const SizedBox(height: 16),
           Text(
-            'Search your items',
+            'Search all items',
             style: AppTypography.titleMedium.copyWith(
               color: AppColors.textPrimary,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            'Find items across all your lists',
+            'Find items across your lists and friends\' lists',
             style: AppTypography.bodyMedium.copyWith(
               color: AppColors.textSecondary.withValues(alpha: 0.7),
             ),
@@ -176,24 +177,27 @@ class ItemSearchDelegate extends SearchDelegate<ItemSearchResult?> {
           );
         }
 
-        return ListView.separated(
+        return ListView.builder(
           padding: const EdgeInsets.symmetric(vertical: 8),
           itemCount: results.length,
-          separatorBuilder: (context, index) => const Divider(height: 1),
           itemBuilder: (context, index) {
             final result = results[index];
-            return _buildResultTile(context, result);
+            return _buildResultTile(context, result, index);
           },
         );
       },
     );
   }
 
-  Widget _buildResultTile(BuildContext context, ItemSearchResult result) {
+  Widget _buildResultTile(BuildContext context, ItemSearchResult result, int index) {
     final item = result.item;
+    final isOwnItem = result.isOwnItem;
+    final isEvenRow = index % 2 == 0;
     
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    return Container(
+      color: isEvenRow ? Colors.white : AppColors.surfaceVariant.withValues(alpha: 0.5),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       leading: Container(
         width: 56,
         height: 56,
@@ -233,7 +237,7 @@ class ItemSearchDelegate extends SearchDelegate<ItemSearchResult?> {
       ),
       title: Text(
         item.name,
-        style: AppTypography.titleSmall.copyWith(
+        style: AppTypography.titleMedium.copyWith(
           fontWeight: FontWeight.w600,
         ),
         maxLines: 2,
@@ -243,19 +247,57 @@ class ItemSearchDelegate extends SearchDelegate<ItemSearchResult?> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 4),
-          Text(
-            result.listTitle,
-            style: AppTypography.bodySmall.copyWith(
-              color: AppColors.textPrimary,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+          Row(
+            children: [
+              Flexible(
+                child: Text(
+                  result.listTitle,
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              // Badge for ownership
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: isOwnItem 
+                      ? Colors.grey.shade200
+                      : AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    PhosphorIcon(
+                      isOwnItem ? PhosphorIcons.star() : PhosphorIcons.user(),
+                      size: 12,
+                      color: isOwnItem ? Colors.grey.shade600 : AppColors.primary,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      isOwnItem 
+                          ? 'Yours'
+                          : result.ownerDisplayName?.split(' ').first ?? 'Friend',
+                      style: AppTypography.bodySmall.copyWith(
+                        color: isOwnItem ? Colors.grey.shade700 : AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
           if (item.price != null) ...[
-            const SizedBox(height: 2),
+            const SizedBox(height: 4),
             Text(
               item.formattedPrice,
-              style: AppTypography.bodySmall.copyWith(
+              style: AppTypography.bodyMedium.copyWith(
                 color: AppColors.primary,
                 fontWeight: FontWeight.w600,
               ),
@@ -269,49 +311,61 @@ class ItemSearchDelegate extends SearchDelegate<ItemSearchResult?> {
         size: 22,
       ),
       onTap: () {
-        // Open the edit item sheet without closing search
-        EditItemSheet.show(
-          context,
-          item: result.item,
-          onSaved: () {
-            AppNotification.success(context, 'Item updated');
-            // Force full refresh by toggling query
-            _forceRefresh(context);
-          },
-          onDeleted: () async {
-            // Confirm and delete the item
-            final confirmed = await showDialog<bool>(
-              context: context,
-              builder: (ctx) => AlertDialog(
-                title: const Text('Delete item?'),
-                content: Text('Are you sure you want to delete "${result.item.name}"?'),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(ctx, false),
-                    child: const Text('Cancel'),
-                  ),
-                  TextButton(
-                    onPressed: () => Navigator.pop(ctx, true),
-                    style: TextButton.styleFrom(foregroundColor: AppColors.error),
-                    child: const Text('Delete'),
-                  ),
-                ],
-              ),
-            );
-            
-            if (confirmed == true) {
-              try {
-                await ItemService().deleteItem(result.item.uid);
-                AppNotification.success(context, 'Item deleted');
-                // Force full refresh by toggling query
-                _forceRefresh(context);
-              } catch (e) {
-                AppNotification.error(context, 'Failed to delete item');
+        if (isOwnItem) {
+          // Open edit sheet for own items
+          EditItemSheet.show(
+            context,
+            item: result.item,
+            listUid: result.listUid,
+            onSaved: () {
+              AppNotification.success(context, 'Item updated');
+              _forceRefresh(context);
+            },
+            onDeleted: () async {
+              final confirmed = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Delete item?'),
+                  content: Text('Are you sure you want to delete "${result.item.name}"?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: const Text('Cancel'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, true),
+                      style: TextButton.styleFrom(foregroundColor: AppColors.error),
+                      child: const Text('Delete'),
+                    ),
+                  ],
+                ),
+              );
+              
+              if (confirmed == true) {
+                try {
+                  await ItemService().deleteItem(result.item.uid);
+                  AppNotification.success(context, 'Item deleted');
+                  _forceRefresh(context);
+                } catch (e) {
+                  AppNotification.error(context, 'Failed to delete item');
+                }
               }
-            }
-          },
-        );
+            },
+          );
+        } else {
+          // Open view/commit sheet for friend's items
+          ViewItemSheet.show(
+            context,
+            item: result.item,
+            listTitle: result.listTitle,
+            ownerName: result.ownerDisplayName ?? 'Friend',
+            notifyOnCommit: result.notifyOnCommit,
+            notifyOnPurchase: result.notifyOnPurchase,
+            onActionComplete: () => _forceRefresh(context),
+          );
+        }
       },
+      ),
     );
   }
 

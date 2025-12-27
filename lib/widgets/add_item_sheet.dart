@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_typography.dart';
 import '../core/utils/price_formatter.dart';
@@ -62,6 +63,9 @@ class _AddItemSheetState extends State<AddItemSheet>
   ItemPriority _selectedPriority = ItemPriority.none;
   bool _isLoading = false;
   bool _isLoadingLists = true;
+  
+  // Flag to prevent re-entrant URL extraction
+  bool _isExtractingUrl = false;
 
   // Image handling
   File? _selectedImage;
@@ -90,6 +94,9 @@ class _AddItemSheetState extends State<AddItemSheet>
   ItemCategory _amazonCategory = ItemCategory.stuff;
   ItemPriority _amazonPriority = ItemPriority.none;
 
+  // Product info fetching for Item details tab
+  bool _isFetchingProductInfo = false;
+
   @override
   void initState() {
     super.initState();
@@ -117,6 +124,188 @@ class _AddItemSheetState extends State<AddItemSheet>
       final formatted = PriceFormatter.format(_priceController.text);
       if (formatted != _priceController.text) {
         _priceController.text = formatted;
+      }
+    }
+  }
+
+  /// Extract URL from text that may contain additional content
+  /// e.g. "Check this out! https://example.com/product" -> "https://example.com/product"
+  String _extractUrl(String text) {
+    // Match http:// or https:// URLs
+    // URL pattern: protocol + domain + optional path/query
+    final urlRegex = RegExp(
+      r'https?://[a-zA-Z0-9\-._~:/?#\[\]@!$&()*+,;=%]+',
+      caseSensitive: false,
+    );
+    final match = urlRegex.firstMatch(text);
+    if (match != null) {
+      var url = match.group(0) ?? text;
+      // Trim any trailing punctuation that shouldn't be part of URL
+      url = url.replaceAll(RegExp(r'[,.\s]+$'), '');
+      debugPrint('Extracted URL: $url');
+      return url.trim();
+    }
+    return text;
+  }
+
+  /// Paste URL from clipboard, extracting if needed
+  Future<void> _pasteFromClipboard() async {
+    final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
+    if (clipboardData?.text != null && clipboardData!.text!.isNotEmpty) {
+      var extracted = _extractUrl(clipboardData.text!);
+      // Add https:// if no protocol present
+      if (extracted.isNotEmpty && 
+          !extracted.startsWith('http://') && 
+          !extracted.startsWith('https://')) {
+        extracted = 'https://$extracted';
+      }
+      _urlController.text = extracted;
+      _urlController.selection = TextSelection.fromPosition(
+        TextPosition(offset: extracted.length),
+      );
+      setState(() {}); // Refresh UI
+    }
+  }
+
+  /// Open the product URL in browser
+  Future<void> _openProductUrl() async {
+    final urlString = _urlController.text.trim();
+    if (urlString.isEmpty) return;
+
+    try {
+      final uri = Uri.parse(urlString);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
+      } else {
+        if (mounted) {
+          AppNotification.error(context, 'Could not open URL');
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        AppNotification.error(context, 'Invalid URL');
+      }
+    }
+  }
+
+  /// Fetch product info from URL (Amazon or generic)
+  Future<void> _fetchProductInfo() async {
+    final url = _urlController.text.trim();
+    if (url.isEmpty) return;
+
+    setState(() => _isFetchingProductInfo = true);
+
+    try {
+      Map<String, String?> info;
+      bool isAmazon = false;
+
+      // Check if it's an Amazon URL
+      String resolvedUrl = url;
+      if (AmazonService.isShortLink(url)) {
+        resolvedUrl = await AmazonService.resolveShortLink(url);
+      }
+
+      if (AmazonService.isAmazonUrl(resolvedUrl)) {
+        isAmazon = true;
+
+        if (AmazonService.isSearchUrl(resolvedUrl)) {
+          if (mounted) {
+            setState(() => _isFetchingProductInfo = false);
+            AppNotification.error(
+              context,
+              'This is a search page. Please select a specific product first.',
+            );
+          }
+          return;
+        }
+
+        final asin = AmazonService.extractAsin(resolvedUrl);
+        if (asin == null) {
+          if (mounted) {
+            setState(() => _isFetchingProductInfo = false);
+            AppNotification.error(
+              context,
+              'Could not find product in this URL',
+            );
+          }
+          return;
+        }
+
+        info = await AmazonService.fetchProductInfo(url);
+      } else {
+        // Use generic fetcher for non-Amazon URLs
+        info = await AmazonService.fetchGenericProductInfo(url);
+      }
+
+      if (mounted) {
+        bool foundAnyInfo = false;
+
+        // Update name if found
+        if (info['title'] != null && info['title']!.isNotEmpty) {
+          _nameController.text = info['title']!;
+          foundAnyInfo = true;
+        }
+
+        // Update price if found
+        if (info['price'] != null && info['price']!.isNotEmpty) {
+          _priceController.text = info['price']!;
+          foundAnyInfo = true;
+        }
+
+        // Update URL with affiliate link (Amazon only)
+        if (isAmazon && info['affiliateUrl'] != null) {
+          _urlController.text = info['affiliateUrl']!;
+        }
+
+        // Download and upload image if found
+        if (info['imageUrl'] != null && info['imageUrl']!.isNotEmpty) {
+          foundAnyInfo = true;
+          setState(() {
+            _uploadStatus = 'Downloading image...';
+            _isUploadingImage = true;
+            _uploadProgress = 0.1;
+          });
+
+          try {
+            final uploadResult = await _imageService.downloadAndUpload(
+              info['imageUrl']!,
+              onProgress: (progress, status) {
+                if (mounted) {
+                  setState(() {
+                    _uploadProgress = progress;
+                    _uploadStatus = status;
+                  });
+                }
+              },
+            );
+
+            if (uploadResult != null && mounted) {
+              setState(() {
+                _uploadedThumbnailUrl = uploadResult.thumbnailUrl;
+                _uploadedMainImageUrl = uploadResult.mainImageUrl;
+                _isUploadingImage = false;
+              });
+            }
+          } catch (e) {
+            if (mounted) {
+              setState(() => _isUploadingImage = false);
+              AppNotification.error(context, 'Failed to download image');
+            }
+          }
+        }
+
+        setState(() => _isFetchingProductInfo = false);
+
+        if (!foundAnyInfo) {
+          AppNotification.error(context, 'Unable to fetch product info');
+        } else {
+          AppNotification.success(context, 'Product info loaded');
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isFetchingProductInfo = false);
+        AppNotification.error(context, 'Failed to fetch product info');
       }
     }
   }
@@ -329,6 +518,77 @@ class _AddItemSheetState extends State<AddItemSheet>
               const SizedBox(height: 24),
             ],
 
+            // URL field at the top
+            Text('Item link (optional)', style: AppTypography.titleMedium),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: _urlController,
+              decoration: InputDecoration(
+                hintText: 'https://',
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    PhosphorIcons.clipboard(PhosphorIconsStyle.fill),
+                    color: AppColors.accent,
+                  ),
+                  onPressed: _pasteFromClipboard,
+                  tooltip: 'Paste from clipboard',
+                ),
+              ),
+              keyboardType: TextInputType.url,
+              autocorrect: false,
+              enableSuggestions: false,
+              style: AppTypography.bodyLarge,
+              onChanged: (value) {
+                // Prevent re-entrant calls while we're updating the text
+                if (_isExtractingUrl) return;
+                
+                // Extract URL if text contains extra content (e.g. from share sheets)
+                final extracted = _extractUrl(value);
+                if (extracted != value) {
+                  _isExtractingUrl = true;
+                  _urlController.text = extracted;
+                  _urlController.selection = TextSelection.fromPosition(
+                    TextPosition(offset: extracted.length),
+                  );
+                  _isExtractingUrl = false;
+                }
+                setState(() {}); // Refresh to update button state
+              },
+            ),
+            const SizedBox(height: 12),
+
+            // Buttons row - show when URL is entered
+            if (_urlController.text.trim().isNotEmpty)
+              Row(
+                children: [
+                  // Get product info button (for any URL)
+                  if (_urlController.text.trim().startsWith('http'))
+                    Expanded(
+                      child: AppButton.accent(
+                        label:
+                            _isFetchingProductInfo
+                                ? 'Fetching...'
+                                : 'Get product info',
+                        onPressed: !_isFetchingProductInfo ? _fetchProductInfo : null,
+                        isLoading: _isFetchingProductInfo,
+                        size: ButtonSize.small,
+                      ),
+                    ),
+                  if (_urlController.text.trim().startsWith('http'))
+                    const SizedBox(width: 12),
+                  // View item button
+                  Expanded(
+                    child: AppButton.primary(
+                      label: 'View item',
+                      icon: PhosphorIcons.arrowSquareOut(),
+                      size: ButtonSize.small,
+                      onPressed: _openProductUrl,
+                    ),
+                  ),
+                ],
+              ),
+            const SizedBox(height: 24),
+
             // Name field
             TextFormField(
               controller: _nameController,
@@ -435,17 +695,6 @@ class _AddItemSheetState extends State<AddItemSheet>
 
             // Image picker
             _buildImagePicker(),
-            const SizedBox(height: 16),
-
-            // URL field
-            TextFormField(
-              controller: _urlController,
-              decoration: const InputDecoration(
-                hintText: 'Item link (optional)',
-              ),
-              keyboardType: TextInputType.url,
-              style: AppTypography.bodyLarge,
-            ),
             const SizedBox(height: 24),
 
             // Category selection
