@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
 
@@ -68,6 +69,8 @@ class _ListDetailScreenState extends State<ListDetailScreen>
   // Priority animation overlay
   bool _showPriorityAnimation = false;
   ItemPriority? _animatedPriority;
+  int _priorityAnimationKey = 0; // Key to force animation restart
+  Timer? _priorityAnimationTimer;
 
   // Get filtered and sorted items
   List<ListItem> get _filteredItems {
@@ -229,6 +232,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
   @override
   void dispose() {
     _fadeController.dispose();
+    _priorityAnimationTimer?.cancel();
     super.dispose();
   }
 
@@ -1060,6 +1064,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
               child: IgnorePointer(
                 child: Center(
                   child: TweenAnimationBuilder<double>(
+                    key: ValueKey(_priorityAnimationKey),
                     tween: Tween(begin: 0.0, end: 1.0),
                     duration: const Duration(milliseconds: 400),
                     curve: Curves.easeOut,
@@ -2409,36 +2414,36 @@ class _ListDetailScreenState extends State<ListDetailScreen>
     final nextIndex = (currentIndex + 1) % priorities.length;
     final nextPriority = priorities[nextIndex];
     
-    // Play UI sound (don't await - play in background)
-    final player = AudioPlayer();
-    player.play(AssetSource('sounds/ui-sound-270349.mp3'));
+    // Cancel any existing animation timer
+    _priorityAnimationTimer?.cancel();
     
-    // Show the animation
+    // Show the animation (increment key to restart animation)
     setState(() {
       _animatedPriority = nextPriority;
       _showPriorityAnimation = true;
+      _priorityAnimationKey++;
     });
     
     // Auto-hide after animation
-    Future.delayed(const Duration(milliseconds: 800), () {
+    _priorityAnimationTimer = Timer(const Duration(milliseconds: 800), () {
       if (mounted) {
         setState(() => _showPriorityAnimation = false);
       }
     });
     
+    // Update local state immediately (preserve commit/purchase data)
+    setState(() {
+      final index = _items.indexWhere((i) => i.uid == item.uid);
+      if (index != -1) {
+        _items[index] = item.copyWith(priority: nextPriority);
+      }
+    });
+    
     try {
-      final updatedItem = await ItemService().updateItem(
+      await ItemService().updateItem(
         uid: item.uid,
         priority: nextPriority,
       );
-      
-      // Update local state
-      setState(() {
-        final index = _items.indexWhere((i) => i.uid == item.uid);
-        if (index != -1) {
-          _items[index] = updatedItem;
-        }
-      });
     } catch (e) {
       if (mounted) {
         AppNotification.error(context, 'Failed to update priority');

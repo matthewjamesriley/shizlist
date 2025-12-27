@@ -165,7 +165,7 @@ class _InviteScreenState extends State<InviteScreen> {
     }
   }
 
-  void _shareLink() {
+  Future<void> _shareLink(BuildContext context) async {
     if (_currentInvite == null) return;
 
     String message = 'Join me on ShizList!';
@@ -173,10 +173,23 @@ class _InviteScreenState extends State<InviteScreen> {
       message = 'Join my list "${_selectedList!.title}" on ShizList!';
     }
 
-    Share.share(
-      '$message\n\n${_currentInvite!.inviteUrl}',
-      subject: 'ShizList Invite',
-    );
+    try {
+      // Get the button position for iPad share popover
+      final box = context.findRenderObject() as RenderBox?;
+      final sharePositionOrigin = box != null
+          ? box.localToGlobal(Offset.zero) & box.size
+          : null;
+
+      await Share.share(
+        '$message\n\n${_currentInvite!.inviteUrl}',
+        subject: 'ShizList Invite',
+        sharePositionOrigin: sharePositionOrigin,
+      );
+    } catch (e) {
+      if (mounted) {
+        AppNotification.error(context, 'Failed to share: $e');
+      }
+    }
   }
 
   @override
@@ -338,15 +351,16 @@ class _InviteScreenState extends State<InviteScreen> {
                               ),
                               const SizedBox(width: 12),
                               Expanded(
-                                child: SizedBox(
-                                  height: 52,
-                                  child: ElevatedButton.icon(
-                                    onPressed: _shareLink,
-                                    icon: PhosphorIcon(
-                                      PhosphorIcons.shareFat(),
-                                      size: 20,
-                                      color: Colors.white,
-                                    ),
+                                child: Builder(
+                                  builder: (buttonContext) => SizedBox(
+                                    height: 52,
+                                    child: ElevatedButton.icon(
+                                      onPressed: () => _shareLink(buttonContext),
+                                      icon: PhosphorIcon(
+                                        PhosphorIcons.shareFat(),
+                                        size: 20,
+                                        color: Colors.white,
+                                      ),
                                     label: Text(
                                       'Share',
                                       style: AppTypography.titleMedium.copyWith(
@@ -354,11 +368,12 @@ class _InviteScreenState extends State<InviteScreen> {
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppColors.primary,
-                                      foregroundColor: Colors.white,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(26),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.primary,
+                                        foregroundColor: Colors.white,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(26),
+                                        ),
                                       ),
                                     ),
                                   ),

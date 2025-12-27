@@ -98,12 +98,24 @@ class ItemCard extends StatelessWidget {
                       _buildLinkButton(),
                     ],
                     const Spacer(),
-                    // Priority and price on right
-                    if (item.price != null) ...[
-                      Text(item.formattedPrice, style: AppTypography.priceText),
-                      const SizedBox(width: 6),
-                    ],
-                    _buildPriorityBadge(),
+                    // Priority and price on right - tappable area for owners
+                    GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: (isOwner && onPriorityTap != null) ? onPriorityTap : null,
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 8, bottom: 8),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (item.price != null) ...[
+                              Text(item.formattedPrice, style: AppTypography.priceText),
+                              const SizedBox(width: 6),
+                            ],
+                            _buildPriorityBadge(),
+                          ],
+                        ),
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -208,22 +220,11 @@ class ItemCard extends StatelessWidget {
   }
 
   Widget _buildPriorityBadge() {
-    final badge = PhosphorIcon(
+    return PhosphorIcon(
       item.priority.icon,
       size: 20,
       color: item.priority.color,
     );
-    
-    // Make tappable for owners
-    if (isOwner && onPriorityTap != null) {
-      return GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onPriorityTap,
-        child: badge,
-      );
-    }
-    
-    return badge;
   }
 
   Widget _buildCommitStatusRow() {
