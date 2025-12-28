@@ -29,7 +29,21 @@ if (!empty($code)) {
 $ownerName = $invite['users']['display_name'] ?? 'Someone';
 $ownerAvatar = $invite['users']['avatar_url'] ?? null;
 $listTitle = $invite['lists']['title'] ?? null;
+$shareAllLists = !empty($invite['share_all_lists']);
 $hasListShare = !empty($listTitle);
+$hasAnyListShare = $hasListShare || $shareAllLists;
+
+// DEBUG - Remove after testing
+$debugMode = true; // Set to false to hide debug info
+$debugInfo = [
+    'code' => $code,
+    'list_uid' => $invite['list_uid'] ?? 'NULL',
+    'share_all_lists' => $invite['share_all_lists'] ?? 'NOT SET',
+    'listTitle' => $listTitle,
+    'shareAllLists' => $shareAllLists,
+    'hasListShare' => $hasListShare,
+    '_debug_list_query' => $invite['_debug_list_query'] ?? 'NOT RUN',
+];
 
 // App store links
 $appStoreUrl = 'https://apps.apple.com/app/shizlist/id123456789'; // Replace with actual
@@ -49,7 +63,7 @@ $appDeepLink = 'co.shizlist.app://invite/' . $code;
     
     <!-- Open Graph / Social Sharing -->
     <meta property="og:title" content="<?php echo htmlspecialchars($ownerName); ?> invited you to ShizList">
-    <meta property="og:description" content="<?php echo $hasListShare ? 'Join ' . htmlspecialchars($ownerName) . '\'s list: ' . htmlspecialchars($listTitle) : 'Share the stuff you love with ShizList'; ?>">
+    <meta property="og:description" content="<?php echo $hasListShare ? 'Join ' . htmlspecialchars($ownerName) . '\'s list: ' . htmlspecialchars($listTitle) : ($shareAllLists ? 'View all of ' . htmlspecialchars($ownerName) . '\'s ShizLists' : 'Share the stuff you love with ShizList'); ?>">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://shizlist.co/invite/<?php echo htmlspecialchars($code); ?>">
     <meta property="og:image" content="https://shizlist.co/images/og-invite.png">
@@ -78,7 +92,7 @@ $appDeepLink = 'co.shizlist.app://invite/' . $code;
         
         body {
             font-family: 'Source Sans 3', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+            background: #ffffff;
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -88,9 +102,8 @@ $appDeepLink = 'co.shizlist.app://invite/' . $code;
         }
         
         .container {
-            background: var(--surface);
+            background: #f5f2e9;
             border-radius: 24px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
             max-width: 420px;
             width: 100%;
             padding: 48px 32px;
@@ -253,8 +266,12 @@ $appDeepLink = 'co.shizlist.app://invite/' . $code;
         }
         
         .error-icon {
-            font-size: 64px;
             margin-bottom: 24px;
+        }
+        
+        .error-icon img {
+            height: 150px;
+            width: auto;
         }
         
         .error-message {
@@ -327,17 +344,19 @@ $appDeepLink = 'co.shizlist.app://invite/' . $code;
     <div class="container">
         <?php if ($error): ?>
             <div class="logo" style="margin-bottom: 32px;">
-                <img src="/images/ShizList-Splash.jpg" alt="ShizList">
+                <img src="/images/Logo-Full.png" alt="ShizList">
             </div>
             <div class="error-container">
-                <div class="error-icon">😕</div>
+                <div class="error-icon">
+                    <img src="/images/sad-monster.png" alt="Oops">
+                </div>
                 <p class="error-message"><?php echo htmlspecialchars($error); ?></p>
                 <a href="https://shizlist.co" class="cta-button">Go to ShizList</a>
             </div>
         <?php else: ?>
             <div class="header-row">
                 <div class="logo">
-                    <img src="/images/ShizList-Splash.jpg" alt="ShizList">
+                    <img src="/images/Logo-Full.png" alt="ShizList">
                 </div>
                 <div class="avatar">
                     <?php if (!empty($ownerAvatar)): ?>
@@ -355,7 +374,9 @@ $appDeepLink = 'co.shizlist.app://invite/' . $code;
             
             <p class="invite-detail">
                 <?php if ($hasListShare): ?>
-                    You've been invited to view the <strong>"<?php echo htmlspecialchars($listTitle); ?>"</strong> ShizList.
+                    You've been invited to the <strong>"<?php echo htmlspecialchars($listTitle); ?>"</strong> list.
+                <?php elseif ($shareAllLists): ?>
+                    You've been invited to view all of <?php echo htmlspecialchars($ownerName); ?>'s lists.
                 <?php else: ?>
                     You've been invited to connect on ShizList - the best way to share wish lists with friends and family.
                 <?php endif; ?>
@@ -421,7 +442,7 @@ $appDeepLink = 'co.shizlist.app://invite/' . $code;
                     </a>
                 </div>
                 
-                <p class="tagline">Share the stuff you love ❤️</p>
+                <p class="tagline">Share the stuff you love</p>
             </div>
         <?php endif; ?>
     </div>
@@ -437,5 +458,13 @@ $appDeepLink = 'co.shizlist.app://invite/' . $code;
             document.body.classList.add('is-desktop');
         }
     </script>
+    
+    <?php if ($debugMode && !$error): ?>
+    <!-- DEBUG OUTPUT - Remove after testing -->
+    <div style="position: fixed; bottom: 0; left: 0; right: 0; background: #333; color: #0f0; padding: 16px; font-family: monospace; font-size: 12px; max-height: 300px; overflow: auto; z-index: 9999;">
+        <strong>🔧 DEBUG INFO:</strong><br><br>
+        <pre><?php print_r($debugInfo); ?></pre>
+    </div>
+    <?php endif; ?>
 </body>
 </html>

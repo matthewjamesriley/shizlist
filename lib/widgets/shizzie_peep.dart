@@ -1,7 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 
-/// A playful animated Shizzie character that peeks in from the bottom of the screen.
+/// A playful animated Shizzie character that peeks in from the edges of the screen.
 ///
 /// Usage: Add `ShizziePeep()` to a Stack at the bottom of your page.
 ///
@@ -42,14 +42,21 @@ class ShizziePeep extends StatefulWidget {
     this.slideOutDuration = const Duration(milliseconds: 200),
     this.visibleDuration = const Duration(seconds: 3),
     this.loopDelay = const Duration(seconds: 3),
-    this.imageHeight = 120,
+    this.imageHeight = 184,
   });
 
   @override
   State<ShizziePeep> createState() => _ShizziePeepState();
 }
 
-enum _PeepPosition { bottomLeft, bottomCenter, bottomRight }
+enum _PeepPosition {
+  bottomLeft,
+  bottomCenter,
+  bottomRight,
+  topLeft,
+  topCenter,
+  topRight,
+}
 
 class _ShizziePeepState extends State<ShizziePeep>
     with SingleTickerProviderStateMixin {
@@ -90,6 +97,12 @@ class _ShizziePeepState extends State<ShizziePeep>
         return const Offset(0, 1); // From bottom
       case _PeepPosition.bottomRight:
         return const Offset(1, 1); // From bottom-right
+      case _PeepPosition.topLeft:
+        return const Offset(-1, -1); // From top-left
+      case _PeepPosition.topCenter:
+        return const Offset(0, -1); // From top
+      case _PeepPosition.topRight:
+        return const Offset(1, -1); // From top-right
     }
   }
 
@@ -101,6 +114,12 @@ class _ShizziePeepState extends State<ShizziePeep>
         return 0; // No rotation
       case _PeepPosition.bottomRight:
         return -0.785398; // -45 degrees
+      case _PeepPosition.topLeft:
+        return 3.14159 - 0.785398; // 180 - 45 = 135 degrees
+      case _PeepPosition.topCenter:
+        return 3.14159; // 180 degrees (upside down)
+      case _PeepPosition.topRight:
+        return 3.14159 + 0.785398; // 180 + 45 = 225 degrees
     }
   }
 
@@ -171,26 +190,35 @@ class _ShizziePeepState extends State<ShizziePeep>
 
   @override
   Widget build(BuildContext context) {
+    // Hide when keyboard is visible
+    final keyboardVisible = MediaQuery.of(context).viewInsets.bottom > 50;
+
+    final shizzieWidget =
+        keyboardVisible ? const SizedBox.shrink() : _buildAnimatedShizzie();
+
     switch (_currentPosition) {
       case _PeepPosition.bottomLeft:
-        return Positioned(
-          left: -25,
-          bottom: 10,
-          child: _buildAnimatedShizzie(),
-        );
+        return Positioned(left: -45, bottom: -40, child: shizzieWidget);
       case _PeepPosition.bottomCenter:
         return Positioned(
           left: 0,
           right: 0,
-          bottom: -20,
-          child: Center(child: _buildAnimatedShizzie()),
+          bottom: -90,
+          child: Center(child: shizzieWidget),
         );
       case _PeepPosition.bottomRight:
+        return Positioned(right: -45, bottom: -40, child: shizzieWidget);
+      case _PeepPosition.topLeft:
+        return Positioned(left: -50, top: -55, child: shizzieWidget);
+      case _PeepPosition.topCenter:
         return Positioned(
-          right: -25,
-          bottom: 10,
-          child: _buildAnimatedShizzie(),
+          left: 0,
+          right: 0,
+          top: -90,
+          child: Center(child: shizzieWidget),
         );
+      case _PeepPosition.topRight:
+        return Positioned(right: -45, top: -55, child: shizzieWidget);
     }
   }
 

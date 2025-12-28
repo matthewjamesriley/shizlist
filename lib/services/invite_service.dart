@@ -18,7 +18,9 @@ class InviteService {
   }
 
   /// Create a new invite link
-  Future<InviteLink> createInviteLink({int? listId}) async {
+  /// If [shareAllLists] is true, all non-private lists will be shared when accepted
+  /// If [listUid] is provided, only that specific list will be shared
+  Future<InviteLink> createInviteLink({String? listUid, bool shareAllLists = false}) async {
     final userId = SupabaseService.currentUserId;
     if (userId == null) throw Exception('User not authenticated');
 
@@ -27,7 +29,8 @@ class InviteService {
     final data = {
       'owner_id': userId,
       'code': code,
-      if (listId != null) 'list_id': listId,
+      'share_all_lists': shareAllLists,
+      if (listUid != null) 'list_uid': listUid,
     };
 
     final response =
@@ -159,21 +162,18 @@ class InviteService {
       });
     }
 
-    // If invite has a list, try to share it with the accepting user
-    // This may fail due to RLS policies - the friendship is the priority
-    if (invite.listId != null) {
-      try {
-        final listId = invite.listId!;
+    // Share lists based on invite settings
+    try {
+      if (invite.shareAllLists) {
+        // Share all non-private lists from the invite owner
+        final listsResponse = await _client
+            .from('lists')
+            .select('uid')
+            .eq('owner_id', invite.ownerId)
+            .neq('visibility', 'private')
+            .eq('is_deleted', false);
 
-        // Get the list UID first
-        final listData =
-            await _client
-                .from('lists')
-                .select('uid')
-                .eq('id', listId)
-                .maybeSingle();
-
-        if (listData != null) {
+        for (final listData in listsResponse as List) {
           final listUid = listData['uid'] as String;
 
           // Check if list is already shared
@@ -193,11 +193,31 @@ class InviteService {
             });
           }
         }
-      } catch (e) {
-        // List sharing failed due to RLS policy - friendship is still created
-        // The list owner can share manually later
-        debugPrint('List sharing failed (RLS): $e');
+      } else if (invite.listUid != null) {
+        // Share specific list - we already have the UID
+        final listUid = invite.listUid!;
+
+        // Check if list is already shared
+        final existingShare =
+            await _client
+                .from('list_shares')
+                .select('id')
+                .eq('list_uid', listUid)
+                .eq('shared_with_user_id', userId)
+                .maybeSingle();
+
+        if (existingShare == null) {
+          await _client.from('list_shares').insert({
+            'list_uid': listUid,
+            'shared_with_user_id': userId,
+            'can_edit': false,
+          });
+        }
       }
+    } catch (e) {
+      // List sharing failed due to RLS policy - friendship is still created
+      // The list owner can share manually later
+      debugPrint('List sharing failed (RLS): $e');
     }
 
     // Increment uses count

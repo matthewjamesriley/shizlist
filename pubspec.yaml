@@ -1,7 +1,7 @@
 name: shizlist
 description: "Share the stuff you love - A collaborative wish list app"
 publish_to: 'none'
-version: 1.0.23+28
+version: 1.0.25+30
 
 environment:
   sdk: ^3.7.2
@@ -63,9 +63,9 @@ dev_dependencies:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/images/app_icon.png"
+  image_path: "assets/images/app_icon_shizzie.png"
   adaptive_icon_background: "#FFFFFF"
-  adaptive_icon_foreground: "assets/images/app_icon.png"
+  adaptive_icon_foreground: "assets/images/app_icon_shizzie.png"
   min_sdk_android: 21
   remove_alpha_ios: true
 

@@ -72,16 +72,21 @@ function get_invite_by_code($code) {
             }
         }
         
-        // Get list info separately if list_id exists
-        if (!empty($invite['list_id'])) {
+        // Get list info separately if list_uid exists
+        if (!empty($invite['list_uid'])) {
             $list = supabase_get('lists', [
                 'select' => 'title',
-                'id' => 'eq.' . $invite['list_id']
+                'uid' => 'eq.' . $invite['list_uid']
             ]);
+            // DEBUG: Store raw list query result
+            $invite['_debug_list_query'] = $list;
             if (!empty($list) && is_array($list) && count($list) > 0) {
                 $invite['lists'] = $list[0];
             }
         }
+        
+        // Check for share_all_lists flag
+        $invite['share_all_lists'] = !empty($invite['share_all_lists']);
         
         return $invite;
     }

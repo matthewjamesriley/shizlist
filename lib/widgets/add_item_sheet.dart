@@ -63,7 +63,7 @@ class _AddItemSheetState extends State<AddItemSheet>
   ItemPriority _selectedPriority = ItemPriority.none;
   bool _isLoading = false;
   bool _isLoadingLists = true;
-  
+
   // Flag to prevent re-entrant URL extraction
   bool _isExtractingUrl = false;
 
@@ -87,15 +87,11 @@ class _AddItemSheetState extends State<AddItemSheet>
   ItemCategory _quickAddCategory = ItemCategory.stuff;
   ItemPriority _quickAddPriority = ItemPriority.none;
 
-  // Amazon URL paste
-  final _amazonUrlController = TextEditingController();
-  bool _isFetchingAmazon = false;
-  Map<String, String?>? _amazonProductInfo;
-  ItemCategory _amazonCategory = ItemCategory.stuff;
-  ItemPriority _amazonPriority = ItemPriority.none;
-
   // Product info fetching for Item details tab
   bool _isFetchingProductInfo = false;
+
+  // How this works expandable section
+  bool _showHowItWorks = false;
 
   @override
   void initState() {
@@ -154,8 +150,8 @@ class _AddItemSheetState extends State<AddItemSheet>
     if (clipboardData?.text != null && clipboardData!.text!.isNotEmpty) {
       var extracted = _extractUrl(clipboardData.text!);
       // Add https:// if no protocol present
-      if (extracted.isNotEmpty && 
-          !extracted.startsWith('http://') && 
+      if (extracted.isNotEmpty &&
+          !extracted.startsWith('http://') &&
           !extracted.startsWith('https://')) {
         extracted = 'https://$extracted';
       }
@@ -355,7 +351,6 @@ class _AddItemSheetState extends State<AddItemSheet>
     _urlController.dispose();
     _listSearchController.dispose();
     _amazonSearchController.dispose();
-    _amazonUrlController.dispose();
     _quickAddController.dispose();
     _quickAddFocusNode.dispose();
     _priceFocusNode.removeListener(_onPriceFocusChange);
@@ -541,7 +536,7 @@ class _AddItemSheetState extends State<AddItemSheet>
               onChanged: (value) {
                 // Prevent re-entrant calls while we're updating the text
                 if (_isExtractingUrl) return;
-                
+
                 // Extract URL if text contains extra content (e.g. from share sheets)
                 final extracted = _extractUrl(value);
                 if (extracted != value) {
@@ -569,7 +564,8 @@ class _AddItemSheetState extends State<AddItemSheet>
                             _isFetchingProductInfo
                                 ? 'Fetching...'
                                 : 'Get product info',
-                        onPressed: !_isFetchingProductInfo ? _fetchProductInfo : null,
+                        onPressed:
+                            !_isFetchingProductInfo ? _fetchProductInfo : null,
                         isLoading: _isFetchingProductInfo,
                         size: ButtonSize.small,
                       ),
@@ -587,6 +583,102 @@ class _AddItemSheetState extends State<AddItemSheet>
                   ),
                 ],
               ),
+
+            // How this works - expandable
+            if (_urlController.text.trim().isEmpty) ...[
+              const SizedBox(height: 0),
+              GestureDetector(
+                onTap: () => setState(() => _showHowItWorks = !_showHowItWorks),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    PhosphorIcon(
+                      PhosphorIcons.question(),
+                      size: 20,
+                      color: AppColors.textSecondary,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'How this works',
+                      style: AppTypography.titleMedium.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    PhosphorIcon(
+                      _showHowItWorks
+                          ? PhosphorIcons.caretUp()
+                          : PhosphorIcons.caretDown(),
+                      size: 18,
+                      color: AppColors.textSecondary,
+                    ),
+                  ],
+                ),
+              ),
+              if (_showHowItWorks) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceVariant,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildInstructionStep(
+                        '1',
+                        'Find a product on any website or app and copy the link from the share button or the address bar',
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Divider(
+                          color: AppColors.divider.withValues(alpha: 0.5),
+                          height: 1,
+                        ),
+                      ),
+                      _buildInstructionStep(
+                        '2',
+                        'Paste any product link above by tapping the red clipboard icon',
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Divider(
+                          color: AppColors.divider.withValues(alpha: 0.5),
+                          height: 1,
+                        ),
+                      ),
+                      _buildInstructionStep(
+                        '3',
+                        'Tap "Get product info" to auto-fill the name, price, image and so on...',
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Divider(
+                          color: AppColors.divider.withValues(alpha: 0.5),
+                          height: 1,
+                        ),
+                      ),
+                      _buildInstructionStep(
+                        '4',
+                        'Enter any missing information, such as size, color, quantity, etc...',
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Divider(
+                          color: AppColors.divider.withValues(alpha: 0.5),
+                          height: 1,
+                        ),
+                      ),
+                      _buildInstructionStep(
+                        '5',
+                        'Once you\'re happy, tap "Add"',
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
             const SizedBox(height: 24),
 
             // Name field
@@ -780,293 +872,87 @@ class _AddItemSheetState extends State<AddItemSheet>
             onPressed: _openAmazonBrowser,
           ),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
 
-          // Divider with "or"
-          Row(
-            children: [
-              const Expanded(child: Divider()),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Text(
-                  'or paste a link',
-                  style: AppTypography.bodyMedium.copyWith(
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-              ),
-              const Expanded(child: Divider()),
-            ],
-          ),
-
-          const SizedBox(height: 20),
-
-          // URL paste field
-          TextField(
-            controller: _amazonUrlController,
-            style: AppTypography.bodyLarge,
-            decoration: InputDecoration(
-              hintText: 'Paste Amazon product link...',
-              prefixIcon: Padding(
-                padding: const EdgeInsets.only(left: 12, right: 8),
-                child: PhosphorIcon(
-                  PhosphorIcons.link(),
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              prefixIconConstraints: const BoxConstraints(minWidth: 0),
-              suffixIcon:
-                  _amazonUrlController.text.isNotEmpty
-                      ? IconButton(
-                        icon: PhosphorIcon(PhosphorIcons.x()),
-                        onPressed: _clearAmazonUrl,
-                      )
-                      : null,
+          // How it works section
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceVariant,
+              borderRadius: BorderRadius.circular(16),
             ),
-            onChanged: (_) => setState(() {}),
-            onSubmitted: (_) => _processAmazonUrl(),
-          ),
-          const SizedBox(height: 12),
-
-          // Process button
-          AppButton.primary(
-            label: _isFetchingAmazon ? 'Fetching...' : 'Get product info',
-            onPressed:
-                _amazonUrlController.text.isNotEmpty && !_isFetchingAmazon
-                    ? _processAmazonUrl
-                    : null,
-            trailingIcon: PhosphorIcons.arrowRight(),
-            isLoading: _isFetchingAmazon,
-          ),
-
-          // Product info display
-          if (_amazonProductInfo != null) ...[
-            const SizedBox(height: 24),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceVariant,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: AppColors.primary.withValues(alpha: 0.3),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Product info with image
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Product image or placeholder
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child:
-                            _amazonProductInfo!['imageUrl'] != null
-                                ? Image.network(
-                                  _amazonProductInfo!['imageUrl']!,
-                                  width: 80,
-                                  height: 80,
-                                  fit: BoxFit.cover,
-                                  errorBuilder:
-                                      (_, __, ___) => _buildAmazonPlaceholder(),
-                                )
-                                : _buildAmazonPlaceholder(),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _amazonProductInfo!['title'] ?? 'Amazon Product',
-                              style: AppTypography.titleMedium,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 6),
-                            // Price if available
-                            if (_amazonProductInfo!['price'] != null)
-                              Text(
-                                '${UserSettingsService().currencySymbol}${_amazonProductInfo!['price']}',
-                                style: AppTypography.titleLarge.copyWith(
-                                  color: AppColors.primary,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Priority dropdown
-                  Text('Priority', style: AppTypography.titleMedium),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppColors.divider),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    PhosphorIcon(
+                      PhosphorIcons.info(),
+                      size: 20,
+                      color: AppColors.textSecondary,
                     ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<ItemPriority>(
-                        value: _amazonPriority,
-                        isExpanded: true,
-                        icon: PhosphorIcon(
-                          PhosphorIcons.caretDown(),
-                          color: AppColors.textPrimary,
-                          size: 18,
-                        ),
-                        style: AppTypography.bodyLarge.copyWith(
-                          color: AppColors.textPrimary,
-                        ),
-                        items:
-                            ItemPriority.values.map((priority) {
-                              return DropdownMenuItem<ItemPriority>(
-                                value: priority,
-                                child: Row(
-                                  children: [
-                                    PhosphorIcon(
-                                      priority.icon,
-                                      color: priority.color,
-                                      size: 18,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Flexible(
-                                      child: Text(
-                                        priority.displayName,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            }).toList(),
-                        onChanged: (value) {
-                          if (value != null) {
-                            setState(() => _amazonPriority = value);
-                          }
-                        },
+                    const SizedBox(width: 8),
+                    Text(
+                      'How it works',
+                      style: AppTypography.titleMedium.copyWith(
+                        color: AppColors.textSecondary,
                       ),
                     ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _buildInstructionStep(
+                  '1',
+                  'Tap "Browse Amazon" to open the Amazon website',
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Divider(
+                    color: AppColors.divider.withValues(alpha: 0.5),
+                    height: 1,
                   ),
-                  const SizedBox(height: 20),
-
-                  // Category selection (wrapped)
-                  Text('Category', style: AppTypography.titleMedium),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children:
-                        ItemCategory.values.map((category) {
-                          final isSelected = _amazonCategory == category;
-                          return GestureDetector(
-                            onTap:
-                                () =>
-                                    setState(() => _amazonCategory = category),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                color:
-                                    isSelected ? category.color : Colors.white,
-                                borderRadius: BorderRadius.circular(50),
-                                border: Border.all(
-                                  color:
-                                      isSelected
-                                          ? category.color
-                                          : AppColors.divider,
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  PhosphorIcon(
-                                    category.icon,
-                                    size: 16,
-                                    color:
-                                        isSelected
-                                            ? Colors.white
-                                            : category.color,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    category.displayName,
-                                    style: AppTypography.bodyMedium.copyWith(
-                                      color:
-                                          isSelected
-                                              ? Colors.white
-                                              : AppColors.textPrimary,
-                                      fontWeight:
-                                          isSelected
-                                              ? FontWeight.w600
-                                              : FontWeight.normal,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        }).toList(),
+                ),
+                _buildInstructionStep(
+                  '2',
+                  'Search for the product you want, don\'t select \'Add to basket\' in Amazon, instead open the product page',
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Divider(
+                    color: AppColors.divider.withValues(alpha: 0.5),
+                    height: 1,
                   ),
-                ],
-              ),
+                ),
+                _buildInstructionStep(
+                  '3',
+                  'Tap the "Add to list" button at the bottom of the screen',
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Divider(
+                    color: AppColors.divider.withValues(alpha: 0.5),
+                    height: 1,
+                  ),
+                ),
+                _buildInstructionStep(
+                  '4',
+                  'The product will be added to your list',
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Divider(
+                    color: AppColors.divider.withValues(alpha: 0.5),
+                    height: 1,
+                  ),
+                ),
+                //once you have finished
+                _buildInstructionStep(
+                  '5',
+                  'Once you have finished, select X to close the browser and return to the app',
+                ),
+              ],
             ),
-          ] else ...[
-            // Empty state
-            const SizedBox(height: 16),
-            Center(
-              child: Column(
-                children: [
-                  const SizedBox(height: 16),
-                  Text(
-                    'Paste an Amazon product',
-                    style: AppTypography.titleLarge.copyWith(
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'The product info will be fetched automatically',
-                    style: AppTypography.bodyLarge.copyWith(
-                      color: AppColors.textPrimary,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 24),
-                  // How to get URL instructions
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceVariant,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'How to get a product URL:',
-                          style: AppTypography.titleMedium,
-                        ),
-                        const SizedBox(height: 12),
-                        _buildInstructionStep('1', 'Find a product on Amazon'),
-                        const SizedBox(height: 8),
-                        _buildInstructionStep('2', 'Tap Share → Copy Link'),
-                        const SizedBox(height: 8),
-                        _buildInstructionStep('3', 'Paste the link URL above'),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+          ),
         ],
       ),
     );
@@ -1076,102 +962,31 @@ class _AddItemSheetState extends State<AddItemSheet>
     return Row(
       children: [
         Container(
-          width: 24,
-          height: 24,
+          width: 28,
+          height: 28,
           decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.1),
+            color: AppColors.primary.withValues(alpha: 0.15),
             shape: BoxShape.circle,
           ),
           child: Center(
             child: Text(
               number,
-              style: AppTypography.bodySmall.copyWith(
+              style: AppTypography.titleMedium.copyWith(
                 color: AppColors.primary,
                 fontWeight: FontWeight.bold,
               ),
             ),
           ),
         ),
-        const SizedBox(width: 12),
-        Text(text, style: AppTypography.bodyLarge),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Text(
+            text,
+            style: AppTypography.bodyLarge.copyWith(fontSize: 16),
+          ),
+        ),
       ],
     );
-  }
-
-  void _clearAmazonUrl() {
-    setState(() {
-      _amazonUrlController.clear();
-      _amazonProductInfo = null;
-    });
-  }
-
-  Widget _buildAmazonPlaceholder() {
-    return Container(
-      width: 80,
-      height: 80,
-      decoration: BoxDecoration(
-        color: const Color(0xFFFF9900).withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Center(
-        child: PhosphorIcon(
-          PhosphorIcons.amazonLogo(),
-          color: const Color(0xFFFF9900),
-          size: 36,
-        ),
-      ),
-    );
-  }
-
-  Future<void> _processAmazonUrl() async {
-    final url = _amazonUrlController.text.trim();
-    if (url.isEmpty) return;
-
-    if (!AmazonService.isAmazonUrl(url)) {
-      AppNotification.error(context, 'Please enter a valid Amazon URL');
-      return;
-    }
-
-    // Check if it's a search results page
-    if (AmazonService.isSearchUrl(url)) {
-      AppNotification.error(
-        context,
-        'This is a search page. Please select a specific product first.',
-      );
-      return;
-    }
-
-    setState(() => _isFetchingAmazon = true);
-
-    try {
-      // Resolve short links first (amzn.to, a.co, amzn.eu, etc.)
-      String resolvedUrl = url;
-      if (AmazonService.isShortLink(url)) {
-        resolvedUrl = await AmazonService.resolveShortLink(url);
-      }
-
-      final asin = AmazonService.extractAsin(resolvedUrl);
-      if (asin == null) {
-        if (mounted) {
-          setState(() => _isFetchingAmazon = false);
-          AppNotification.error(context, 'Could not find product in this URL');
-        }
-        return;
-      }
-
-      final info = await AmazonService.fetchProductInfo(url);
-      if (mounted) {
-        setState(() {
-          _amazonProductInfo = info;
-          _isFetchingAmazon = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isFetchingAmazon = false);
-        AppNotification.error(context, 'Failed to fetch product info');
-      }
-    }
   }
 
   Future<void> _openAmazonBrowser() async {
@@ -1186,73 +1001,6 @@ class _AddItemSheetState extends State<AddItemSheet>
     // Just close the Add Item sheet when browser is closed
     if (mounted) {
       Navigator.of(context).pop();
-    }
-  }
-
-  Future<void> _addAmazonItem() async {
-    if (_amazonProductInfo == null) return;
-    if (_selectedList == null) {
-      AppNotification.error(context, 'Please select a list first');
-      return;
-    }
-
-    setState(() => _isLoading = true);
-
-    try {
-      String? thumbnailUrl;
-      String? mainImageUrl;
-
-      // Try to download and upload the Amazon image to Supabase
-      final imageUrl = _amazonProductInfo!['imageUrl'];
-      if (imageUrl != null && imageUrl.isNotEmpty) {
-        try {
-          final uploadResult = await ImageUploadService().downloadAndUpload(
-            imageUrl,
-            onProgress: (progress, status) {
-              // Could show progress here if needed
-            },
-          );
-          if (uploadResult != null) {
-            thumbnailUrl = uploadResult.thumbnailUrl;
-            mainImageUrl = uploadResult.mainImageUrl;
-          }
-        } catch (e) {
-          // Image upload failed, continue without image
-        }
-      }
-
-      // Parse price from string to double
-      double? price;
-      final priceStr = _amazonProductInfo!['price'];
-      if (priceStr != null && priceStr.isNotEmpty) {
-        price = double.tryParse(priceStr.replaceAll(',', ''));
-      }
-
-      await ItemService().createItem(
-        listId: _selectedList!.id,
-        name: _amazonProductInfo!['title'] ?? 'Amazon Product',
-        price: price,
-        currency: UserSettingsService().currencyCode,
-        retailerUrl: _amazonProductInfo!['affiliateUrl'],
-        category: _amazonCategory,
-        priority: _amazonPriority,
-        thumbnailUrl: thumbnailUrl,
-        mainImageUrl: mainImageUrl,
-      );
-
-      if (mounted) {
-        ListsNotifier().notifyItemCountChanged();
-        Navigator.pop(context);
-        AppNotification.success(
-          context,
-          'Added Amazon item to "${_selectedList!.title}"',
-        );
-      }
-    } catch (e) {
-      setState(() => _isLoading = false);
-      if (mounted) {
-        AppNotification.error(context, 'Failed to add item: $e');
-      }
     }
   }
 
@@ -1986,9 +1734,9 @@ class _AddItemSheetState extends State<AddItemSheet>
   Future<void> _saveItem() async {
     // Check which tab is active
 
-    // Amazon tab (index 1)
+    // Amazon tab (index 1) - items are added directly from browser
     if (_tabController.index == 1) {
-      await _addAmazonItem();
+      AppNotification.error(context, 'Use "Browse Amazon" to add items');
       return;
     }
 

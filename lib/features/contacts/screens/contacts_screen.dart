@@ -76,13 +76,13 @@ class _ContactsScreenState extends State<ContactsScreen> {
     // Play alert sound
     final player = AudioPlayer();
     player.play(AssetSource('sounds/alert.mp3'));
-    
+
     // First add the widget to the tree off-screen
     setState(() {
       _toastNotification = notification;
       _showToast = false;
     });
-    
+
     // Then animate it in after a frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
@@ -114,9 +114,9 @@ class _ContactsScreenState extends State<ContactsScreen> {
   }
 
   void _openNotifications() {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const NotificationsScreen()),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const NotificationsScreen()));
   }
 
   @override
@@ -1183,7 +1183,7 @@ class _ManageListsSheetState extends State<_ManageListsSheet>
                   ),
                   tabs: [
                     Tab(text: '$firstName\'s lists'),
-                    const Tab(text: 'Lists you are sharing'),
+                    const Tab(text: 'Lists you\'re sharing'),
                   ],
                 ),
               ],

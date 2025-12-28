@@ -149,14 +149,12 @@ class _AmazonBrowserScreenState extends State<AmazonBrowserScreen>
       _isOnProductPage = isOnProduct;
     });
 
-    // Show button with delay only after page finishes loading
+    // Show button immediately when on product page
     if (isPageFinished && isOnProduct && _currentUrl != _lastAddedUrl) {
-      Future.delayed(const Duration(seconds: 1), () {
-        if (mounted && _isOnProductPage && _currentUrl != _lastAddedUrl) {
-          setState(() => _showAddButton = true);
-          _buttonAnimController.forward();
-        }
-      });
+      if (mounted) {
+        setState(() => _showAddButton = true);
+        _buttonAnimController.forward();
+      }
     }
   }
 
@@ -448,6 +446,34 @@ class _AmazonBrowserScreenState extends State<AmazonBrowserScreen>
               },
               child: _buildAddButton(),
             ),
+
+          // Footer hint when not on product page
+          if (!_showAddButton || _currentUrl == _lastAddedUrl)
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: PointerInterceptor(
+                child: Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.fromLTRB(
+                    20,
+                    20,
+                    20,
+                    0 + MediaQuery.of(context).padding.bottom,
+                  ),
+                  color: Colors.black.withValues(alpha: 0.85),
+                  child: Text(
+                    'Browse to a product page to add an item to your \'${widget.selectedList?.title ?? 'list'}\' list',
+                    style: AppTypography.titleLarge.copyWith(
+                      color: Colors.white,
+                      fontSize: 18,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -456,6 +482,8 @@ class _AmazonBrowserScreenState extends State<AmazonBrowserScreen>
   Widget _buildAddButton() {
     return Container(
       decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(color: Colors.black, width: 4),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.3),
