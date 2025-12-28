@@ -28,6 +28,7 @@ import '../../../widgets/app_notification.dart';
 import '../../../widgets/bottom_sheet_header.dart';
 import '../../../widgets/edit_item_sheet.dart';
 import '../../../widgets/item_card.dart';
+import '../../../widgets/shizzie_peep.dart';
 import '../../../widgets/fading_image_carousel.dart';
 import '../../../services/supabase_service.dart';
 import '../../notifications/screens/notifications_screen.dart';
@@ -338,19 +339,22 @@ class _ListDetailScreenState extends State<ListDetailScreen>
     }
 
     // Get item images for carousel (when no cover image is set) - prefer main images over thumbnails
-    final itemImages = _items
-        .where((item) => item.mainImageUrl != null || item.thumbnailUrl != null)
-        .take(5)
-        .map((item) => item.mainImageUrl ?? item.thumbnailUrl!)
-        .toList();
-    final hasCarouselImages = _list.coverImageUrl == null && itemImages.isNotEmpty;
+    final itemImages =
+        _items
+            .where(
+              (item) => item.mainImageUrl != null || item.thumbnailUrl != null,
+            )
+            .take(5)
+            .map((item) => item.mainImageUrl ?? item.thumbnailUrl!)
+            .toList();
+    final hasCarouselImages =
+        _list.coverImageUrl == null && itemImages.isNotEmpty;
 
     // Use taller header on iPad/tablets when there's a cover image or carousel
     final isTablet = MediaQuery.of(context).size.width > 600;
     final baseToolbarHeight = _list.description != null ? 70.0 : kToolbarHeight;
     final hasImage = _list.coverImageUrl != null || hasCarouselImages;
-    final toolbarHeight =
-        hasImage && isTablet ? 140.0 : baseToolbarHeight;
+    final toolbarHeight = hasImage && isTablet ? 140.0 : baseToolbarHeight;
 
     return Scaffold(
       appBar: AppBar(
@@ -1002,44 +1006,47 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Multi select button (left)
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(32),
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 6.5, sigmaY: 6.5),
-                          child: Material(
-                            color: Colors.white.withValues(alpha: 0.92),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(32),
-                              side: BorderSide(
-                                color: Colors.black.withValues(alpha: 0.2),
-                                width: 1,
-                              ),
-                            ),
-                            child: InkWell(
-                              onTap:
-                                  () => setState(() {
-                                    _isMultiSelectMode = true;
-                                    _selectedItemUids.clear();
-                                  }),
-                              borderRadius: BorderRadius.circular(32),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 28,
-                                  vertical: 16,
+                      // Multi select button (left) - only show when there are items
+                      if (_items.isNotEmpty)
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(32),
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(sigmaX: 6.5, sigmaY: 6.5),
+                            child: Material(
+                              color: Colors.white.withValues(alpha: 0.92),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(32),
+                                side: BorderSide(
+                                  color: Colors.black.withValues(alpha: 0.2),
+                                  width: 1,
                                 ),
-                                child: Text(
-                                  'Multi select (${_items.length} ${_items.length == 1 ? 'item' : 'items'})',
-                                  style: AppTypography.titleMedium.copyWith(
-                                    color: Colors.black,
-                                    fontSize: 15,
+                              ),
+                              child: InkWell(
+                                onTap:
+                                    () => setState(() {
+                                      _isMultiSelectMode = true;
+                                      _selectedItemUids.clear();
+                                    }),
+                                borderRadius: BorderRadius.circular(32),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 28,
+                                    vertical: 16,
+                                  ),
+                                  child: Text(
+                                    'Multi select (${_items.length} ${_items.length == 1 ? 'item' : 'items'})',
+                                    style: AppTypography.titleMedium.copyWith(
+                                      color: Colors.black,
+                                      fontSize: 15,
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                      ),
+                        )
+                      else
+                        const SizedBox.shrink(), // Spacer to keep + button on right
                       // Add Item button (right) - Orange
                       Material(
                         color: AppColors.accent,
@@ -1453,30 +1460,35 @@ class _ListDetailScreenState extends State<ListDetailScreen>
   }
 
   Widget _buildEmptyState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.inventory_2_outlined,
-              size: 64,
-              color: AppColors.textHint,
+    return Stack(
+      children: [
+        Center(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(32, 32, 32, 120),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.inventory_2_outlined,
+                  size: 64,
+                  color: AppColors.textHint,
+                ),
+                const SizedBox(height: 16),
+                Text('No items yet', style: AppTypography.titleLarge),
+                const SizedBox(height: 8),
+                Text(
+                  'Add items to your list using the + button',
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: AppColors.textPrimary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            Text('No Items Yet', style: AppTypography.titleLarge),
-            const SizedBox(height: 8),
-            Text(
-              'Add items to your list using the + button',
-              style: AppTypography.bodyMedium.copyWith(
-                color: AppColors.textPrimary,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
+          ),
         ),
-      ),
+        const ShizziePeep(),
+      ],
     );
   }
 

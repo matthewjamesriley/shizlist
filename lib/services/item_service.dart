@@ -176,14 +176,14 @@ class ItemService {
     // Fetch commits and purchases in parallel
     final results = await Future.wait([
       _client
-          .from(SupabaseConfig.commitsTable)
-          .select()
-          .inFilter('item_uid', itemUids)
+        .from(SupabaseConfig.commitsTable)
+        .select()
+        .inFilter('item_uid', itemUids)
           .inFilter('status', ['active', 'purchased']),
       _client
-          .from(SupabaseConfig.purchasesTable)
-          .select()
-          .inFilter('item_uid', itemUids)
+        .from(SupabaseConfig.purchasesTable)
+        .select()
+        .inFilter('item_uid', itemUids)
           .inFilter('status', ['active', 'purchased']),
     ]);
 
@@ -519,10 +519,10 @@ class ItemService {
     // First check if a purchase already exists for this item
     final existing =
         await _client
-            .from(SupabaseConfig.purchasesTable)
-            .select('id')
-            .eq('item_uid', itemUid)
-            .maybeSingle();
+        .from(SupabaseConfig.purchasesTable)
+        .select('id')
+        .eq('item_uid', itemUid)
+        .maybeSingle();
 
     if (existing != null) {
       // Update existing purchase

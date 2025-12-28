@@ -88,13 +88,13 @@ class _ListsScreenState extends State<ListsScreen>
     // Play alert sound
     final player = AudioPlayer();
     player.play(AssetSource('sounds/alert.mp3'));
-    
+
     // First add the widget to the tree off-screen
     setState(() {
       _toastNotification = notification;
       _showToast = false;
     });
-    
+
     // Then animate it in after a frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
@@ -242,7 +242,8 @@ class _ListsScreenState extends State<ListsScreen>
   /// Load item images for lists without cover images
   Future<void> _loadThumbnailsInBackground(List<WishList> lists) async {
     // Only fetch images for lists without a cover image
-    final listsWithoutCover = lists.where((l) => l.coverImageUrl == null).toList();
+    final listsWithoutCover =
+        lists.where((l) => l.coverImageUrl == null).toList();
     if (listsWithoutCover.isEmpty) return;
 
     final listIds = listsWithoutCover.map((l) => l.id).toList();
@@ -456,11 +457,11 @@ class _ListsScreenState extends State<ListsScreen>
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Image.asset(
-                    'assets/images/No-Lists.png',
+                    'assets/images/Shizzie.png',
                     width: 180,
                     height: 180,
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 0),
                   Text('No lists yet', style: AppTypography.headlineSmall),
                   const SizedBox(height: 8),
                   Text(
@@ -476,7 +477,7 @@ class _ListsScreenState extends State<ListsScreen>
           ),
         ),
         // Arrow pointing to FAB (+) button
-        Positioned(bottom: 100, right: 24, child: _AnimatedArrow()),
+        Positioned(bottom: 57, right: 30, child: _AnimatedArrow()),
       ],
     );
   }
@@ -900,16 +901,34 @@ class _AnimatedArrowState extends State<_AnimatedArrow>
     return AnimatedBuilder(
       animation: Listenable.merge([_bubbleAnimation, _arrowAnimation]),
       builder: (context, child) {
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Bubble with text
-            Transform.translate(
-              offset: Offset(-15, _bubbleAnimation.value),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
+        return SizedBox(
+          width: 155,
+          height: 150,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              // Arrow (behind) - positioned to start from bottom of bubble
+              Positioned(
+                left: 60,
+                top: 60,
+                child: Transform.translate(
+                  offset: Offset(
+                    _arrowAnimation.value * 0.7,
+                    _arrowAnimation.value,
+                  ),
+                  child: CustomPaint(
+                    size: const Size(50, 50),
+                    painter: _DiagonalArrowPainter(),
+                  ),
+                ),
+              ),
+              // Bubble with text (on top)
+              Positioned(
+                left: 0,
+                top: 0,
+                child: Transform.translate(
+                  offset: Offset(-20, _bubbleAnimation.value),
+                  child: Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 30,
                       vertical: 20,
@@ -917,6 +936,10 @@ class _AnimatedArrowState extends State<_AnimatedArrow>
                     decoration: BoxDecoration(
                       color: AppColors.primary,
                       borderRadius: BorderRadius.circular(60),
+                      border: Border.all(
+                        color: AppColors.primaryLight,
+                        width: 4,
+                      ),
                     ),
                     child: Text(
                       'Get started',
@@ -927,21 +950,10 @@ class _AnimatedArrowState extends State<_AnimatedArrow>
                       ),
                     ),
                   ),
-                ],
+                ),
               ),
-            ),
-            // Arrow with longer stalk pointing diagonally to FAB
-            Transform.translate(
-              offset: Offset(
-                _arrowAnimation.value * 0.7,
-                _arrowAnimation.value,
-              ),
-              child: CustomPaint(
-                size: const Size(50, 50),
-                painter: _DiagonalArrowPainter(),
-              ),
-            ),
-          ],
+            ],
+          ),
         );
       },
     );
@@ -954,7 +966,7 @@ class _DiagonalArrowPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final paint =
         Paint()
-          ..color = AppColors.primary
+          ..color = AppColors.primaryLight
           ..strokeWidth = 7
           ..strokeCap = StrokeCap.round
           ..style = PaintingStyle.stroke;
@@ -970,7 +982,7 @@ class _DiagonalArrowPainter extends CustomPainter {
     // Draw filled triangular arrowhead
     final arrowPaint =
         Paint()
-          ..color = AppColors.primary
+          ..color = AppColors.primaryLight
           ..style = PaintingStyle.fill;
 
     final arrowPath = Path();

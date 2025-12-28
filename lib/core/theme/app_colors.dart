@@ -7,7 +7,7 @@ class AppColors {
 
   // Primary Accent - ShizList Teal
   static const Color primary = Color(0xFF009688);
-  static const Color primaryLight = Color(0xFF4DB6AC);
+  static const Color primaryLight = Color(0xFF3cb7a3);
   static const Color primaryDark = Color(0xFF00796B);
 
   // Secondary Accent - ShizList Orange
@@ -16,7 +16,7 @@ class AppColors {
   static const Color accentDark = Color.fromARGB(255, 197, 39, 36);
 
   // Background Silver
-  static const Color background = Color(0xFFF1F1F1);
+  static const Color background = Color(0xFFf5f2e9);
   static const Color surface = Color(0xFFFFFFFF);
   static const Color surfaceVariant = Color(0xFFF5F5F5);
 

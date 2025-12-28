@@ -6,6 +6,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../routing/app_router.dart';
 import '../../../services/auth_service.dart';
 import '../../../widgets/shizlist_logo.dart';
+import '../../../widgets/shizzie_peep.dart';
 import '../../../widgets/app_button.dart';
 import '../../../widgets/app_notification.dart';
 import '../../../widgets/otp_input.dart';
@@ -173,10 +174,15 @@ class _SignupScreenState extends State<SignupScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 450),
+      body: Stack(
+        children: [
+          // Shizzie peeping animation
+          const ShizziePeep(),
+          // Main content with SafeArea
+          SafeArea(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 450),
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
           child: Column(
@@ -472,12 +478,15 @@ class _SignupScreenState extends State<SignupScreen> {
                 ),
               ],
 
-              const SizedBox(height: 32),
+              // Space for Shizzie peeping at bottom
+              const SizedBox(height: 140),
             ],
           ),
         ),
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

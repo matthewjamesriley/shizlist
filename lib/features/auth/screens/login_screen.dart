@@ -6,6 +6,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../routing/app_router.dart';
 import '../../../services/auth_service.dart';
 import '../../../widgets/shizlist_logo.dart';
+import '../../../widgets/shizzie_peep.dart';
 import '../../../widgets/app_button.dart';
 import '../../../widgets/app_notification.dart';
 import '../../../widgets/otp_input.dart';
@@ -150,295 +151,310 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 450),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Back button at top when showing forms
-              if (_showEmailLogin || _showOtpVerification) ...[
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: GestureDetector(
-                    onTap: _goBack,
-                    child: PhosphorIcon(
-                      PhosphorIcons.arrowLeft(),
-                      size: 28,
-                      color: AppColors.textPrimary,
-                    ),
+      body: Stack(
+        children: [
+          // Shizzie peeping animation
+          const ShizziePeep(),
+          // Main content with SafeArea
+          SafeArea(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 450),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 24,
                   ),
-                ),
-                const SizedBox(height: 24),
-              ] else ...[
-                const SizedBox(height: 40),
-              ],
-
-              // Logo - hide when showing forms
-              if (!_showEmailLogin && !_showOtpVerification) ...[
-                Center(
-                  child: Padding(
-                    padding: const EdgeInsets.only(left: 5),
-                    child: const ShizListLogo(height: 50),
-                  ),
-                ),
-                const SizedBox(height: 48),
-              ],
-
-              // Title
-              Text(
-                _showOtpVerification ? 'Check your email' : 'Welcome back',
-                style: GoogleFonts.lato(
-                  fontSize: 32,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
-                ),
-                textAlign: TextAlign.center,
-              ),
-
-              // Subtitle
-              if (!_showEmailLogin && !_showOtpVerification) ...[
-                const SizedBox(height: 12),
-                Text(
-                  'Log in to continue.',
-                  style: GoogleFonts.lato(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w400,
-                    color: AppColors.textPrimary,
-                    height: 1.4,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ] else if (_showOtpVerification) ...[
-                const SizedBox(height: 12),
-                Text(
-                  'We sent a verification code to\n$_pendingEmail',
-                  style: GoogleFonts.lato(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w400,
-                    color: AppColors.textPrimary,
-                    height: 1.4,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-
-              const SizedBox(height: 40),
-
-              // Error message
-              if (_errorMessage != null) ...[
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.error.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
-                    children: [
-                      PhosphorIcon(
-                        PhosphorIcons.warningCircle(),
-                        color: AppColors.error,
-                        size: 24,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          _errorMessage!,
-                          style: GoogleFonts.lato(
-                            fontSize: 16,
-                            color: AppColors.error,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-              ],
-
-              // OTP Verification form
-              if (_showOtpVerification) ...[
-                OtpInput(
-                  key: _otpInputKey,
-                  autofocus: true,
-                  onChanged: (code) => setState(() => _otpCode = code),
-                  onCompleted: (code) {
-                    setState(() => _otpCode = code);
-                    _handleVerifyOtp(code);
-                  },
-                ),
-
-                const SizedBox(height: 24),
-
-                AppButton.primary(
-                  label: 'Verify',
-                  onPressed: _isLoading ? null : () => _handleVerifyOtp(),
-                  isLoading: _isLoading,
-                ),
-
-                const SizedBox(height: 16),
-
-                Center(
-                  child: TextButton(
-                    onPressed: _isLoading ? null : _handleResendOtp,
-                    child: Text(
-                      'Resend code',
-                      style: GoogleFonts.lato(
-                        fontSize: 16,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  ),
-                ),
-              ]
-              // Main login buttons
-              else if (!_showEmailLogin) ...[
-                // Log in with email
-                _SocialButton(
-                  label: 'Log in with email',
-                  icon: PhosphorIcons.envelope(),
-                  onPressed:
-                      _isLoading
-                          ? null
-                          : () => setState(() => _showEmailLogin = true),
-                  backgroundColor: AppColors.primary,
-                  textColor: Colors.white,
-                ),
-
-                // TODO: Re-enable social login later
-                // const SizedBox(height: 16),
-                //
-                // // Log in with Google
-                // _SocialButton(
-                //   label: 'Log in with Google',
-                //   icon: PhosphorIcons.googleLogo(),
-                //   onPressed:
-                //       _isLoading
-                //           ? null
-                //           : () => _handleSocialLogin(SocialProvider.google),
-                //   backgroundColor: AppColors.accent,
-                //   textColor: Colors.white,
-                // ),
-                //
-                // const SizedBox(height: 16),
-                //
-                // // Log in with Apple
-                // _SocialButton(
-                //   label: 'Log in with Apple',
-                //   icon: PhosphorIcons.appleLogo(),
-                //   onPressed:
-                //       _isLoading
-                //           ? null
-                //           : () => _handleSocialLogin(SocialProvider.apple),
-                //   backgroundColor: Colors.black,
-                //   textColor: Colors.white,
-                // ),
-                const SizedBox(height: 32),
-
-                // Don't have an account
-                Text(
-                  "Don't have an account?",
-                  style: GoogleFonts.lato(
-                    fontSize: 16,
-                    color: AppColors.textPrimary,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-
-                const SizedBox(height: 16),
-
-                // Sign up button
-                _SocialButton(
-                  label: 'Sign up',
-                  icon: PhosphorIcons.userPlus(),
-                  onPressed: () => context.go(AppRoutes.signup),
-                  backgroundColor: Colors.white,
-                  textColor: AppColors.primary,
-                  borderColor: AppColors.primary,
-                ),
-              ]
-              // Email login form (just email)
-              else ...[
-                Form(
-                  key: _formKey,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      _buildTextField(
-                        controller: _emailController,
-                        hint: 'Email',
-                        icon: PhosphorIcons.envelope(),
-                        keyboardType: TextInputType.emailAddress,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your email';
-                          }
-                          if (!value.contains('@')) {
-                            return 'Please enter a valid email';
-                          }
-                          return null;
-                        },
-                      ),
+                      // Back button at top when showing forms
+                      if (_showEmailLogin || _showOtpVerification) ...[
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: GestureDetector(
+                            onTap: _goBack,
+                            child: PhosphorIcon(
+                              PhosphorIcons.arrowLeft(),
+                              size: 28,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                      ] else ...[
+                        const SizedBox(height: 40),
+                      ],
 
-                      const SizedBox(height: 24),
+                      // Logo - hide when showing forms
+                      if (!_showEmailLogin && !_showOtpVerification) ...[
+                        Center(
+                          child: Padding(
+                            padding: const EdgeInsets.only(left: 5),
+                            child: const ShizListLogo(height: 50),
+                          ),
+                        ),
+                        const SizedBox(height: 48),
+                      ],
 
+                      // Title
                       Text(
-                        "You'll receiverr a verification code to log in.",
+                        _showOtpVerification
+                            ? 'Check your email'
+                            : 'Welcome back',
                         style: GoogleFonts.lato(
-                          fontSize: 15,
+                          fontSize: 32,
+                          fontWeight: FontWeight.w700,
                           color: AppColors.textPrimary,
                         ),
                         textAlign: TextAlign.center,
                       ),
 
-                      const SizedBox(height: 24),
+                      // Subtitle
+                      if (!_showEmailLogin && !_showOtpVerification) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          'Log in to continue.',
+                          style: GoogleFonts.lato(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w400,
+                            color: AppColors.textPrimary,
+                            height: 1.4,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ] else if (_showOtpVerification) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          'We sent a verification code to\n$_pendingEmail',
+                          style: GoogleFonts.lato(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w400,
+                            color: AppColors.textPrimary,
+                            height: 1.4,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
 
-                      AppButton.primary(
-                        label: 'Continue',
-                        onPressed: _isLoading ? null : _handleSendOtp,
-                        isLoading: _isLoading,
-                      ),
+                      const SizedBox(height: 40),
+
+                      // Error message
+                      if (_errorMessage != null) ...[
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: AppColors.error.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Row(
+                            children: [
+                              PhosphorIcon(
+                                PhosphorIcons.warningCircle(),
+                                color: AppColors.error,
+                                size: 24,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  _errorMessage!,
+                                  style: GoogleFonts.lato(
+                                    fontSize: 16,
+                                    color: AppColors.error,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+
+                      // OTP Verification form
+                      if (_showOtpVerification) ...[
+                        OtpInput(
+                          key: _otpInputKey,
+                          autofocus: true,
+                          onChanged: (code) => setState(() => _otpCode = code),
+                          onCompleted: (code) {
+                            setState(() => _otpCode = code);
+                            _handleVerifyOtp(code);
+                          },
+                        ),
+
+                        const SizedBox(height: 24),
+
+                        AppButton.primary(
+                          label: 'Verify',
+                          onPressed:
+                              _isLoading ? null : () => _handleVerifyOtp(),
+                          isLoading: _isLoading,
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        Center(
+                          child: TextButton(
+                            onPressed: _isLoading ? null : _handleResendOtp,
+                            child: Text(
+                              'Resend code',
+                              style: GoogleFonts.lato(
+                                fontSize: 16,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ]
+                      // Main login buttons
+                      else if (!_showEmailLogin) ...[
+                        // Log in with email
+                        _SocialButton(
+                          label: 'Log in with email',
+                          icon: PhosphorIcons.envelope(),
+                          onPressed:
+                              _isLoading
+                                  ? null
+                                  : () =>
+                                      setState(() => _showEmailLogin = true),
+                          backgroundColor: AppColors.primary,
+                          textColor: Colors.white,
+                        ),
+
+                        // TODO: Re-enable social login later
+                        // const SizedBox(height: 16),
+                        //
+                        // // Log in with Google
+                        // _SocialButton(
+                        //   label: 'Log in with Google',
+                        //   icon: PhosphorIcons.googleLogo(),
+                        //   onPressed:
+                        //       _isLoading
+                        //           ? null
+                        //           : () => _handleSocialLogin(SocialProvider.google),
+                        //   backgroundColor: AppColors.accent,
+                        //   textColor: Colors.white,
+                        // ),
+                        //
+                        // const SizedBox(height: 16),
+                        //
+                        // // Log in with Apple
+                        // _SocialButton(
+                        //   label: 'Log in with Apple',
+                        //   icon: PhosphorIcons.appleLogo(),
+                        //   onPressed:
+                        //       _isLoading
+                        //           ? null
+                        //           : () => _handleSocialLogin(SocialProvider.apple),
+                        //   backgroundColor: Colors.black,
+                        //   textColor: Colors.white,
+                        // ),
+                        const SizedBox(height: 32),
+
+                        // Don't have an account
+                        Text(
+                          "Don't have an account?",
+                          style: GoogleFonts.lato(
+                            fontSize: 16,
+                            color: AppColors.textPrimary,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // Sign up button
+                        _SocialButton(
+                          label: 'Sign up',
+                          icon: PhosphorIcons.userPlus(),
+                          onPressed: () => context.go(AppRoutes.signup),
+                          backgroundColor: Colors.white,
+                          textColor: AppColors.primary,
+                          borderColor: AppColors.primary,
+                        ),
+                      ]
+                      // Email login form (just email)
+                      else ...[
+                        Form(
+                          key: _formKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              _buildTextField(
+                                controller: _emailController,
+                                hint: 'Email',
+                                icon: PhosphorIcons.envelope(),
+                                keyboardType: TextInputType.emailAddress,
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Please enter your email';
+                                  }
+                                  if (!value.contains('@')) {
+                                    return 'Please enter a valid email';
+                                  }
+                                  return null;
+                                },
+                              ),
+
+                              const SizedBox(height: 24),
+
+                              Text(
+                                "You'll receiverr a verification code to log in.",
+                                style: GoogleFonts.lato(
+                                  fontSize: 15,
+                                  color: AppColors.textPrimary,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+
+                              const SizedBox(height: 24),
+
+                              AppButton.primary(
+                                label: 'Continue',
+                                onPressed: _isLoading ? null : _handleSendOtp,
+                                isLoading: _isLoading,
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 24),
+
+                        // Signup link
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              "Don't have an account? ",
+                              style: GoogleFonts.lato(
+                                fontSize: 16,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            GestureDetector(
+                              onTap: () => context.go(AppRoutes.signup),
+                              child: Text(
+                                'Sign up',
+                                style: GoogleFonts.lato(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+
+                      // Space for Shizzie peeping at bottom
+                      const SizedBox(height: 140),
                     ],
                   ),
                 ),
-
-                const SizedBox(height: 24),
-
-                // Signup link
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      "Don't have an account? ",
-                      style: GoogleFonts.lato(
-                        fontSize: 16,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () => context.go(AppRoutes.signup),
-                      child: Text(
-                        'Sign up',
-                        style: GoogleFonts.lato(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-
-              const SizedBox(height: 32),
-            ],
+              ),
+            ),
           ),
-        ),
-          ),
-        ),
+        ],
       ),
     );
   }
