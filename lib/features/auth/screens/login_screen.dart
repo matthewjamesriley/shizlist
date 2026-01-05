@@ -46,12 +46,32 @@ class _LoginScreenState extends State<LoginScreen> {
       _errorMessage = null;
     });
 
+    final email = _emailController.text.trim();
+
+    // Check if this is the test account (for app store reviewers)
+    // This bypasses Supabase auth entirely - works even if network blocks Supabase
+    if (AuthService.isTestAccountEmail(email)) {
+      try {
+        await _authService.signInWithTestAccount();
+        if (mounted) {
+          context.go(AppRoutes.lists);
+        }
+      } catch (e) {
+        // Even the fallback failed - show error
+        setState(() {
+          _errorMessage = 'Test account login failed: ${e.toString()}';
+          _isLoading = false;
+        });
+      }
+      return;
+    }
+
     try {
-      await _authService.signInWithOtp(email: _emailController.text.trim());
+      await _authService.signInWithOtp(email: email);
 
       if (mounted) {
         setState(() {
-          _pendingEmail = _emailController.text.trim();
+          _pendingEmail = email;
           _showOtpVerification = true;
           _isLoading = false;
         });
@@ -399,7 +419,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               const SizedBox(height: 24),
 
                               Text(
-                                "You'll receiverr a verification code to log in.",
+                                "You'll receive a verification code to log in.",
                                 style: GoogleFonts.lato(
                                   fontSize: 15,
                                   color: AppColors.textPrimary,

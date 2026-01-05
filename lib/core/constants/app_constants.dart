@@ -7,6 +7,11 @@ class AppConstants {
   static const String appTagline = 'Share the stuff you love';
   static const String appVersion = '1.0.12';
 
+  // Test Account for App Store Reviewers (disable after approval)
+  static const bool testAccountEnabled = true;
+  static const String testAccountEmail = 'test@shizlist.co';
+  static const String testAccountPassword = 'ShizList2026!';
+
   // Image Sizes
   static const int thumbnailSize = 150;
   static const int mainImageSize = 900;
