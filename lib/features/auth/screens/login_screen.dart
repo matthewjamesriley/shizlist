@@ -49,7 +49,6 @@ class _LoginScreenState extends State<LoginScreen> {
     final email = _emailController.text.trim();
 
     // Check if this is the test account (for app store reviewers)
-    // This bypasses Supabase auth entirely - works even if network blocks Supabase
     if (AuthService.isTestAccountEmail(email)) {
       try {
         await _authService.signInWithTestAccount();
@@ -57,7 +56,6 @@ class _LoginScreenState extends State<LoginScreen> {
           context.go(AppRoutes.lists);
         }
       } catch (e) {
-        // Even the fallback failed - show error
         setState(() {
           _errorMessage = 'Test account login failed: ${e.toString()}';
           _isLoading = false;

@@ -14,7 +14,7 @@ class AuthService {
   
   /// Track if current session is a test account (for app store reviewers)
   static bool _isTestAccount = false;
-  static bool get isTestAccount => _isTestAccount || SupabaseService.isOfflineTestMode;
+  static bool get isTestAccount => _isTestAccount;
   
   /// Check if email is the test account email
   static bool isTestAccountEmail(String email) {
@@ -22,40 +22,23 @@ class AuthService {
         email.toLowerCase().trim() == AppConstants.testAccountEmail.toLowerCase();
   }
   
-  /// Sign in with test account - completely offline, no Supabase auth needed
-  /// This enables Google Play reviewers to access the app even if their
-  /// network environment blocks Supabase
-  Future<void> signInWithTestAccountOffline() async {
-    _isTestAccount = true;
-    SupabaseService.enableOfflineTestMode();
-    // No Supabase call needed - the app will use hardcoded test user ID
-  }
-  
-  /// Sign in with test account (tries Supabase first, falls back to offline mode)
-  Future<void> signInWithTestAccount() async {
-    try {
-      // Try real Supabase auth first
-      final response = await _client.auth.signInWithPassword(
-        email: AppConstants.testAccountEmail,
-        password: AppConstants.testAccountPassword,
+  /// Sign in with test account (bypasses OTP for app store reviewers)
+  Future<AuthResponse> signInWithTestAccount() async {
+    final response = await _client.auth.signInWithPassword(
+      email: AppConstants.testAccountEmail,
+      password: AppConstants.testAccountPassword,
+    );
+    
+    if (response.user != null) {
+      _isTestAccount = true;
+      await ensureUserProfileExists(
+        userId: response.user!.id,
+        email: response.user!.email ?? AppConstants.testAccountEmail,
+        displayName: 'Test User',
       );
-      
-      if (response.user != null) {
-        _isTestAccount = true;
-        await ensureUserProfileExists(
-          userId: response.user!.id,
-          email: response.user!.email ?? AppConstants.testAccountEmail,
-          displayName: 'Test User',
-        );
-        return;
-      }
-    } catch (e) {
-      // Supabase auth failed - fall back to offline test mode
-      debugPrint('Supabase auth failed, using offline test mode: $e');
     }
     
-    // Fall back to offline mode if Supabase fails
-    await signInWithTestAccountOffline();
+    return response;
   }
 
   /// Send magic link / OTP to email (passwordless auth)
@@ -216,11 +199,7 @@ class AuthService {
   /// Sign out the current user
   Future<void> signOut() async {
     _isTestAccount = false;
-    SupabaseService.disableOfflineTestMode();
-    // Only call Supabase signOut if we have a real session
-    if (!SupabaseService.isOfflineTestMode && SupabaseService.currentUser != null) {
-      await _client.auth.signOut();
-    }
+    await _client.auth.signOut();
   }
 
   /// Send password reset email

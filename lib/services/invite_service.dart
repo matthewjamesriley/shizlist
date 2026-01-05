@@ -167,8 +167,8 @@ class InviteService {
       if (invite.shareAllLists) {
         // Share all non-private lists from the invite owner
         final listsResponse = await _client
-            .from('lists')
-            .select('uid')
+                .from('lists')
+                .select('uid')
             .eq('owner_id', invite.ownerId)
             .neq('visibility', 'private')
             .eq('is_deleted', false);
@@ -197,27 +197,27 @@ class InviteService {
         // Share specific list - we already have the UID
         final listUid = invite.listUid!;
 
-        // Check if list is already shared
-        final existingShare =
-            await _client
-                .from('list_shares')
-                .select('id')
-                .eq('list_uid', listUid)
-                .eq('shared_with_user_id', userId)
-                .maybeSingle();
+          // Check if list is already shared
+          final existingShare =
+              await _client
+                  .from('list_shares')
+                  .select('id')
+                  .eq('list_uid', listUid)
+                  .eq('shared_with_user_id', userId)
+                  .maybeSingle();
 
-        if (existingShare == null) {
-          await _client.from('list_shares').insert({
-            'list_uid': listUid,
-            'shared_with_user_id': userId,
-            'can_edit': false,
-          });
+          if (existingShare == null) {
+            await _client.from('list_shares').insert({
+              'list_uid': listUid,
+              'shared_with_user_id': userId,
+              'can_edit': false,
+            });
+          }
         }
-      }
-    } catch (e) {
-      // List sharing failed due to RLS policy - friendship is still created
-      // The list owner can share manually later
-      debugPrint('List sharing failed (RLS): $e');
+      } catch (e) {
+        // List sharing failed due to RLS policy - friendship is still created
+        // The list owner can share manually later
+        debugPrint('List sharing failed (RLS): $e');
     }
 
     // Increment uses count

@@ -33,8 +33,8 @@ $shareAllLists = !empty($invite['share_all_lists']);
 $hasListShare = !empty($listTitle);
 $hasAnyListShare = $hasListShare || $shareAllLists;
 
-// DEBUG - Remove after testing
-$debugMode = true; // Set to false to hide debug info
+// DEBUG - Set to true to show debug info
+$debugMode = false;
 $debugInfo = [
     'code' => $code,
     'list_uid' => $invite['list_uid'] ?? 'NULL',

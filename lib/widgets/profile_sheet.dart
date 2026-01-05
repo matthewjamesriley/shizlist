@@ -1,13 +1,16 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_typography.dart';
 import '../models/user_profile.dart';
+import '../routing/app_router.dart';
 import '../services/auth_service.dart';
 import '../services/image_upload_service.dart';
 import '../services/user_settings_service.dart';
+import 'app_dialog.dart';
 import 'app_notification.dart';
 import 'bottom_sheet_header.dart';
 import 'dart:ui';
@@ -340,6 +343,21 @@ class _ProfileSheetState extends State<ProfileSheet> {
                       ),
                     ),
 
+                    const SizedBox(height: 48),
+
+                    // Delete account - subtle at the bottom
+                    GestureDetector(
+                      onTap: _handleDeleteAccount,
+                      child: Text(
+                        'Delete account',
+                        style: AppTypography.bodyMedium.copyWith(
+                          color: AppColors.textHint,
+                          decoration: TextDecoration.underline,
+                          decorationColor: AppColors.textHint,
+                        ),
+                      ),
+                    ),
+
                     const SizedBox(height: 32),
                   ],
                 ),
@@ -348,6 +366,84 @@ class _ProfileSheetState extends State<ProfileSheet> {
         ],
       ),
     );
+  }
+
+  Future<void> _handleDeleteAccount() async {
+    // Block deletion for test accounts (app store reviewers)
+    if (AuthService.isTestAccount) {
+      await AppDialog.show(
+        context,
+        title: 'Test Account',
+        content: 'You cannot delete this test account.',
+        cancelText: '',
+        confirmText: 'OK',
+        isDestructive: false,
+      );
+      return;
+    }
+
+    // Show first confirmation dialog
+    final firstConfirm = await AppDialog.show(
+      context,
+      title: 'Delete Account',
+      content:
+          'Are you sure you want to delete your account? This will permanently remove all your lists, items, and data.',
+      cancelText: 'Cancel',
+      confirmText: 'Delete Account',
+      isDestructive: true,
+    );
+
+    if (!firstConfirm || !mounted) return;
+
+    // Show second confirmation for extra safety
+    final secondConfirm = await AppDialog.show(
+      context,
+      title: 'This cannot be undone',
+      content:
+          'Your account and all associated data will be permanently deleted. This action cannot be reversed.',
+      cancelText: 'Keep Account',
+      confirmText: 'Delete Forever',
+      isDestructive: true,
+    );
+
+    if (!secondConfirm || !mounted) return;
+
+    // Close the profile sheet
+    Navigator.pop(context);
+
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (context) => const Center(
+            child: CircularProgressIndicator(color: AppColors.primary),
+          ),
+    );
+
+    try {
+      await _authService.deleteAccount();
+      if (mounted) {
+        Navigator.pop(context); // Close loading
+        context.go(AppRoutes.login);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Your account has been deleted'),
+            backgroundColor: AppColors.primary,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // Close loading
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to delete account: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildAvatarContent() {
