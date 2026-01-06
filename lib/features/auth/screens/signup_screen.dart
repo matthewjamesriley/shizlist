@@ -30,10 +30,25 @@ class _SignupScreenState extends State<SignupScreen> {
 
   bool _isLoading = false;
   String? _errorMessage;
+  bool _isNetworkError = false;
   bool _showEmailSignup = false;
   bool _showOtpVerification = false;
   String? _pendingEmail;
   String _otpCode = '';
+
+  /// Checks if error is a network/DNS error
+  bool _isNetworkErrorType(dynamic error) {
+    final errorStr = error.toString().toLowerCase();
+    return errorStr.contains('socketexception') ||
+        errorStr.contains('errno = 7') ||
+        errorStr.contains('errno=7') ||
+        errorStr.contains('failed host lookup') ||
+        errorStr.contains('network is unreachable') ||
+        errorStr.contains('no address associated') ||
+        errorStr.contains('connection refused') ||
+        errorStr.contains('connection timed out') ||
+        errorStr.contains('no internet');
+  }
 
   @override
   void dispose() {
@@ -50,6 +65,7 @@ class _SignupScreenState extends State<SignupScreen> {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
+      _isNetworkError = false;
     });
 
     try {
@@ -68,10 +84,14 @@ class _SignupScreenState extends State<SignupScreen> {
     } catch (e) {
       debugPrint('OTP Error: $e');
       setState(() {
-        _errorMessage =
-            e.toString().contains('rate')
-                ? 'Too many attempts. Please wait a moment and try again.'
-                : 'Failed to send verification email: ${e.toString()}';
+        _isNetworkError = _isNetworkErrorType(e);
+        if (_isNetworkError) {
+          _errorMessage = 'No internet connection. Please check your network and try again.';
+        } else if (e.toString().contains('rate')) {
+          _errorMessage = 'Too many attempts. Please wait a moment and try again.';
+        } else {
+          _errorMessage = 'Failed to send verification email. Please try again.';
+        }
         _isLoading = false;
       });
     }
@@ -83,6 +103,7 @@ class _SignupScreenState extends State<SignupScreen> {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
+      _isNetworkError = false;
     });
 
     try {
@@ -95,10 +116,14 @@ class _SignupScreenState extends State<SignupScreen> {
       }
     } catch (e) {
       setState(() {
-        _errorMessage =
-            e.toString().contains('rate')
-                ? 'Too many attempts. Please wait a moment and try again.'
-                : 'Failed to resend code. Please try again.';
+        _isNetworkError = _isNetworkErrorType(e);
+        if (_isNetworkError) {
+          _errorMessage = 'No internet connection. Please check your network and try again.';
+        } else if (e.toString().contains('rate')) {
+          _errorMessage = 'Too many attempts. Please wait a moment and try again.';
+        } else {
+          _errorMessage = 'Failed to resend code. Please try again.';
+        }
         _isLoading = false;
       });
     }
@@ -114,6 +139,7 @@ class _SignupScreenState extends State<SignupScreen> {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
+      _isNetworkError = false;
     });
 
     try {
@@ -131,7 +157,10 @@ class _SignupScreenState extends State<SignupScreen> {
       }
     } catch (e) {
       setState(() {
-        _errorMessage = 'Invalid or expired code. Please try again.';
+        _isNetworkError = _isNetworkErrorType(e);
+        _errorMessage = _isNetworkError
+            ? 'No internet connection. Please check your network and try again.'
+            : 'Invalid or expired code. Please try again.';
         _isLoading = false;
       });
       _otpInputKey.currentState?.clear();
@@ -259,32 +288,57 @@ class _SignupScreenState extends State<SignupScreen> {
 
               // Error message
               if (_errorMessage != null) ...[
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.error.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
-                    children: [
-                      PhosphorIcon(
-                        PhosphorIcons.warningCircle(),
-                        color: AppColors.error,
-                        size: 24,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
+                if (_isNetworkError) ...[
+                  // Network error - show sad monster
+                  Center(
+                    child: Column(
+                      children: [
+                        Image.asset(
+                          'assets/images/sad-monster.png',
+                          height: 120,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
                           _errorMessage!,
                           style: GoogleFonts.lato(
-                            fontSize: 16,
-                            color: AppColors.error,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                ] else ...[
+                  // Regular error
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.error.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      children: [
+                        PhosphorIcon(
+                          PhosphorIcons.warningCircle(),
+                          color: AppColors.error,
+                          size: 24,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            _errorMessage!,
+                            style: GoogleFonts.lato(
+                              fontSize: 16,
+                              color: AppColors.error,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
+                ],
                 const SizedBox(height: 24),
               ],
 

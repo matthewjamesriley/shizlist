@@ -28,9 +28,48 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool _isLoading = false;
   String? _errorMessage;
+  bool _isNetworkError = false;
   bool _showEmailLogin = false;
   bool _showOtpVerification = false;
   String? _pendingEmail;
+
+  /// Checks if error is a network/DNS error
+  bool _isNetworkErrorType(dynamic error) {
+    final errorStr = error.toString().toLowerCase();
+    return errorStr.contains('socketexception') ||
+        errorStr.contains('errno = 7') ||
+        errorStr.contains('errno=7') ||
+        errorStr.contains('failed host lookup') ||
+        errorStr.contains('network is unreachable') ||
+        errorStr.contains('no address associated') ||
+        errorStr.contains('connection refused') ||
+        errorStr.contains('connection timed out') ||
+        errorStr.contains('no internet');
+  }
+
+  /// Converts network errors to user-friendly messages
+  String _getErrorMessage(dynamic error) {
+    final errorStr = error.toString().toLowerCase();
+    
+    // Network/DNS errors
+    if (_isNetworkErrorType(error)) {
+      return 'No internet connection. Please check your network and try again.';
+    }
+    
+    // Auth-specific errors
+    if (errorStr.contains('invalid login credentials')) {
+      return 'Invalid login credentials. Please try again.';
+    }
+    if (errorStr.contains('user not found')) {
+      return 'Account not found. Please sign up first.';
+    }
+    if (errorStr.contains('email not confirmed')) {
+      return 'Please verify your email address first.';
+    }
+    
+    // Return original error for debugging if unknown
+    return error.toString();
+  }
 
   @override
   void dispose() {
@@ -44,6 +83,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
+      _isNetworkError = false;
     });
 
     final email = _emailController.text.trim();
@@ -57,7 +97,8 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       } catch (e) {
         setState(() {
-          _errorMessage = 'Test account login failed: ${e.toString()}';
+          _isNetworkError = _isNetworkErrorType(e);
+          _errorMessage = _getErrorMessage(e);
           _isLoading = false;
         });
       }
@@ -76,7 +117,10 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } catch (e) {
       setState(() {
-        _errorMessage = 'Failed to send verification email. Please try again.';
+        _isNetworkError = _isNetworkErrorType(e);
+        _errorMessage = _isNetworkError 
+            ? _getErrorMessage(e) 
+            : 'Failed to send verification email. Please try again.';
         _isLoading = false;
       });
     }
@@ -88,6 +132,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
+      _isNetworkError = false;
     });
 
     try {
@@ -100,7 +145,10 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } catch (e) {
       setState(() {
-        _errorMessage = 'Failed to resend code. Please try again.';
+        _isNetworkError = _isNetworkErrorType(e);
+        _errorMessage = _isNetworkError 
+            ? _getErrorMessage(e) 
+            : 'Failed to resend code. Please try again.';
         _isLoading = false;
       });
     }
@@ -116,6 +164,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
+      _isNetworkError = false;
     });
 
     try {
@@ -126,7 +175,10 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } catch (e) {
       setState(() {
-        _errorMessage = 'Invalid or expired code. Please try again.';
+        _isNetworkError = _isNetworkErrorType(e);
+        _errorMessage = _isNetworkError 
+            ? _getErrorMessage(e) 
+            : 'Invalid or expired code. Please try again.';
         _isLoading = false;
       });
       _otpInputKey.currentState?.clear();
@@ -259,32 +311,57 @@ class _LoginScreenState extends State<LoginScreen> {
 
                       // Error message
                       if (_errorMessage != null) ...[
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: AppColors.error.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Row(
-                            children: [
-                              PhosphorIcon(
-                                PhosphorIcons.warningCircle(),
-                                color: AppColors.error,
-                                size: 24,
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
+                        if (_isNetworkError) ...[
+                          // Network error - show sad monster
+                          Center(
+                            child: Column(
+                              children: [
+                                Image.asset(
+                                  'assets/images/sad-monster.png',
+                                  height: 120,
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
                                   _errorMessage!,
                                   style: GoogleFonts.lato(
-                                    fontSize: 16,
-                                    color: AppColors.error,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ] else ...[
+                          // Regular error
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: AppColors.error.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Row(
+                              children: [
+                                PhosphorIcon(
+                                  PhosphorIcons.warningCircle(),
+                                  color: AppColors.error,
+                                  size: 24,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    _errorMessage!,
+                                    style: GoogleFonts.lato(
+                                      fontSize: 16,
+                                      color: AppColors.error,
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
+                        ],
                         const SizedBox(height: 24),
                       ],
 
