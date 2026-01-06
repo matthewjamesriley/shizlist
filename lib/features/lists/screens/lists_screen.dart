@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/utils/error_handler.dart';
 import '../../../models/app_notification.dart';
 import '../../../models/friend.dart';
 import '../../../models/wish_list.dart';
@@ -201,7 +202,10 @@ class _ListsScreenState extends State<ListsScreen>
         });
       }
     } catch (e) {
-      // Silently fail - user can pull to refresh if needed
+      // Show notification for network errors
+      if (mounted && _isNetworkErrorType(e)) {
+        AppNotification.show(context, message: 'No internet connection');
+      }
     }
   }
 
@@ -228,8 +232,11 @@ class _ListsScreenState extends State<ListsScreen>
       _loadFriendsCountInBackground(lists);
       _loadThumbnailsInBackground(lists);
     } catch (e) {
+      final isNetwork = _isNetworkErrorType(e);
+      debugPrint('🔴 Lists error: $e');
+      debugPrint('🔴 Is network error: $isNetwork');
       setState(() {
-        _isNetworkError = _isNetworkErrorType(e);
+        _isNetworkError = isNetwork;
         _error = _isNetworkError 
             ? 'No internet connection. Please check your network and try again.'
             : e.toString();
@@ -296,6 +303,10 @@ class _ListsScreenState extends State<ListsScreen>
       }
     } catch (e) {
       debugPrint('Error refreshing lists: $e');
+      // Show notification for network errors
+      if (mounted && _isNetworkErrorType(e)) {
+        AppNotification.show(context, message: 'No internet connection');
+      }
     }
   }
 
@@ -555,7 +566,10 @@ class _ListsScreenState extends State<ListsScreen>
       }
     } catch (e) {
       if (mounted) {
-        AppNotification.error(context, 'Failed to update visibility: $e');
+        AppNotification.error(
+          context,
+          ErrorHandler.getUserMessage(e, fallbackMessage: 'Failed to update visibility'),
+        );
       }
     }
   }
@@ -584,7 +598,7 @@ class _ListsScreenState extends State<ListsScreen>
         if (mounted) {
           AppNotification.show(
             context,
-            message: 'Failed to delete list: $e',
+            message: ErrorHandler.getUserMessage(e, fallbackMessage: 'Failed to delete list'),
             icon: PhosphorIcons.warning(),
             backgroundColor: AppColors.error,
           );

@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_theme.dart';
 import '../core/theme/app_typography.dart';
+import '../core/utils/error_handler.dart';
 import '../models/list_item.dart';
 import '../services/item_service.dart';
 import '../services/image_upload_service.dart';
@@ -164,7 +165,7 @@ class _EditItemSheetState extends State<EditItemSheet>
       debugPrint('Error updating item: $e');
       setState(() => _isLoading = false);
       if (mounted) {
-        AppNotification.error(context, 'Failed to update item: $e');
+        AppNotification.error(context, ErrorHandler.getUserMessage(e, fallbackMessage: 'Failed to update item'));
       }
     }
   }

@@ -7,6 +7,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/utils/error_handler.dart';
 import '../../../models/app_notification.dart';
 import '../../../models/invite_link.dart';
 import '../../../models/wish_list.dart';
@@ -206,7 +207,7 @@ class _InviteScreenState extends State<InviteScreen> {
       );
     } catch (e) {
       if (mounted) {
-        AppNotification.error(context, 'Failed to share: $e');
+        AppNotification.error(context, ErrorHandler.getUserMessage(e, fallbackMessage: 'Failed to share'));
       }
     }
   }

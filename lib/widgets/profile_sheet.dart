@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_typography.dart';
+import '../core/utils/error_handler.dart';
 import '../models/user_profile.dart';
 import '../routing/app_router.dart';
 import '../services/auth_service.dart';
@@ -438,7 +439,7 @@ class _ProfileSheetState extends State<ProfileSheet> {
         Navigator.pop(context); // Close loading
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to delete account: $e'),
+            content: Text(ErrorHandler.getUserMessage(e, fallbackMessage: 'Failed to delete account')),
             backgroundColor: AppColors.error,
           ),
         );

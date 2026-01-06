@@ -7,6 +7,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_typography.dart';
+import '../core/utils/error_handler.dart';
 import '../core/utils/price_formatter.dart';
 import '../models/list_item.dart';
 import '../models/wish_list.dart';
@@ -1783,7 +1784,7 @@ class _AddItemSheetState extends State<AddItemSheet>
       } catch (e) {
         if (mounted) {
           setState(() => _isLoading = false);
-          AppNotification.error(context, 'Failed to add items: $e');
+          AppNotification.error(context, ErrorHandler.getUserMessage(e, fallbackMessage: 'Failed to add items'));
         }
       }
       return;
@@ -1836,7 +1837,7 @@ class _AddItemSheetState extends State<AddItemSheet>
       } catch (e) {
         if (mounted) {
           setState(() => _isLoading = false);
-          AppNotification.error(context, 'Failed to add item: $e');
+          AppNotification.error(context, ErrorHandler.getUserMessage(e, fallbackMessage: 'Failed to add item'));
         }
       }
     }

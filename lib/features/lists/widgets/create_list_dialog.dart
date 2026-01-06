@@ -645,9 +645,22 @@ class _CreateListDialogState extends State<CreateListDialog> {
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error creating list: $e')));
+        final errorStr = e.toString().toLowerCase();
+        final isNetworkError = errorStr.contains('socketexception') ||
+            errorStr.contains('errno = 7') ||
+            errorStr.contains('errno=7') ||
+            errorStr.contains('failed host lookup') ||
+            errorStr.contains('no address associated') ||
+            errorStr.contains('connection refused') ||
+            errorStr.contains('no internet');
+        
+        final message = isNetworkError 
+            ? 'No internet connection. Please try again.'
+            : 'Failed to create list. Please try again.';
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message)),
+        );
       }
     }
   }

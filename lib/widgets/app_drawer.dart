@@ -6,6 +6,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_typography.dart';
+import '../core/utils/error_handler.dart';
 import '../core/constants/app_constants.dart';
 import '../routing/app_router.dart';
 import '../models/user_profile.dart';
@@ -253,7 +254,7 @@ class _AppDrawerState extends State<AppDrawer> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Failed to log out: $e'),
+              content: Text(ErrorHandler.getUserMessage(e, fallbackMessage: 'Failed to log out')),
               backgroundColor: AppColors.error,
             ),
           );

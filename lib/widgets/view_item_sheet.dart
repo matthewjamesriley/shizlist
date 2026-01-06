@@ -3,6 +3,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_typography.dart';
+import '../core/utils/error_handler.dart';
 import '../models/list_item.dart';
 import '../services/item_service.dart';
 import '../services/supabase_service.dart';
@@ -103,7 +104,7 @@ class _ViewItemSheetState extends State<ViewItemSheet>
       }
     } catch (e) {
       if (mounted) {
-        AppNotification.error(context, 'Failed to commit: $e');
+        AppNotification.error(context, ErrorHandler.getUserMessage(e, fallbackMessage: 'Failed to commit'));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -132,7 +133,7 @@ class _ViewItemSheetState extends State<ViewItemSheet>
       }
     } catch (e) {
       if (mounted) {
-        AppNotification.error(context, 'Failed to revoke: $e');
+        AppNotification.error(context, ErrorHandler.getUserMessage(e, fallbackMessage: 'Failed to revoke'));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -153,7 +154,7 @@ class _ViewItemSheetState extends State<ViewItemSheet>
       }
     } catch (e) {
       if (mounted) {
-        AppNotification.error(context, 'Failed to mark as purchased: $e');
+        AppNotification.error(context, ErrorHandler.getUserMessage(e, fallbackMessage: 'Failed to mark as purchased'));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);

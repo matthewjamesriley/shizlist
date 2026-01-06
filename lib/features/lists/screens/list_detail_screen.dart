@@ -11,6 +11,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/utils/error_handler.dart';
 import '../../../models/friend.dart';
 import '../../../models/models.dart';
 import '../../../services/image_upload_service.dart';
@@ -1695,7 +1696,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
                   if (mounted) {
                     AppNotification.show(
                       context,
-                      message: 'Failed to update: $e',
+                      message: ErrorHandler.getUserMessage(e, fallbackMessage: 'Failed to update'),
                       icon: PhosphorIcons.warning(),
                       backgroundColor: AppColors.error,
                     );
@@ -2546,7 +2547,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
         if (mounted) {
           AppNotification.show(
             context,
-            message: 'Failed to delete list: $e',
+            message: ErrorHandler.getUserMessage(e, fallbackMessage: 'Failed to delete list'),
             icon: PhosphorIcons.warning(),
             backgroundColor: AppColors.error,
           );
@@ -2674,7 +2675,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
           }
         } catch (e) {
           if (mounted) {
-            AppNotification.error(context, 'Failed to commit: $e');
+            AppNotification.error(context, ErrorHandler.getUserMessage(e, fallbackMessage: 'Failed to commit'));
           }
         }
       } else if (action == 'revoke') {
@@ -2686,7 +2687,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
           }
         } catch (e) {
           if (mounted) {
-            AppNotification.error(context, 'Failed to revoke: $e');
+            AppNotification.error(context, ErrorHandler.getUserMessage(e, fallbackMessage: 'Failed to revoke'));
           }
         }
       } else if (action == 'purchased') {
@@ -2701,7 +2702,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
           }
         } catch (e) {
           if (mounted) {
-            AppNotification.error(context, 'Failed to mark as purchased: $e');
+            AppNotification.error(context, ErrorHandler.getUserMessage(e, fallbackMessage: 'Failed to mark as purchased'));
           }
         }
       }
@@ -2790,7 +2791,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
           }
         } catch (e) {
           if (mounted) {
-            AppNotification.error(context, 'Failed to commit: $e');
+            AppNotification.error(context, ErrorHandler.getUserMessage(e, fallbackMessage: 'Failed to commit'));
           }
         }
       } else if (action == 'purchased') {
@@ -2805,7 +2806,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
           }
         } catch (e) {
           if (mounted) {
-            AppNotification.error(context, 'Failed to mark as purchased: $e');
+            AppNotification.error(context, ErrorHandler.getUserMessage(e, fallbackMessage: 'Failed to mark as purchased'));
           }
         }
       }
@@ -3036,7 +3037,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
           }
         } catch (e) {
           if (mounted) {
-            AppNotification.error(context, 'Failed to revoke: $e');
+            AppNotification.error(context, ErrorHandler.getUserMessage(e, fallbackMessage: 'Failed to revoke'));
           }
         }
       }
@@ -3326,7 +3327,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
 
       _refreshItems();
     } catch (e) {
-      AppNotification.error(context, 'Failed to update priority: $e');
+      AppNotification.error(context, ErrorHandler.getUserMessage(e, fallbackMessage: 'Failed to update priority'));
     }
   }
 
@@ -3356,7 +3357,7 @@ class _ListDetailScreenState extends State<ListDetailScreen>
 
         _refreshItems();
       } catch (e) {
-        AppNotification.error(context, 'Failed to delete items: $e');
+        AppNotification.error(context, ErrorHandler.getUserMessage(e, fallbackMessage: 'Failed to delete items'));
       }
     }
   }
