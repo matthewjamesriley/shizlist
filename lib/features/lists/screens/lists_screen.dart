@@ -45,6 +45,21 @@ class _ListsScreenState extends State<ListsScreen>
   Map<String, List<String>> _listThumbnails = {}; // listUid -> thumbnail URLs
   bool _isLoading = true;
   String? _error;
+  bool _isNetworkError = false;
+
+  /// Checks if error is a network/DNS error
+  bool _isNetworkErrorType(dynamic error) {
+    final errorStr = error.toString().toLowerCase();
+    return errorStr.contains('socketexception') ||
+        errorStr.contains('errno = 7') ||
+        errorStr.contains('errno=7') ||
+        errorStr.contains('failed host lookup') ||
+        errorStr.contains('network is unreachable') ||
+        errorStr.contains('no address associated') ||
+        errorStr.contains('connection refused') ||
+        errorStr.contains('connection timed out') ||
+        errorStr.contains('no internet');
+  }
 
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
@@ -195,6 +210,7 @@ class _ListsScreenState extends State<ListsScreen>
       setState(() {
         _isLoading = true;
         _error = null;
+        _isNetworkError = false;
       });
 
       final lists = await _listService.getUserLists();
@@ -213,7 +229,10 @@ class _ListsScreenState extends State<ListsScreen>
       _loadThumbnailsInBackground(lists);
     } catch (e) {
       setState(() {
-        _error = e.toString();
+        _isNetworkError = _isNetworkErrorType(e);
+        _error = _isNetworkError 
+            ? 'No internet connection. Please check your network and try again.'
+            : e.toString();
         _isLoading = false;
       });
       // Still notify even on error so buttons appear
@@ -418,21 +437,43 @@ class _ListsScreenState extends State<ListsScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            PhosphorIcon(
-              PhosphorIcons.warning(),
-              size: 56,
-              color: AppColors.error,
-            ),
-            const SizedBox(height: 24),
-            Text('Something went wrong', style: AppTypography.headlineSmall),
-            const SizedBox(height: 8),
-            Text(
-              _error ?? 'Unknown error',
-              style: AppTypography.bodyMedium.copyWith(
-                color: AppColors.textPrimary,
+            if (_isNetworkError) ...[
+              // Network error - show sad monster
+              Image.asset(
+                'assets/images/sad-monster.png',
+                height: 150,
               ),
-              textAlign: TextAlign.center,
-            ),
+              const SizedBox(height: 24),
+              Text(
+                'No internet connection',
+                style: AppTypography.headlineSmall,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Please check your network and try again.',
+                style: AppTypography.bodyMedium.copyWith(
+                  color: AppColors.textPrimary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ] else ...[
+              // Regular error
+              PhosphorIcon(
+                PhosphorIcons.warning(),
+                size: 56,
+                color: AppColors.error,
+              ),
+              const SizedBox(height: 24),
+              Text('Something went wrong', style: AppTypography.headlineSmall),
+              const SizedBox(height: 8),
+              Text(
+                _error ?? 'Unknown error',
+                style: AppTypography.bodyMedium.copyWith(
+                  color: AppColors.textPrimary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
             const SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: _loadLists,
