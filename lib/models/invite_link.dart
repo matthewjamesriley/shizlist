@@ -38,11 +38,18 @@ class InviteLink {
   });
 
   factory InviteLink.fromJson(Map<String, dynamic> json) {
-    // Parse list_uids array
+    // Parse list_uids array - handle both List and String (Postgres array format)
     List<String> listUids = [];
     if (json['list_uids'] != null) {
       if (json['list_uids'] is List) {
         listUids = (json['list_uids'] as List).map((e) => e.toString()).toList();
+      } else if (json['list_uids'] is String) {
+        // Handle Postgres array format: "{uuid1,uuid2}"
+        String arrayStr = json['list_uids'] as String;
+        arrayStr = arrayStr.replaceAll('{', '').replaceAll('}', '');
+        if (arrayStr.isNotEmpty) {
+          listUids = arrayStr.split(',').map((e) => e.trim()).toList();
+        }
       }
     }
     

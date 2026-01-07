@@ -15,11 +15,13 @@ import '../../../services/list_share_service.dart';
 import '../../../services/lists_notifier.dart';
 import '../../../services/notification_service.dart';
 import '../../../services/page_load_notifier.dart';
+import '../../../services/version_service.dart';
 import '../../../services/view_mode_notifier.dart';
 import '../../../widgets/app_bottom_sheet.dart';
 import '../../../widgets/app_dialog.dart';
 import '../../../widgets/app_notification.dart';
 import '../../../widgets/list_card.dart';
+import '../../../widgets/update_dialog.dart';
 import '../../../services/item_service.dart';
 import '../../notifications/screens/notifications_screen.dart';
 import '../widgets/create_list_dialog.dart';
@@ -89,6 +91,21 @@ class _ListsScreenState extends State<ListsScreen>
 
     _loadLists();
     _setupNotificationListener();
+    _checkForUpdate();
+  }
+
+  Future<void> _checkForUpdate() async {
+    // Delay slightly to let the screen load first
+    await Future.delayed(const Duration(seconds: 2));
+    if (!mounted) return;
+    
+    final newVersion = await VersionService.checkForUpdate();
+    if (newVersion != null && mounted) {
+      final shouldShow = await VersionService.shouldShowUpdateDialog(newVersion);
+      if (shouldShow && mounted) {
+        UpdateDialog.show(context, newVersion);
+      }
+    }
   }
 
   void _setupNotificationListener() {
@@ -422,7 +439,7 @@ class _ListsScreenState extends State<ListsScreen>
     return RefreshIndicator(
       onRefresh: _refreshLists,
       child: ListView.builder(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.fromLTRB(0, 8, 0, 100),
         itemCount: _lists.length,
         itemBuilder: (context, index) {
           final list = _lists[index];

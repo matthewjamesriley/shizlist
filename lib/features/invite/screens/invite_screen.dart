@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
+import '../../../core/constants/event_suggestions.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/utils/error_handler.dart';
@@ -115,17 +116,16 @@ class _InviteScreenState extends State<InviteScreen> {
     setState(() => _isLoading = true);
     try {
       final lists = await _listService.getUserLists();
-      
+
       // Filter to only 'friends' visibility lists (shareable)
-      final shareableLists = lists
-          .where((l) => l.visibility == ListVisibility.friends)
-          .toList();
-      
+      final shareableLists =
+          lists.where((l) => l.visibility == ListVisibility.friends).toList();
+
       // Sort alphabetically by title
       shareableLists.sort(
         (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()),
       );
-      
+
       if (mounted) {
         setState(() {
           _shareableLists = shareableLists;
@@ -144,10 +144,13 @@ class _InviteScreenState extends State<InviteScreen> {
 
   Future<void> _generateInviteLink() async {
     if (_selectedListUids.isEmpty) {
-      AppNotification.error(context, 'Please select at least one list to share');
+      AppNotification.error(
+        context,
+        'Please select at least one list to share',
+      );
       return;
     }
-    
+
     setState(() => _isGenerating = true);
     try {
       final invite = await _inviteService.createInviteLink(
@@ -184,9 +187,13 @@ class _InviteScreenState extends State<InviteScreen> {
     final listCount = _selectedListUids.length;
     String message;
     if (listCount == 1) {
-      final listTitle = _shareableLists
-          .firstWhere((l) => l.uid == _selectedListUids.first, orElse: () => _shareableLists.first)
-          .title;
+      final listTitle =
+          _shareableLists
+              .firstWhere(
+                (l) => l.uid == _selectedListUids.first,
+                orElse: () => _shareableLists.first,
+              )
+              .title;
       message = 'Join my list "$listTitle" on ShizList!';
     } else {
       message = 'Join my $listCount lists on ShizList!';
@@ -205,7 +212,10 @@ class _InviteScreenState extends State<InviteScreen> {
       );
     } catch (e) {
       if (mounted) {
-        AppNotification.error(context, ErrorHandler.getUserMessage(e, fallbackMessage: 'Failed to share'));
+        AppNotification.error(
+          context,
+          ErrorHandler.getUserMessage(e, fallbackMessage: 'Failed to share'),
+        );
       }
     }
   }
@@ -236,6 +246,61 @@ class _InviteScreenState extends State<InviteScreen> {
     });
   }
 
+  /// Get icon for a list based on its title
+  PhosphorIconData _getIconForList(String title) {
+    final lowerTitle = title.toLowerCase();
+
+    // Find matching event suggestion
+    for (final suggestion in EventSuggestions.all) {
+      if (suggestion.name.toLowerCase() == lowerTitle ||
+          suggestion.keywords.any(
+            (k) => lowerTitle.contains(k.toLowerCase()),
+          )) {
+        return _getIconForCategory(suggestion.category);
+      }
+    }
+
+    // Default icon
+    return PhosphorIcons.usersThree();
+  }
+
+  PhosphorIconData _getIconForCategory(EventCategory category) {
+    switch (category) {
+      case EventCategory.birthday:
+        return PhosphorIcons.cake();
+      case EventCategory.wedding:
+        return PhosphorIcons.heart();
+      case EventCategory.heart:
+        return PhosphorIcons.heart();
+      case EventCategory.diamond:
+        return PhosphorIcons.diamond();
+      case EventCategory.gift:
+        return PhosphorIcons.gift();
+      case EventCategory.star:
+        return PhosphorIcons.star();
+      case EventCategory.baby:
+        return PhosphorIcons.baby();
+      case EventCategory.graduation:
+        return PhosphorIcons.graduationCap();
+      case EventCategory.house:
+        return PhosphorIcons.house();
+      case EventCategory.trophy:
+        return PhosphorIcons.trophy();
+      case EventCategory.travel:
+        return PhosphorIcons.airplane();
+      case EventCategory.car:
+        return PhosphorIcons.car();
+      case EventCategory.camping:
+        return PhosphorIcons.tent();
+      case EventCategory.party:
+        return PhosphorIcons.confetti();
+      case EventCategory.users:
+        return PhosphorIcons.usersThree();
+      case EventCategory.flower:
+        return PhosphorIcons.flower();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -247,193 +312,242 @@ class _InviteScreenState extends State<InviteScreen> {
         Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 500),
-            child: _shareableLists.isEmpty
-                ? _buildNoListsMessage()
-                : SingleChildScrollView(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // Header with share illustration (hide when QR shown)
-                        if (_currentInvite == null) ...[
-                          Center(
-                            child: Image.asset(
-                              'assets/images/share.png',
-                              height: 140,
-                              fit: BoxFit.contain,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Select lists to share',
-                            style: AppTypography.titleLarge.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Choose which lists your friend will be added to',
-                            style: AppTypography.bodyMedium.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 20),
-                        ],
-
-                        // Select All / None buttons
-                        if (_currentInvite == null && _shareableLists.length > 1)
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              TextButton(
-                                onPressed: _selectedListUids.length == _shareableLists.length
-                                    ? null
-                                    : _selectAll,
-                                child: Text(
-                                  'Select All',
-                                  style: AppTypography.bodySmall.copyWith(
-                                    color: _selectedListUids.length == _shareableLists.length
-                                        ? AppColors.textHint
-                                        : AppColors.primary,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              TextButton(
-                                onPressed: _selectedListUids.isEmpty ? null : _selectNone,
-                                child: Text(
-                                  'Select None',
-                                  style: AppTypography.bodySmall.copyWith(
-                                    color: _selectedListUids.isEmpty
-                                        ? AppColors.textHint
-                                        : AppColors.primary,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-
-                        // List checklist
-                        if (_currentInvite == null)
-                          Container(
-                            decoration: BoxDecoration(
-                              color: AppColors.surfaceVariant,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: AppColors.divider),
-                            ),
-                            child: Column(
-                              children: _shareableLists.asMap().entries.map((entry) {
-                                final index = entry.key;
-                                final list = entry.value;
-                                final isSelected = _selectedListUids.contains(list.uid);
-                                final isLast = index == _shareableLists.length - 1;
-
-                                return Column(
-                                  children: [
-                                    InkWell(
-                                      onTap: () => _toggleList(list.uid),
-                                      borderRadius: BorderRadius.vertical(
-                                        top: index == 0 ? const Radius.circular(12) : Radius.zero,
-                                        bottom: isLast ? const Radius.circular(12) : Radius.zero,
-                                      ),
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                          vertical: 14,
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            // Checkbox
-                                            Container(
-                                              width: 24,
-                                              height: 24,
-                                              decoration: BoxDecoration(
-                                                color: isSelected
-                                                    ? AppColors.primary
-                                                    : Colors.transparent,
-                                                borderRadius: BorderRadius.circular(6),
-                                                border: Border.all(
-                                                  color: isSelected
-                                                      ? AppColors.primary
-                                                      : AppColors.textHint,
-                                                  width: 2,
-                                                ),
-                                              ),
-                                              child: isSelected
-                                                  ? const Icon(
-                                                      Icons.check,
-                                                      size: 16,
-                                                      color: Colors.white,
-                                                    )
-                                                  : null,
-                                            ),
-                                            const SizedBox(width: 14),
-                                            // List icon
-                                            PhosphorIcon(
-                                              PhosphorIcons.usersThree(),
-                                              size: 22,
-                                              color: AppColors.textSecondary,
-                                            ),
-                                            const SizedBox(width: 12),
-                                            // List title
-                                            Expanded(
-                                              child: Text(
-                                                list.title,
-                                                style: AppTypography.bodyLarge.copyWith(
-                                                  fontWeight: isSelected
-                                                      ? FontWeight.w600
-                                                      : FontWeight.normal,
-                                                ),
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                    if (!isLast)
-                                      Divider(
-                                        height: 1,
-                                        indent: 16,
-                                        endIndent: 16,
-                                        color: AppColors.divider,
-                                      ),
-                                  ],
-                                );
-                              }).toList(),
-                            ),
-                          ),
-
-                        const SizedBox(height: 24),
-
-                        // Generate button or QR code
-                        if (_currentInvite == null) ...[
-                          AppButton.primary(
-                            label: _selectedListUids.isEmpty
-                                ? 'Select lists to share'
-                                : 'Generate invite link',
-                            icon: PhosphorIcons.link(),
-                            onPressed: _isGenerating || _selectedListUids.isEmpty
-                                ? null
-                                : _generateInviteLink,
-                            isLoading: _isGenerating,
-                          ),
-                        ] else ...[
-                          // Invite link generated - show compact QR view
-                          _buildInviteCard(),
-                        ],
-                      ],
-                    ),
-                  ),
+            child:
+                _shareableLists.isEmpty
+                    ? _buildNoListsMessage()
+                    : _currentInvite != null
+                    ? _buildInviteGeneratedView()
+                    : _buildListSelectionView(),
           ),
         ),
 
         // Slide-in notification toast
-        if (_toastNotification != null)
-          _buildNotificationToast(),
+        if (_toastNotification != null) _buildNotificationToast(),
       ],
+    );
+  }
+
+  Widget _buildListSelectionView() {
+    // Calculate max height for list - show ~3.5 items to hint scrollability
+    const double itemHeight = 56.0;
+    final double maxListHeight =
+        _shareableLists.length > 3
+            ? itemHeight * 3.5
+            : itemHeight * _shareableLists.length;
+
+    return Column(
+      children: [
+        // Scrollable content area
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Header with share illustration
+                Center(
+                  child: Image.asset(
+                    'assets/images/share.png',
+                    height: 140,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Select lists to share',
+                  style: AppTypography.titleLarge.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Choose which lists your friend(s) will be added to',
+                  style: AppTypography.bodyLarge.copyWith(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+
+                // Select All / None buttons - bigger and more prominent
+                if (_shareableLists.length > 1)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed:
+                              _selectedListUids.length == _shareableLists.length
+                                  ? null
+                                  : _selectAll,
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 10,
+                            ),
+                          ),
+                          child: Text(
+                            'Select All',
+                            style: AppTypography.titleSmall.copyWith(
+                              color:
+                                  _selectedListUids.length ==
+                                          _shareableLists.length
+                                      ? AppColors.textHint
+                                      : AppColors.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        TextButton(
+                          onPressed:
+                              _selectedListUids.isEmpty ? null : _selectNone,
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 10,
+                            ),
+                          ),
+                          child: Text(
+                            'Select none',
+                            style: AppTypography.titleSmall.copyWith(
+                              color:
+                                  _selectedListUids.isEmpty
+                                      ? AppColors.textHint
+                                      : AppColors.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                // List checklist with constrained height for scrolling
+                Container(
+                  constraints: BoxConstraints(maxHeight: maxListHeight),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceVariant,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.divider),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      physics:
+                          _shareableLists.length > 3
+                              ? const AlwaysScrollableScrollPhysics()
+                              : const NeverScrollableScrollPhysics(),
+                      itemCount: _shareableLists.length,
+                      separatorBuilder:
+                          (context, index) => Divider(
+                            height: 1,
+                            indent: 16,
+                            endIndent: 16,
+                            color: AppColors.divider,
+                          ),
+                      itemBuilder: (context, index) {
+                        final list = _shareableLists[index];
+                        final isSelected = _selectedListUids.contains(list.uid);
+
+                        return InkWell(
+                          onTap: () => _toggleList(list.uid),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 16,
+                            ),
+                            child: Row(
+                              children: [
+                                // Checkbox
+                                Container(
+                                  width: 24,
+                                  height: 24,
+                                  decoration: BoxDecoration(
+                                    color:
+                                        isSelected
+                                            ? AppColors.primary
+                                            : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(
+                                      color:
+                                          isSelected
+                                              ? AppColors.primary
+                                              : AppColors.textHint,
+                                      width: 2,
+                                    ),
+                                  ),
+                                  child:
+                                      isSelected
+                                          ? const Icon(
+                                            Icons.check,
+                                            size: 16,
+                                            color: Colors.white,
+                                          )
+                                          : null,
+                                ),
+                                const SizedBox(width: 14),
+                                // List icon
+                                PhosphorIcon(
+                                  _getIconForList(list.title),
+                                  size: 22,
+                                  color: AppColors.textSecondary,
+                                ),
+                                const SizedBox(width: 12),
+                                // List title
+                                Expanded(
+                                  child: Text(
+                                    list.title,
+                                    style: AppTypography.bodyLarge.copyWith(
+                                      fontWeight:
+                                          isSelected
+                                              ? FontWeight.w600
+                                              : FontWeight.normal,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        // Fixed bottom button
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 12, 24, 28),
+          child: AppButton.primary(
+            label:
+                _selectedListUids.isEmpty
+                    ? 'Select lists to share'
+                    : 'Generate invite link',
+            icon: PhosphorIcons.link(),
+            onPressed:
+                _isGenerating || _selectedListUids.isEmpty
+                    ? null
+                    : _generateInviteLink,
+            isLoading: _isGenerating,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInviteGeneratedView() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: _buildInviteCard(),
     );
   }
 
@@ -479,9 +593,10 @@ class _InviteScreenState extends State<InviteScreen> {
   }
 
   Widget _buildInviteCard() {
-    final selectedLists = _shareableLists
-        .where((l) => _selectedListUids.contains(l.uid))
-        .toList();
+    final selectedLists =
+        _shareableLists
+            .where((l) => _selectedListUids.contains(l.uid))
+            .toList();
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -500,10 +615,7 @@ class _InviteScreenState extends State<InviteScreen> {
                   height: 52,
                   child: OutlinedButton.icon(
                     onPressed: _copyLink,
-                    icon: PhosphorIcon(
-                      PhosphorIcons.copy(),
-                      size: 20,
-                    ),
+                    icon: PhosphorIcon(PhosphorIcons.copy(), size: 20),
                     label: Text(
                       'Copy',
                       style: AppTypography.titleMedium.copyWith(
@@ -513,9 +625,7 @@ class _InviteScreenState extends State<InviteScreen> {
                     ),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.textPrimary,
-                      side: BorderSide(
-                        color: AppColors.divider,
-                      ),
+                      side: BorderSide(color: AppColors.divider),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(26),
                       ),
@@ -530,8 +640,7 @@ class _InviteScreenState extends State<InviteScreen> {
                       (buttonContext) => SizedBox(
                         height: 52,
                         child: ElevatedButton.icon(
-                          onPressed:
-                              () => _shareLink(buttonContext),
+                          onPressed: () => _shareLink(buttonContext),
                           icon: PhosphorIcon(
                             PhosphorIcons.shareFat(),
                             size: 20,
@@ -539,18 +648,16 @@ class _InviteScreenState extends State<InviteScreen> {
                           ),
                           label: Text(
                             'Share',
-                            style: AppTypography.titleMedium
-                                .copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                            style: AppTypography.titleMedium.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primary,
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(26),
+                              borderRadius: BorderRadius.circular(26),
                             ),
                           ),
                         ),
@@ -647,8 +754,7 @@ class _InviteScreenState extends State<InviteScreen> {
           _openNotifications();
         },
         onHorizontalDragEnd: (details) {
-          if (details.primaryVelocity != null &&
-              details.primaryVelocity! > 0) {
+          if (details.primaryVelocity != null && details.primaryVelocity! > 0) {
             _dismissToast();
           }
         },
