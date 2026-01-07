@@ -31,23 +31,11 @@ class _InviteScreenState extends State<InviteScreen> {
   final ListService _listService = ListService();
   final NotificationService _notificationService = NotificationService();
 
-  // Sentinel value for "All lists" option
-  static final WishList _allListsSentinel = WishList(
-    id: -1,
-    uid: 'all-lists',
-    ownerId: '',
-    title: 'All lists (apart from private)',
-    visibility: ListVisibility.friends,
-    createdAt: DateTime.now(),
-  );
-
-  List<WishList> _lists = [];
-  WishList? _selectedList = _allListsSentinel; // Default to "All lists"
+  List<WishList> _shareableLists = []; // Lists with visibility = 'friends'
+  Set<String> _selectedListUids = {}; // Selected list UIDs
   InviteLink? _currentInvite;
   bool _isLoading = true;
   bool _isGenerating = false;
-
-  bool get _isAllListsSelected => _selectedList?.id == -1;
 
   // Slide-in notification toast
   AppNotificationModel? _toastNotification;
@@ -127,14 +115,22 @@ class _InviteScreenState extends State<InviteScreen> {
     setState(() => _isLoading = true);
     try {
       final lists = await _listService.getUserLists();
+      
+      // Filter to only 'friends' visibility lists (shareable)
+      final shareableLists = lists
+          .where((l) => l.visibility == ListVisibility.friends)
+          .toList();
+      
       // Sort alphabetically by title
-      lists.sort(
+      shareableLists.sort(
         (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()),
       );
+      
       if (mounted) {
         setState(() {
-          _lists = lists;
-          // Keep "All lists" as the default (already set in initialization)
+          _shareableLists = shareableLists;
+          // Select all lists by default
+          _selectedListUids = shareableLists.map((l) => l.uid).toSet();
           _isLoading = false;
         });
       }
@@ -147,17 +143,15 @@ class _InviteScreenState extends State<InviteScreen> {
   }
 
   Future<void> _generateInviteLink() async {
+    if (_selectedListUids.isEmpty) {
+      AppNotification.error(context, 'Please select at least one list to share');
+      return;
+    }
+    
     setState(() => _isGenerating = true);
     try {
-      // For "All lists" option, set shareAllLists flag
-      // For specific list, pass the listUid
-      // For "no list", pass neither
       final invite = await _inviteService.createInviteLink(
-        listUid:
-            (_isAllListsSelected || _selectedList == null)
-                ? null
-                : _selectedList!.uid,
-        shareAllLists: _isAllListsSelected,
+        listUids: _selectedListUids.toList(),
       );
       if (mounted) {
         setState(() {
@@ -187,11 +181,15 @@ class _InviteScreenState extends State<InviteScreen> {
   Future<void> _shareLink(BuildContext context) async {
     if (_currentInvite == null) return;
 
-    String message = 'Join me on ShizList!';
-    if (_isAllListsSelected) {
-      message = 'Join my lists on ShizList!';
-    } else if (_selectedList != null) {
-      message = 'Join my list "${_selectedList!.title}" on ShizList!';
+    final listCount = _selectedListUids.length;
+    String message;
+    if (listCount == 1) {
+      final listTitle = _shareableLists
+          .firstWhere((l) => l.uid == _selectedListUids.first, orElse: () => _shareableLists.first)
+          .title;
+      message = 'Join my list "$listTitle" on ShizList!';
+    } else {
+      message = 'Join my $listCount lists on ShizList!';
     }
 
     try {
@@ -212,6 +210,32 @@ class _InviteScreenState extends State<InviteScreen> {
     }
   }
 
+  void _toggleList(String uid) {
+    setState(() {
+      if (_selectedListUids.contains(uid)) {
+        _selectedListUids.remove(uid);
+      } else {
+        _selectedListUids.add(uid);
+      }
+      // Reset invite when selection changes
+      _currentInvite = null;
+    });
+  }
+
+  void _selectAll() {
+    setState(() {
+      _selectedListUids = _shareableLists.map((l) => l.uid).toSet();
+      _currentInvite = null;
+    });
+  }
+
+  void _selectNone() {
+    setState(() {
+      _selectedListUids.clear();
+      _currentInvite = null;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -223,371 +247,479 @@ class _InviteScreenState extends State<InviteScreen> {
         Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 500),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Share illustration (hide when QR code is shown)
-                  if (_currentInvite == null) ...[
-                    Center(
-                      child: Image.asset(
-                        'assets/images/share.png',
-                        height: 180,
-                        fit: BoxFit.contain,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                  ],
-
-                  // List selector (optional)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceVariant,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.divider),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<WishList?>(
-                        value: _selectedList,
-                        isExpanded: true,
-                        hint: Row(
-                          children: [
-                            PhosphorIcon(
-                              PhosphorIcons.listBullets(),
-                              size: 22,
-                              color: AppColors.textHint,
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              'No list selected (app invite only)',
-                              style: AppTypography.bodyLarge.copyWith(
-                                color: AppColors.textHint,
-                              ),
-                            ),
-                          ],
-                        ),
-                        items: [
-                          // "All lists" option (default)
-                          DropdownMenuItem<WishList?>(
-                            value: _allListsSentinel,
-                            child: Row(
-                              children: [
-                                PhosphorIcon(
-                                  PhosphorIcons.stackSimple(),
-                                  size: 22,
-                                  color: AppColors.textPrimary,
-                                ),
-                                const SizedBox(width: 12),
-                                Text(
-                                  'All lists (apart from private)',
-                                  style: AppTypography.bodyLarge,
-                                ),
-                              ],
+            child: _shareableLists.isEmpty
+                ? _buildNoListsMessage()
+                : SingleChildScrollView(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Header with share illustration (hide when QR shown)
+                        if (_currentInvite == null) ...[
+                          Center(
+                            child: Image.asset(
+                              'assets/images/share.png',
+                              height: 140,
+                              fit: BoxFit.contain,
                             ),
                           ),
-
-                          // User's lists
-                          ..._lists.map((list) {
-                            final isPrivate =
-                                list.visibility == ListVisibility.private;
-                            return DropdownMenuItem(
-                              value: list,
-                              enabled: !isPrivate,
-                              child: Row(
-                                children: [
-                                  PhosphorIcon(
-                                    list.visibility == ListVisibility.public
-                                        ? PhosphorIcons.globe()
-                                        : list.visibility ==
-                                            ListVisibility.friends
-                                        ? PhosphorIcons.usersThree()
-                                        : PhosphorIcons.lock(),
-                                    size: 22,
-                                    color:
-                                        isPrivate
-                                            ? AppColors.textHint
-                                            : AppColors.textPrimary,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Text(
-                                      list.title,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: AppTypography.bodyLarge.copyWith(
-                                        color:
-                                            isPrivate
-                                                ? AppColors.textHint
-                                                : AppColors.textPrimary,
-                                      ),
-                                    ),
-                                  ),
-                                  if (isPrivate) ...[
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      '(Private)',
-                                      style: AppTypography.bodySmall.copyWith(
-                                        color: AppColors.textHint,
-                                        fontStyle: FontStyle.italic,
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            );
-                          }),
-                          // "None" option
-                          DropdownMenuItem<WishList?>(
-                            value: null,
-                            child: Row(
-                              children: [
-                                PhosphorIcon(
-                                  PhosphorIcons.prohibit(),
-                                  size: 22,
-                                  color: AppColors.textPrimary,
-                                ),
-                                const SizedBox(width: 12),
-                                Text(
-                                  'No lists (app invite only)',
-                                  style: AppTypography.bodyLarge,
-                                ),
-                              ],
+                          const SizedBox(height: 16),
+                          Text(
+                            'Select lists to share',
+                            style: AppTypography.titleLarge.copyWith(
+                              fontWeight: FontWeight.w600,
                             ),
+                            textAlign: TextAlign.center,
                           ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Choose which lists your friend will be added to',
+                            style: AppTypography.bodyMedium.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 20),
                         ],
-                        onChanged: (list) {
-                          setState(() {
-                            _selectedList = list;
-                            _currentInvite =
-                                null; // Reset invite when list changes
-                          });
-                        },
-                      ),
-                    ),
-                  ),
 
-                  const SizedBox(height: 24),
-
-                  // Generate button
-                  if (_currentInvite == null) ...[
-                    AppButton.primary(
-                      label: 'Generate invite link',
-                      icon: PhosphorIcons.link(),
-                      onPressed: _isGenerating ? null : _generateInviteLink,
-                      isLoading: _isGenerating,
-                    ),
-                  ] else ...[
-                    // Invite link generated - show compact QR view
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppColors.divider),
-                      ),
-                      child: Column(
-                        children: [
-                          // Share and Copy buttons at top
+                        // Select All / None buttons
+                        if (_currentInvite == null && _shareableLists.length > 1)
                           Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
                             children: [
-                              Expanded(
-                                child: SizedBox(
-                                  height: 52,
-                                  child: OutlinedButton.icon(
-                                    onPressed: _copyLink,
-                                    icon: PhosphorIcon(
-                                      PhosphorIcons.copy(),
-                                      size: 20,
-                                    ),
-                                    label: Text(
-                                      'Copy',
-                                      style: AppTypography.titleMedium.copyWith(
-                                        color: AppColors.textPrimary,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                    style: OutlinedButton.styleFrom(
-                                      foregroundColor: AppColors.textPrimary,
-                                      side: BorderSide(
-                                        color: AppColors.divider,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(26),
-                                      ),
-                                    ),
+                              TextButton(
+                                onPressed: _selectedListUids.length == _shareableLists.length
+                                    ? null
+                                    : _selectAll,
+                                child: Text(
+                                  'Select All',
+                                  style: AppTypography.bodySmall.copyWith(
+                                    color: _selectedListUids.length == _shareableLists.length
+                                        ? AppColors.textHint
+                                        : AppColors.primary,
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Builder(
-                                  builder:
-                                      (buttonContext) => SizedBox(
-                                        height: 52,
-                                        child: ElevatedButton.icon(
-                                          onPressed:
-                                              () => _shareLink(buttonContext),
-                                          icon: PhosphorIcon(
-                                            PhosphorIcons.shareFat(),
-                                            size: 20,
-                                            color: Colors.white,
-                                          ),
-                                          label: Text(
-                                            'Share',
-                                            style: AppTypography.titleMedium
-                                                .copyWith(
-                                                  color: Colors.white,
-                                                  fontWeight: FontWeight.w600,
-                                                ),
-                                          ),
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: AppColors.primary,
-                                            foregroundColor: Colors.white,
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(26),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
+                              const SizedBox(width: 8),
+                              TextButton(
+                                onPressed: _selectedListUids.isEmpty ? null : _selectNone,
+                                child: Text(
+                                  'Select None',
+                                  style: AppTypography.bodySmall.copyWith(
+                                    color: _selectedListUids.isEmpty
+                                        ? AppColors.textHint
+                                        : AppColors.primary,
+                                  ),
                                 ),
                               ),
                             ],
                           ),
 
-                          const SizedBox(height: 20),
-
-                          // QR Code
+                        // List checklist
+                        if (_currentInvite == null)
                           Container(
-                            padding: const EdgeInsets.all(6),
                             decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(8),
+                              color: AppColors.surfaceVariant,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: AppColors.divider),
                             ),
-                            child: QrImageView(
-                              data: _currentInvite!.inviteUrl,
-                              version: QrVersions.auto,
-                              size: 180,
-                              backgroundColor: Colors.white,
-                              eyeStyle: const QrEyeStyle(
-                                eyeShape: QrEyeShape.square,
-                                color: Colors.black,
-                              ),
-                              dataModuleStyle: const QrDataModuleStyle(
-                                dataModuleShape: QrDataModuleShape.square,
-                                color: Colors.black,
-                              ),
+                            child: Column(
+                              children: _shareableLists.asMap().entries.map((entry) {
+                                final index = entry.key;
+                                final list = entry.value;
+                                final isSelected = _selectedListUids.contains(list.uid);
+                                final isLast = index == _shareableLists.length - 1;
+
+                                return Column(
+                                  children: [
+                                    InkWell(
+                                      onTap: () => _toggleList(list.uid),
+                                      borderRadius: BorderRadius.vertical(
+                                        top: index == 0 ? const Radius.circular(12) : Radius.zero,
+                                        bottom: isLast ? const Radius.circular(12) : Radius.zero,
+                                      ),
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 14,
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            // Checkbox
+                                            Container(
+                                              width: 24,
+                                              height: 24,
+                                              decoration: BoxDecoration(
+                                                color: isSelected
+                                                    ? AppColors.primary
+                                                    : Colors.transparent,
+                                                borderRadius: BorderRadius.circular(6),
+                                                border: Border.all(
+                                                  color: isSelected
+                                                      ? AppColors.primary
+                                                      : AppColors.textHint,
+                                                  width: 2,
+                                                ),
+                                              ),
+                                              child: isSelected
+                                                  ? const Icon(
+                                                      Icons.check,
+                                                      size: 16,
+                                                      color: Colors.white,
+                                                    )
+                                                  : null,
+                                            ),
+                                            const SizedBox(width: 14),
+                                            // List icon
+                                            PhosphorIcon(
+                                              PhosphorIcons.usersThree(),
+                                              size: 22,
+                                              color: AppColors.textSecondary,
+                                            ),
+                                            const SizedBox(width: 12),
+                                            // List title
+                                            Expanded(
+                                              child: Text(
+                                                list.title,
+                                                style: AppTypography.bodyLarge.copyWith(
+                                                  fontWeight: isSelected
+                                                      ? FontWeight.w600
+                                                      : FontWeight.normal,
+                                                ),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                    if (!isLast)
+                                      Divider(
+                                        height: 1,
+                                        indent: 16,
+                                        endIndent: 16,
+                                        color: AppColors.divider,
+                                      ),
+                                  ],
+                                );
+                              }).toList(),
                             ),
                           ),
 
-                          const SizedBox(height: 12),
+                        const SizedBox(height: 24),
 
-                          Text(
-                            'Scan to join',
-                            style: AppTypography.titleLarge.copyWith(
-                              color: AppColors.textPrimary,
-                              fontWeight: FontWeight.w600,
-                            ),
+                        // Generate button or QR code
+                        if (_currentInvite == null) ...[
+                          AppButton.primary(
+                            label: _selectedListUids.isEmpty
+                                ? 'Select lists to share'
+                                : 'Generate invite link',
+                            icon: PhosphorIcons.link(),
+                            onPressed: _isGenerating || _selectedListUids.isEmpty
+                                ? null
+                                : _generateInviteLink,
+                            isLoading: _isGenerating,
                           ),
+                        ] else ...[
+                          // Invite link generated - show compact QR view
+                          _buildInviteCard(),
                         ],
-                      ),
+                      ],
                     ),
-                  ],
-                ],
-              ),
-            ),
+                  ),
           ),
         ),
 
         // Slide-in notification toast
         if (_toastNotification != null)
-          AnimatedPositioned(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOutCubic,
-            top: 16,
-            right: _showToast ? 12 : -350,
-            child: GestureDetector(
-              onTap: () {
-                _dismissToast();
-                _openNotifications();
-              },
-              onHorizontalDragEnd: (details) {
-                if (details.primaryVelocity != null &&
-                    details.primaryVelocity! > 0) {
-                  _dismissToast();
-                }
-              },
-              child: Material(
-                elevation: 8,
-                borderRadius: BorderRadius.circular(16),
-                shadowColor: Colors.black.withValues(alpha: 0.3),
-                child: Container(
-                  width: 320,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.textPrimary,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.15),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Center(
-                          child: PhosphorIcon(
-                            PhosphorIcons.bell(PhosphorIconsStyle.fill),
-                            size: 20,
-                            color: Colors.white,
-                          ),
-                        ),
+          _buildNotificationToast(),
+      ],
+    );
+  }
+
+  Widget _buildNoListsMessage() {
+    return Padding(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Image.asset(
+            'assets/images/share.png',
+            height: 150,
+            fit: BoxFit.contain,
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'No shareable lists',
+            style: AppTypography.headlineSmall.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Create a list with "Friends" visibility to share it with others.',
+            style: AppTypography.bodyLarge.copyWith(
+              color: AppColors.textSecondary,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Private lists cannot be shared.',
+            style: AppTypography.bodyMedium.copyWith(
+              color: AppColors.textHint,
+              fontStyle: FontStyle.italic,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInviteCard() {
+    final selectedLists = _shareableLists
+        .where((l) => _selectedListUids.contains(l.uid))
+        .toList();
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.divider),
+      ),
+      child: Column(
+        children: [
+          // Share and Copy buttons at top
+          Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 52,
+                  child: OutlinedButton.icon(
+                    onPressed: _copyLink,
+                    icon: PhosphorIcon(
+                      PhosphorIcons.copy(),
+                      size: 20,
+                    ),
+                    label: Text(
+                      'Copy',
+                      style: AppTypography.titleMedium.copyWith(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w600,
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              _toastNotification!.title,
-                              style: AppTypography.titleSmall.copyWith(
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            if (_toastNotification!.message != null) ...[
-                              const SizedBox(height: 2),
-                              Text(
-                                _toastNotification!.message!,
-                                style: AppTypography.bodySmall.copyWith(
-                                  color: Colors.white.withValues(alpha: 0.7),
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ],
-                        ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.textPrimary,
+                      side: BorderSide(
+                        color: AppColors.divider,
                       ),
-                      const SizedBox(width: 8),
-                      PhosphorIcon(
-                        PhosphorIcons.caretRight(),
-                        size: 16,
-                        color: Colors.white.withValues(alpha: 0.7),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(26),
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Builder(
+                  builder:
+                      (buttonContext) => SizedBox(
+                        height: 52,
+                        child: ElevatedButton.icon(
+                          onPressed:
+                              () => _shareLink(buttonContext),
+                          icon: PhosphorIcon(
+                            PhosphorIcons.shareFat(),
+                            size: 20,
+                            color: Colors.white,
+                          ),
+                          label: Text(
+                            'Share',
+                            style: AppTypography.titleMedium
+                                .copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.circular(26),
+                            ),
+                          ),
+                        ),
+                      ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 20),
+
+          // QR Code
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: QrImageView(
+              data: _currentInvite!.inviteUrl,
+              version: QrVersions.auto,
+              size: 180,
+              backgroundColor: Colors.white,
+              eyeStyle: const QrEyeStyle(
+                eyeShape: QrEyeShape.square,
+                color: Colors.black,
+              ),
+              dataModuleStyle: const QrDataModuleStyle(
+                dataModuleShape: QrDataModuleShape.square,
+                color: Colors.black,
+              ),
             ),
           ),
-      ],
+
+          const SizedBox(height: 12),
+
+          Text(
+            'Scan to join',
+            style: AppTypography.titleLarge.copyWith(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+
+          const SizedBox(height: 8),
+
+          // Show selected lists
+          Text(
+            selectedLists.length == 1
+                ? 'Sharing: ${selectedLists.first.title}'
+                : 'Sharing ${selectedLists.length} lists',
+            style: AppTypography.bodyMedium.copyWith(
+              color: AppColors.textSecondary,
+            ),
+            textAlign: TextAlign.center,
+          ),
+
+          const SizedBox(height: 16),
+
+          // New invite button
+          TextButton.icon(
+            onPressed: () {
+              setState(() {
+                _currentInvite = null;
+              });
+            },
+            icon: PhosphorIcon(
+              PhosphorIcons.arrowLeft(),
+              size: 18,
+              color: AppColors.primary,
+            ),
+            label: Text(
+              'Change selection',
+              style: AppTypography.bodyMedium.copyWith(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNotificationToast() {
+    return AnimatedPositioned(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOutCubic,
+      top: 16,
+      right: _showToast ? 12 : -350,
+      child: GestureDetector(
+        onTap: () {
+          _dismissToast();
+          _openNotifications();
+        },
+        onHorizontalDragEnd: (details) {
+          if (details.primaryVelocity != null &&
+              details.primaryVelocity! > 0) {
+            _dismissToast();
+          }
+        },
+        child: Material(
+          elevation: 8,
+          borderRadius: BorderRadius.circular(16),
+          shadowColor: Colors.black.withValues(alpha: 0.3),
+          child: Container(
+            width: 320,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.textPrimary,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: PhosphorIcon(
+                      PhosphorIcons.bell(PhosphorIconsStyle.fill),
+                      size: 20,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _toastNotification!.title,
+                        style: AppTypography.titleSmall.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (_toastNotification!.message != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          _toastNotification!.message!,
+                          style: AppTypography.bodySmall.copyWith(
+                            color: Colors.white.withValues(alpha: 0.7),
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                PhosphorIcon(
+                  PhosphorIcons.caretRight(),
+                  size: 16,
+                  color: Colors.white.withValues(alpha: 0.7),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

@@ -29,7 +29,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
   String? _errorMessage;
   bool _isNetworkError = false;
-  bool _showEmailLogin = false;
+  bool _showEmailLogin = true; // Skip to email form directly (for now)
   bool _showOtpVerification = false;
   String? _pendingEmail;
 

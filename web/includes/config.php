@@ -54,10 +54,6 @@ function get_invite_by_code($code) {
         'is_active' => 'eq.true'
     ]);
     
-    // Debug - uncomment to see what's happening
-    // error_log('Invite query for code: ' . $code);
-    // error_log('Result: ' . print_r($result, true));
-    
     if (!empty($result) && is_array($result) && count($result) > 0) {
         $invite = $result[0];
         
@@ -72,20 +68,51 @@ function get_invite_by_code($code) {
             }
         }
         
-        // Get list info separately if list_uid exists
-        if (!empty($invite['list_uid'])) {
-            $list = supabase_get('lists', [
-                'select' => 'title',
-                'uid' => 'eq.' . $invite['list_uid']
-            ]);
-            // DEBUG: Store raw list query result
-            $invite['_debug_list_query'] = $list;
-            if (!empty($list) && is_array($list) && count($list) > 0) {
-                $invite['lists'] = $list[0];
+        // Parse list_uids from Postgres array format
+        $listUids = [];
+        if (!empty($invite['list_uids'])) {
+            // Postgres returns arrays as strings like "{uuid1,uuid2}"
+            $listUidsStr = $invite['list_uids'];
+            if (is_string($listUidsStr)) {
+                // Remove curly braces and split
+                $listUidsStr = trim($listUidsStr, '{}');
+                if (!empty($listUidsStr)) {
+                    $listUids = explode(',', $listUidsStr);
+                }
+            } elseif (is_array($listUidsStr)) {
+                $listUids = $listUidsStr;
             }
         }
         
-        // Check for share_all_lists flag
+        // Fetch list details for all list_uids
+        $invite['lists'] = [];
+        if (!empty($listUids)) {
+            foreach ($listUids as $listUid) {
+                $listUid = trim($listUid);
+                if (!empty($listUid)) {
+                    $list = supabase_get('lists', [
+                        'select' => 'uid,title',
+                        'uid' => 'eq.' . $listUid
+                    ]);
+                    if (!empty($list) && is_array($list) && count($list) > 0) {
+                        $invite['lists'][] = $list[0];
+                    }
+                }
+            }
+        }
+        
+        // Legacy support: if list_uids is empty but list_uid exists
+        if (empty($invite['lists']) && !empty($invite['list_uid'])) {
+            $list = supabase_get('lists', [
+                'select' => 'uid,title',
+                'uid' => 'eq.' . $invite['list_uid']
+            ]);
+            if (!empty($list) && is_array($list) && count($list) > 0) {
+                $invite['lists'][] = $list[0];
+            }
+        }
+        
+        // Check for share_all_lists flag (legacy)
         $invite['share_all_lists'] = !empty($invite['share_all_lists']);
         
         return $invite;
@@ -235,4 +262,3 @@ function get_list_uid($list_id) {
     return null;
 }
 ?>
-

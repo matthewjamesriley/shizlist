@@ -28,25 +28,16 @@ if (!empty($code)) {
 // Extract data
 $ownerName = $invite['users']['display_name'] ?? 'Someone';
 $ownerAvatar = $invite['users']['avatar_url'] ?? null;
-$listTitle = $invite['lists']['title'] ?? null;
+$lists = $invite['lists'] ?? [];
+$listCount = count($lists);
 $shareAllLists = !empty($invite['share_all_lists']);
-$hasListShare = !empty($listTitle);
-$hasAnyListShare = $hasListShare || $shareAllLists;
 
-// DEBUG - Set to true to show debug info
-$debugMode = false;
-$debugInfo = [
-    'code' => $code,
-    'list_uid' => $invite['list_uid'] ?? 'NULL',
-    'share_all_lists' => $invite['share_all_lists'] ?? 'NOT SET',
-    'listTitle' => $listTitle,
-    'shareAllLists' => $shareAllLists,
-    'hasListShare' => $hasListShare,
-    '_debug_list_query' => $invite['_debug_list_query'] ?? 'NOT RUN',
-];
+// Build list titles for display
+$listTitles = array_map(function($l) { return $l['title'] ?? ''; }, $lists);
+$listTitles = array_filter($listTitles); // Remove empty
 
 // App store links
-$appStoreUrl = 'https://apps.apple.com/app/shizlist/id123456789'; // Replace with actual
+$appStoreUrl = 'https://apps.apple.com/gb/app/shizlist/id6756820711';
 $playStoreUrl = 'https://play.google.com/store/apps/details?id=co.shizlist.app';
 $appDeepLink = 'co.shizlist.app://invite/' . $code;
 ?>
@@ -55,7 +46,7 @@ $appDeepLink = 'co.shizlist.app://invite/' . $code;
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ShizList Invite<?php echo $hasListShare ? ' - ' . htmlspecialchars($listTitle) : ''; ?></title>
+    <title>ShizList Invite<?php echo $listCount == 1 ? ' - ' . htmlspecialchars($listTitles[0] ?? '') : ($listCount > 1 ? ' - ' . $listCount . ' lists' : ''); ?></title>
     
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="/images/app_icon.png">
@@ -63,7 +54,17 @@ $appDeepLink = 'co.shizlist.app://invite/' . $code;
     
     <!-- Open Graph / Social Sharing -->
     <meta property="og:title" content="<?php echo htmlspecialchars($ownerName); ?> invited you to ShizList">
-    <meta property="og:description" content="<?php echo $hasListShare ? 'Join ' . htmlspecialchars($ownerName) . '\'s list: ' . htmlspecialchars($listTitle) : ($shareAllLists ? 'View all of ' . htmlspecialchars($ownerName) . '\'s ShizLists' : 'Share the stuff you love with ShizList'); ?>">
+    <meta property="og:description" content="<?php 
+        if ($listCount == 1) {
+            echo 'Join ' . htmlspecialchars($ownerName) . '\'s list: ' . htmlspecialchars($listTitles[0] ?? '');
+        } elseif ($listCount > 1) {
+            echo 'Join ' . $listCount . ' lists from ' . htmlspecialchars($ownerName);
+        } elseif ($shareAllLists) {
+            echo 'View all of ' . htmlspecialchars($ownerName) . '\'s lists';
+        } else {
+            echo 'Connect with ' . htmlspecialchars($ownerName) . ' on ShizList';
+        }
+    ?>">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://shizlist.co/invite/<?php echo htmlspecialchars($code); ?>">
     <meta property="og:image" content="https://shizlist.co/images/og-invite.png">
@@ -163,8 +164,58 @@ $appDeepLink = 'co.shizlist.app://invite/' . $code;
         .invite-detail {
             font-size: 16px;
             color: var(--text-primary);
-            margin-bottom: 32px;
+            margin-bottom: 24px;
             line-height: 1.5;
+        }
+        
+        .lists-preview {
+            background: rgba(255,255,255,0.6);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 24px;
+            text-align: left;
+        }
+        
+        .lists-preview-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+        }
+        
+        .list-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+        }
+        
+        .list-item:not(:last-child) {
+            border-bottom: 1px solid rgba(0,0,0,0.08);
+        }
+        
+        .list-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--primary);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .list-icon svg {
+            width: 18px;
+            height: 18px;
+            fill: white;
+        }
+        
+        .list-name {
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--text-primary);
         }
         
         .cta-button {
@@ -373,14 +424,32 @@ $appDeepLink = 'co.shizlist.app://invite/' . $code;
             </h1>
             
             <p class="invite-detail">
-                <?php if ($hasListShare): ?>
-                    You've been invited to the <strong>"<?php echo htmlspecialchars($listTitle); ?>"</strong> list.
+                <?php if ($listCount == 1): ?>
+                    You've been invited to join the <strong>"<?php echo htmlspecialchars($listTitles[0]); ?>"</strong> list.
+                <?php elseif ($listCount > 1): ?>
+                    You've been invited to join <?php echo $listCount; ?> lists from <?php echo htmlspecialchars($ownerName); ?>.
                 <?php elseif ($shareAllLists): ?>
                     You've been invited to view all of <?php echo htmlspecialchars($ownerName); ?>'s lists.
                 <?php else: ?>
                     You've been invited to connect on ShizList - the best way to share wish lists with friends and family.
                 <?php endif; ?>
             </p>
+            
+            <?php if ($listCount > 0): ?>
+            <div class="lists-preview">
+                <div class="lists-preview-title">Lists you'll be added to</div>
+                <?php foreach ($lists as $list): ?>
+                <div class="list-item">
+                    <div class="list-icon">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 12.75c1.63 0 3.07.39 4.24.9 1.08.48 1.76 1.56 1.76 2.73V18H6v-1.61c0-1.18.68-2.26 1.76-2.73 1.17-.52 2.61-.91 4.24-.91zM4 13c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm1.13 1.1c-.37-.06-.74-.1-1.13-.1-.99 0-1.93.21-2.78.58A2.01 2.01 0 000 16.43V18h4.5v-1.61c0-.83.23-1.61.63-2.29zM20 13c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm4 3.43c0-.81-.48-1.53-1.22-1.85A6.95 6.95 0 0020 14c-.39 0-.76.04-1.13.1.4.68.63 1.46.63 2.29V18H24v-1.57zM12 6c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3z"/>
+                        </svg>
+                    </div>
+                    <span class="list-name"><?php echo htmlspecialchars($list['title'] ?? 'Untitled List'); ?></span>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
             
             <!-- Desktop Message -->
             <div class="desktop-message">
@@ -458,13 +527,5 @@ $appDeepLink = 'co.shizlist.app://invite/' . $code;
             document.body.classList.add('is-desktop');
         }
     </script>
-    
-    <?php if ($debugMode && !$error): ?>
-    <!-- DEBUG OUTPUT - Remove after testing -->
-    <div style="position: fixed; bottom: 0; left: 0; right: 0; background: #333; color: #0f0; padding: 16px; font-family: monospace; font-size: 12px; max-height: 300px; overflow: auto; z-index: 9999;">
-        <strong>🔧 DEBUG INFO:</strong><br><br>
-        <pre><?php print_r($debugInfo); ?></pre>
-    </div>
-    <?php endif; ?>
 </body>
 </html>

@@ -17,10 +17,9 @@ class InviteService {
     return List.generate(8, (_) => chars[random.nextInt(chars.length)]).join();
   }
 
-  /// Create a new invite link
-  /// If [shareAllLists] is true, all non-private lists will be shared when accepted
-  /// If [listUid] is provided, only that specific list will be shared
-  Future<InviteLink> createInviteLink({String? listUid, bool shareAllLists = false}) async {
+  /// Create a new invite link with selected lists
+  /// [listUids] - List of list UIDs to share when invite is accepted
+  Future<InviteLink> createInviteLink({required List<String> listUids}) async {
     final userId = SupabaseService.currentUserId;
     if (userId == null) throw Exception('User not authenticated');
 
@@ -29,8 +28,10 @@ class InviteService {
     final data = {
       'owner_id': userId,
       'code': code,
-      'share_all_lists': shareAllLists,
-      if (listUid != null) 'list_uid': listUid,
+      'list_uids': listUids,
+      // Set legacy fields for backward compatibility
+      'share_all_lists': false,
+      'list_uid': listUids.isNotEmpty ? listUids.first : null,
     };
 
     final response =
@@ -46,7 +47,7 @@ class InviteService {
 
     final response = await _client
         .from(_tableName)
-        .select('*, lists(title)')
+        .select('*')
         .eq('owner_id', userId)
         .eq('is_active', true)
         .order('created_at', ascending: false);
@@ -60,7 +61,7 @@ class InviteService {
     final response =
         await _client
             .from(_tableName)
-            .select('*, lists(title)')
+            .select('*')
             .eq('code', code.toUpperCase())
             .eq('is_active', true)
             .maybeSingle();
@@ -79,6 +80,20 @@ class InviteService {
 
       if (ownerResponse != null) {
         response['users'] = ownerResponse;
+      }
+    }
+
+    // Fetch list titles for the list_uids
+    final listUids = response['list_uids'] as List?;
+    if (listUids != null && listUids.isNotEmpty) {
+      final listsResponse = await _client
+          .from('lists')
+          .select('uid, title')
+          .inFilter('uid', listUids.map((e) => e.toString()).toList());
+      
+      if (listsResponse.isNotEmpty) {
+        response['list_titles'] = listsResponse.map((l) => l['title']).toList();
+        response['lists'] = listsResponse;
       }
     }
 
@@ -119,8 +134,8 @@ class InviteService {
     return '$_baseUrl$code';
   }
 
-  /// Accept an invite - adds friend and optionally shares list
-  /// Returns a map with 'success', 'message', and optionally 'ownerName', 'listTitle'
+  /// Accept an invite - adds friend and shares selected lists
+  /// Returns a map with 'success', 'message', and optionally 'ownerName', 'listTitles'
   Future<Map<String, dynamic>> acceptInvite(String code) async {
     final userId = SupabaseService.currentUserId;
     if (userId == null) {
@@ -162,62 +177,38 @@ class InviteService {
       });
     }
 
-    // Share lists based on invite settings
+    // Share lists - use effectiveListUids to handle both new and legacy invites
+    final listUidsToShare = invite.effectiveListUids;
+    int listsShared = 0;
+    
     try {
-      if (invite.shareAllLists) {
+      // Handle legacy shareAllLists flag
+      if (invite.shareAllLists && listUidsToShare.isEmpty) {
         // Share all non-private lists from the invite owner
         final listsResponse = await _client
-                .from('lists')
-                .select('uid')
+            .from('lists')
+            .select('uid')
             .eq('owner_id', invite.ownerId)
             .neq('visibility', 'private')
             .eq('is_deleted', false);
 
         for (final listData in listsResponse as List) {
           final listUid = listData['uid'] as String;
-
-          // Check if list is already shared
-          final existingShare =
-              await _client
-                  .from('list_shares')
-                  .select('id')
-                  .eq('list_uid', listUid)
-                  .eq('shared_with_user_id', userId)
-                  .maybeSingle();
-
-          if (existingShare == null) {
-            await _client.from('list_shares').insert({
-              'list_uid': listUid,
-              'shared_with_user_id': userId,
-              'can_edit': false,
-            });
+          if (await _shareListWithUser(listUid, userId)) {
+            listsShared++;
           }
         }
-      } else if (invite.listUid != null) {
-        // Share specific list - we already have the UID
-        final listUid = invite.listUid!;
-
-          // Check if list is already shared
-          final existingShare =
-              await _client
-                  .from('list_shares')
-                  .select('id')
-                  .eq('list_uid', listUid)
-                  .eq('shared_with_user_id', userId)
-                  .maybeSingle();
-
-          if (existingShare == null) {
-            await _client.from('list_shares').insert({
-              'list_uid': listUid,
-              'shared_with_user_id': userId,
-              'can_edit': false,
-            });
+      } else {
+        // Share specific lists from the invite
+        for (final listUid in listUidsToShare) {
+          if (await _shareListWithUser(listUid, userId)) {
+            listsShared++;
           }
         }
-      } catch (e) {
-        // List sharing failed due to RLS policy - friendship is still created
-        // The list owner can share manually later
-        debugPrint('List sharing failed (RLS): $e');
+      }
+    } catch (e) {
+      // List sharing failed due to RLS policy - friendship is still created
+      debugPrint('List sharing failed (RLS): $e');
     }
 
     // Increment uses count
@@ -227,15 +218,51 @@ class InviteService {
       // Non-critical error, continue
     }
 
+    // Build response message
+    String message;
+    if (existingFriend != null) {
+      if (listsShared > 0) {
+        message = 'Added to $listsShared new list${listsShared > 1 ? 's' : ''} from ${invite.ownerName ?? 'your friend'}!';
+      } else {
+        message = 'You\'re already connected with ${invite.ownerName ?? 'this user'}';
+      }
+    } else {
+      if (listsShared > 0) {
+        message = 'Connected with ${invite.ownerName ?? 'your new friend'} and added to $listsShared list${listsShared > 1 ? 's' : ''}!';
+      } else {
+        message = 'You\'re now connected with ${invite.ownerName ?? 'your new friend'}!';
+      }
+    }
+
     return {
       'success': true,
-      'message':
-          existingFriend != null
-              ? 'You\'re already connected with ${invite.ownerName ?? 'this user'}'
-              : 'You\'re now connected with ${invite.ownerName ?? 'your new friend'}!',
+      'message': message,
       'ownerName': invite.ownerName,
-      'listTitle': invite.listTitle,
+      'listTitles': invite.listTitles,
+      'listsShared': listsShared,
       'alreadyFriends': existingFriend != null,
     };
+  }
+
+  /// Helper to share a list with a user (checks for existing share)
+  Future<bool> _shareListWithUser(String listUid, String userId) async {
+    // Check if list is already shared
+    final existingShare =
+        await _client
+            .from('list_shares')
+            .select('id')
+            .eq('list_uid', listUid)
+            .eq('shared_with_user_id', userId)
+            .maybeSingle();
+
+    if (existingShare == null) {
+      await _client.from('list_shares').insert({
+        'list_uid': listUid,
+        'shared_with_user_id': userId,
+        'can_edit': false,
+      });
+      return true; // New share created
+    }
+    return false; // Already shared
   }
 }
